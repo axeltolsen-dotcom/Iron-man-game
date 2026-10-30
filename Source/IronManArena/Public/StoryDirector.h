@@ -142,7 +142,8 @@ public:
 	const FStoryObjective* GetCurrentObjective() const;
 	AStoryBeacon* GetBeacon() const { return Beacon; }
 	AStoryAlly* GetActiveAlly() const { return Ally; }
-	bool HasAlly(FName AllyId) const { return Allies.Contains(AllyId); }
+	/** Unlocked allies, plus any ally a side mission's objective names (side missions lend their ally, e.g. Vison's signal before ch7). */
+	bool HasAlly(FName AllyId) const { return Allies.Contains(AllyId) || (bSideMission && !AllyId.IsNone()); }
 	void GetObjectiveEnemies(TArray<AEnemyBase*>& Out) const;
 	UStoryNamePromptWidget* GetHeroPrompt() const { return Prompt; }
 	/** One entry per chapter of story.json, reset by StartStory. */

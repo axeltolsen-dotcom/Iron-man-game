@@ -990,7 +990,7 @@ void AStoryDirector::HandleSummonAlly()
 	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return; }
 	const FName AllyId = Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex].AllyAvailable;
 	AArenaGameMode* GM = GetGM();
-	if (AllyId.IsNone() || !Allies.Contains(AllyId) || !GM) { return; }
+	if (AllyId.IsNone() || !HasAlly(AllyId) || !GM) { return; }
 	if (Ally) { return; }
 	if (AllyCooldownLeft > 0.f)
 	{
@@ -1111,7 +1111,7 @@ FText AStoryDirector::GetAllyHint() const
 	const FStoryChapter& C = Story.Chapters[ChapterIndex];
 	if (!C.Objectives.IsValidIndex(ObjectiveIndex)) { return FText::GetEmpty(); }
 	const FName AllyId = C.Objectives[ObjectiveIndex].AllyAvailable;
-	if (AllyId.IsNone() || !Allies.Contains(AllyId)) { return FText::GetEmpty(); }
+	if (AllyId.IsNone() || !HasAlly(AllyId)) { return FText::GetEmpty(); }
 	const FText Label = UStoryLibrary::GetSpeakerLabel(AllyId, PlayerName);
 	if (Ally) { return FText::Format(LOCTEXT("AllyActive", "{0}  {1} s"), Label, FText::AsNumber(FMath::CeilToInt(Ally->GetTimeLeft()))); }
 	if (AllyCooldownLeft > 0.f) { return FText::Format(LOCTEXT("AllyCd", "{0} RECHARGING  {1} s"), Label, FText::AsNumber(FMath::CeilToInt(AllyCooldownLeft))); }
