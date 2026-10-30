@@ -1124,7 +1124,11 @@ namespace
 		}
 		UStaticMesh* Mesh = NewObject<UStaticMesh>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UStaticMesh::StaticClass(),
 			FName(*(TEXT("SM_Armor_") + DebugName))), RF_Transient);
+#if WITH_EDITORONLY_DATA
 		Mesh->GetStaticMaterials().Add(FStaticMaterial(nullptr, FName(TEXT("Plate")), FName(TEXT("Plate"))));
+#else
+		Mesh->GetStaticMaterials().Add(FStaticMaterial(nullptr, FName(TEXT("Plate"))));
+#endif
 		UStaticMesh::FBuildMeshDescriptionsParams Params;
 		Params.bMarkPackageDirty = false;
 		Params.bUseHashAsGuid = true;

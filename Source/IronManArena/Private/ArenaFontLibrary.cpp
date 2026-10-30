@@ -24,7 +24,9 @@ int32 UArenaFontLibrary::BuildCompositeFont(UFont* Font, const TArray<FName>& Ty
 		Entry.Font = FFontData(Faces[i]);
 		++Written;
 	}
+#if WITH_EDITOR
 	Font->PostEditChange();
+#endif
 	Font->MarkPackageDirty();
 	return Written;
 }
