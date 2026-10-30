@@ -32,6 +32,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "Fab",
+			"Enabled": false
+		},
+		{
 			"Name": "MetaHumanCoreTech",
 			"Enabled": true,
 			"Optional": true
