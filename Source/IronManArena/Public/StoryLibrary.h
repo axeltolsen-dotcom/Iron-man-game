@@ -13,6 +13,7 @@
 #include "StoryLibrary.generated.h"
 
 struct FAILine;
+class FJsonObject;
 class USoundBase;
 
 UCLASS()
@@ -30,6 +31,23 @@ public:
 
 	/** Parses a story json string (used by GetStory; public for tests / tools). */
 	static bool ParseStory(const FString& Json, FStoryBook& Out, FString& OutError);
+
+	/** side_missions.json / codex.json parsers (public for tests). Root = the parsed file. */
+	static bool ParseSideMissions(const TSharedPtr<FJsonObject>& Root, TArray<FStoryChapter>& Out);
+	static bool ParseCodex(const TSharedPtr<FJsonObject>& Root, TArray<FStoryCodexEntry>& Out);
+
+	/** Loads the optional side_missions.json + codex.json next to story.json into Book. */
+	static void LoadExtras(FStoryBook& Book);
+
+	/** Chapter id -> order (prologue -1, finale Chapters.Num(), unknown MAX_int32). */
+	static int32 ChapterOrder(const FStoryBook& Book, FName ChapterId);
+
+	/** ChapterReached = UArenaSaveGame::StoryChapterReached (next chapter the player may start). */
+	static bool IsSideMissionAvailable(const FStoryBook& Book, const FStoryChapter& Mission, int32 ChapterReached, bool bStoryComplete);
+
+	/** Chapter entries unlock when their chapter is finished; side-mission entries when granted. */
+	static bool IsCodexUnlocked(const FStoryBook& Book, const FStoryCodexEntry& Entry, int32 ChapterReached, bool bStoryComplete,
+		bool bPrologueSeen, const TArray<FName>& Granted);
 
 	/** Morgan's comms chatter (Content/Story/morgan.json) as AI lines for UJarvisComponent. */
 	static TArray<FAILine> LoadCommsSpeakerLines(FName Speaker, const FString& FileName, bool bLoadSounds = true);

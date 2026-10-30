@@ -77,6 +77,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "IronMan|Suits")
 	void ApplySuit(int32 Index);
 
+	/** Re-reads the save's side-mission rewards (reactor upgrades, white trim, plaid decal) and
+	 *  repaints the current suit. Called at BeginPlay and by the story director after a reward. */
+	void ApplyRewards();
+
+	bool HasPlaidDecal() const { return PlaidDecal != nullptr && PlaidDecal->IsVisible(); }
+
 	/** In-game swap: plays the short (2 s) suit-up cinematic, the new suit's AI takes over. */
 	UFUNCTION(BlueprintCallable, Category = "IronMan|Suits")
 	bool RequestSuitSwap(int32 Index);
@@ -91,7 +97,7 @@ public:
 	bool IsInCinematic() const { return bInCinematic; }
 
 	/** The suit-up cinematic hides the real armour while flying copies of the parts in. */
-	void SetBodyHiddenForCinematic(bool bHidden) { bCinematicHideBody = bHidden; RefreshSuitVisibility(); }
+	void SetBodyHiddenForCinematic(bool bInHidden) { bCinematicHideBody = bInHidden; RefreshSuitVisibility(); }
 
 	/** Enemies ignore the player while cloaked or during a cinematic. */
 	bool IsHiddenFromEnemies() const { return bInCinematic || CloakLeft > 0.f || bDead; }
@@ -455,6 +461,12 @@ public:
 	TObjectPtr<UInputAction> AllyAction;        // Bool    G (story: summon ally)
 
 protected:
+	/** Cosmetic reward garage-plaid-decal: a small flannel patch on the left shoulder (third person). */
+	UPROPERTY(Transient)
+	TObjectPtr<class UDecalComponent> PlaidDecal;
+
+	bool bPlaidWanted = false;
+
 	virtual void BeginPlay() override;
 
 	// ------------------------------------------------------------------ input handlers

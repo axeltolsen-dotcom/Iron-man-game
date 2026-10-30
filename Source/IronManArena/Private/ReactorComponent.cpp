@@ -18,7 +18,13 @@ float UReactorComponent::GetRegenMultiplier() const
 
 float UReactorComponent::GetCapacityMultiplier() const
 {
-	return 1.f + OutputPerLevel * OutputLevel;
+	return (1.f + OutputPerLevel * OutputLevel) * (1.f + PermanentCapacityBonus);
+}
+
+void UReactorComponent::SetPermanentUpgrades(bool bCapacitorBank, bool bHeatSinkFins)
+{
+	PermanentCapacityBonus = bCapacitorBank ? FMath::Max(0.f, CapacitorBankBonus) : 0.f;
+	PermanentCoolingBonus = bHeatSinkFins ? FMath::Max(0.f, HeatSinkFinsBonus) : 0.f;
 }
 
 void UReactorComponent::AddHeat(float Amount)

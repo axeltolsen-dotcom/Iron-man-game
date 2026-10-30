@@ -52,6 +52,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Reactor")
 	void SetUpgradeLevel(EReactorUpgrade Upgrade, int32 Level);
 
+	/** Permanent side-mission rewards (Content/Story/side_missions.json, saved in UArenaSaveGame):
+	 *  repulsor-capacitor-bank = +CapacitorBankBonus max energy, heat-sink-fins = +HeatSinkFinsBonus cooling.
+	 *  They stack on top of the story stage upgrades and survive ApplyStage / ResetReactor. */
+	void SetPermanentUpgrades(bool bCapacitorBank, bool bHeatSinkFins);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reactor|Rewards")
+	float CapacitorBankBonus = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reactor|Rewards")
+	float HeatSinkFinsBonus = 0.25f;
+
+	float GetPermanentCapacityBonus() const { return PermanentCapacityBonus; }
+	float GetPermanentCoolingBonus() const { return PermanentCoolingBonus; }
+
 	UFUNCTION(BlueprintPure, Category = "Reactor")
 	int32 GetUpgradeLevel(EReactorUpgrade Upgrade) const;
 
@@ -215,10 +229,13 @@ public:
 
 private:
 	void SetOverheated(bool bNew);
-	float CoolingMultiplier() const { return 1.f + CoolingPerLevel * CoolingLevel; }
+	float CoolingMultiplier() const { return (1.f + CoolingPerLevel * CoolingLevel) * (1.f + PermanentCoolingBonus); }
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Reactor|State")
 	float Heat = 0.f;
+
+	float PermanentCapacityBonus = 0.f;
+	float PermanentCoolingBonus = 0.f;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "Reactor|State")
 	bool bOverheated = false;

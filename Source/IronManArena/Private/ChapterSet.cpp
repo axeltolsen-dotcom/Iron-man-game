@@ -205,6 +205,8 @@ void AChapterSet::StreetLamp(const FVector& Loc, float Yaw, bool bOn)
 	}
 }
 
+bool AChapterSet::bHallPodLighting = false;
+
 void AChapterSet::DisplaySuit(const FVector& Loc, float Yaw, const FLinearColor& Primary, const FLinearColor& Secondary, bool bCaseLit)
 {
 	USceneComponent* S = Pivot(Root, Loc, FRotator(0, Yaw, 0));
@@ -235,6 +237,17 @@ void AChapterSet::DisplaySuit(const FVector& Loc, float Yaw, const FLinearColor&
 	{
 		const FVector Up = Loc + FVector(0, 0, 300);
 		SpotLight(Up, FRotator(-90, 0, 0), FLinearColor(0.9f, 0.95f, 1.f), 900.f, 500.f, 18.f, 34.f, false);
+		if (bHallPodLighting)
+		{
+			// Museum-style pod lighting: 3000 K key from the front-top, 6500 K rim from behind, and a
+			// halo ring (~1500 nits) round the plinth.
+			const FVector Fwd = FRotator(0, Yaw, 0).Vector();
+			SpotLight(Loc + Fwd * 220.f + FVector(0, 0, 330), (FVector(0, 0, 150) - (Fwd * 220.f + FVector(0, 0, 330))).Rotation(),
+				FLinearColor(1.f, 0.82f, 0.62f), 1400.f, 600.f, 14.f, 26.f, true);
+			SpotLight(Loc - Fwd * 160.f + FVector(0, 0, 300), (FVector(0, 0, 180) - (-Fwd * 160.f + FVector(0, 0, 300))).Rotation(),
+				FLinearColor(0.85f, 0.92f, 1.f), 700.f, 500.f, 16.f, 30.f, false);
+			Shape(EArenaShape::Cylinder, FVector(0, 0, 29.5f), FVector(160, 160, 2.f), FRotator::ZeroRotator, FLinearColor(1.f, 0.9f, 0.75f), EArenaSurface::Glow, false, 1.5f, S); // rim peeks 5 cm round the plinth top
+		}
 	}
 }
 

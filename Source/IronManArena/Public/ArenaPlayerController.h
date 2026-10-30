@@ -42,6 +42,7 @@ public:
 	void MenuConfirmSuit(int32 SuitIndex);
 	void MenuOpenStory();
 	void MenuStartStory(int32 ChapterIndex, bool bPlayPrologue);
+	void MenuStartSideMission(FName MissionId);
 	void MenuOpenSettings();
 	/** Close the current sub screen and return to the main menu in its previous mode. */
 	void MenuBack();

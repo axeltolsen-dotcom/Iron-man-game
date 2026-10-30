@@ -105,6 +105,85 @@ namespace
 		return R;
 	}
 
+	void ParseChapter(const TSharedPtr<FJsonObject>& C, FStoryChapter& Ch)
+	{
+		const FString Id = GetStr(C, TEXT("id"));
+		Ch.Id = FName(*Id);
+		Ch.Title = GetStr(C, TEXT("title"));
+		Ch.Location = FName(*GetStr(C, TEXT("location")));
+		Ch.UnlockSuit = FName(*GetStr(C, TEXT("unlockSuit")));
+		const FString Ally = GetStr(C, TEXT("unlockAlly"));
+		Ch.UnlockAlly = Ally.IsEmpty() ? NAME_None : FName(*Ally.ToLower());
+		Ch.Reactor = ParseReactor(GetObj(C, TEXT("reactor")));
+		Ch.Lore = GetStr(C, TEXT("lore"));
+		ParseShots(GetObj(C, TEXT("intro")), Id + TEXT("_intro"), Ch.Intro);
+		ParseShots(GetObj(C, TEXT("outro")), Id + TEXT("_outro"), Ch.Outro);
+
+		if (const TArray<TSharedPtr<FJsonValue>>* Objs = GetArr(C, TEXT("objectives")))
+		{
+			int32 ObjIndex = 0;
+			for (const TSharedPtr<FJsonValue>& OV : *Objs)
+			{
+				++ObjIndex;
+				const TSharedPtr<FJsonObject> O = OV.IsValid() ? OV->AsObject() : nullptr;
+				if (!O.IsValid()) { continue; }
+				FStoryObjective Obj;
+				Obj.TypeName = GetStr(O, TEXT("type"));
+				Obj.Type = ParseObjectiveType(Obj.TypeName);
+				Obj.Target = GetStr(O, TEXT("target"));
+				Obj.Text = GetStr(O, TEXT("text"));
+				int32 Count = 1;
+				if (O->TryGetNumberField(TEXT("count"), Count)) { Obj.Count = FMath::Max(1, Count); }
+				// allyAvailable is a bool in the script ("the chapter's ally"); a string names one.
+				bool bAlly = false;
+				FString AllyName;
+				if (O->TryGetBoolField(TEXT("allyAvailable"), bAlly) && bAlly) { Obj.AllyAvailable = FName(TEXT("vison")); }
+				else if (O->TryGetStringField(TEXT("allyAvailable"), AllyName) && !AllyName.IsEmpty()) { Obj.AllyAvailable = FName(*AllyName.ToLower()); }
+
+				if (const TArray<TSharedPtr<FJsonValue>>* Comms = GetArr(O, TEXT("comms")))
+				{
+					for (const TSharedPtr<FJsonValue>& CV : *Comms)
+					{
+						const TSharedPtr<FJsonObject> CO = CV.IsValid() ? CV->AsObject() : nullptr;
+						if (!CO.IsValid()) { continue; }
+						const FString Trig = GetStr(CO, TEXT("trigger")).ToLower();
+						FStoryComms Cm;
+						Cm.Trigger = Trig == TEXT("progress") ? EStoryCommsTrigger::Progress
+							: (Trig == TEXT("complete") ? EStoryCommsTrigger::Complete : EStoryCommsTrigger::Start);
+						Cm.Line = ParseLine(CO, FString::Printf(TEXT("%s_obj%d_%s"), *Id, ObjIndex, *Trig));
+						if (!Cm.Line.Text.IsEmpty()) { Obj.Comms.Add(MoveTemp(Cm)); }
+					}
+				}
+				if (Obj.Type == EStoryObjectiveType::Unknown)
+				{
+					UE_LOG(LogIronManArena, Warning, TEXT("Story: %s objective %d has unknown type '%s' (treated as a wave)"), *Id, ObjIndex, *Obj.TypeName);
+				}
+				Ch.Objectives.Add(MoveTemp(Obj));
+			}
+		}
+	}
+
+	FName GetName(const TSharedPtr<FJsonObject>& O, const TCHAR* Key)
+	{
+		const FString S = GetStr(O, Key);
+		return S.IsEmpty() ? NAME_None : FName(*S);
+	}
+
+	bool LoadJsonRoot(const FString& FileName, TSharedPtr<FJsonObject>& Root, bool& bFileFound)
+	{
+		const FString Path = FPaths::Combine(UStoryLibrary::GetStoryDir(), FileName);
+		FString Json;
+		bFileFound = FFileHelper::LoadFileToString(Json, *Path);
+		if (!bFileFound) { return false; }
+		const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Json);
+		if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
+		{
+			UE_LOG(LogIronManArena, Error, TEXT("Story: failed to parse %s: %s"), *Path, *Reader->GetErrorMessage());
+			return false;
+		}
+		return true;
+	}
+
 	bool ParseEventName(const FString& Key, EAIEvent& Out)
 	{
 		static const TMap<FString, EAIEvent> Map =
@@ -181,60 +260,7 @@ bool UStoryLibrary::ParseStory(const FString& Json, FStoryBook& Out, FString& Ou
 			const TSharedPtr<FJsonObject> C = V.IsValid() ? V->AsObject() : nullptr;
 			if (!C.IsValid()) { continue; }
 			FStoryChapter Ch;
-			const FString Id = GetStr(C, TEXT("id"));
-			Ch.Id = FName(*Id);
-			Ch.Title = GetStr(C, TEXT("title"));
-			Ch.Location = FName(*GetStr(C, TEXT("location")));
-			Ch.UnlockSuit = FName(*GetStr(C, TEXT("unlockSuit")));
-			const FString Ally = GetStr(C, TEXT("unlockAlly"));
-			Ch.UnlockAlly = Ally.IsEmpty() ? NAME_None : FName(*Ally.ToLower());
-			Ch.Reactor = ParseReactor(GetObj(C, TEXT("reactor")));
-			Ch.Lore = GetStr(C, TEXT("lore"));
-			ParseShots(GetObj(C, TEXT("intro")), Id + TEXT("_intro"), Ch.Intro);
-			ParseShots(GetObj(C, TEXT("outro")), Id + TEXT("_outro"), Ch.Outro);
-
-			if (const TArray<TSharedPtr<FJsonValue>>* Objs = GetArr(C, TEXT("objectives")))
-			{
-				int32 ObjIndex = 0;
-				for (const TSharedPtr<FJsonValue>& OV : *Objs)
-				{
-					++ObjIndex;
-					const TSharedPtr<FJsonObject> O = OV.IsValid() ? OV->AsObject() : nullptr;
-					if (!O.IsValid()) { continue; }
-					FStoryObjective Obj;
-					Obj.TypeName = GetStr(O, TEXT("type"));
-					Obj.Type = ParseObjectiveType(Obj.TypeName);
-					Obj.Target = GetStr(O, TEXT("target"));
-					Obj.Text = GetStr(O, TEXT("text"));
-					int32 Count = 1;
-					if (O->TryGetNumberField(TEXT("count"), Count)) { Obj.Count = FMath::Max(1, Count); }
-					// allyAvailable is a bool in the script ("the chapter's ally"); a string names one.
-					bool bAlly = false;
-					FString AllyName;
-					if (O->TryGetBoolField(TEXT("allyAvailable"), bAlly) && bAlly) { Obj.AllyAvailable = FName(TEXT("vison")); }
-					else if (O->TryGetStringField(TEXT("allyAvailable"), AllyName) && !AllyName.IsEmpty()) { Obj.AllyAvailable = FName(*AllyName.ToLower()); }
-
-					if (const TArray<TSharedPtr<FJsonValue>>* Comms = GetArr(O, TEXT("comms")))
-					{
-						for (const TSharedPtr<FJsonValue>& CV : *Comms)
-						{
-							const TSharedPtr<FJsonObject> CO = CV.IsValid() ? CV->AsObject() : nullptr;
-							if (!CO.IsValid()) { continue; }
-							const FString Trig = GetStr(CO, TEXT("trigger")).ToLower();
-							FStoryComms Cm;
-							Cm.Trigger = Trig == TEXT("progress") ? EStoryCommsTrigger::Progress
-								: (Trig == TEXT("complete") ? EStoryCommsTrigger::Complete : EStoryCommsTrigger::Start);
-							Cm.Line = ParseLine(CO, FString::Printf(TEXT("%s_obj%d_%s"), *Id, ObjIndex, *Trig));
-							if (!Cm.Line.Text.IsEmpty()) { Obj.Comms.Add(MoveTemp(Cm)); }
-						}
-					}
-					if (Obj.Type == EStoryObjectiveType::Unknown)
-					{
-						UE_LOG(LogIronManArena, Warning, TEXT("Story: %s objective %d has unknown type '%s' (treated as a wave)"), *Id, ObjIndex, *Obj.TypeName);
-					}
-					Ch.Objectives.Add(MoveTemp(Obj));
-				}
-			}
+			ParseChapter(C, Ch);
 			Out.Chapters.Add(MoveTemp(Ch));
 		}
 	}
@@ -259,6 +285,115 @@ bool UStoryLibrary::ParseStory(const FString& Json, FStoryBook& Out, FString& Ou
 	return true;
 }
 
+bool UStoryLibrary::ParseSideMissions(const TSharedPtr<FJsonObject>& Root, TArray<FStoryChapter>& Out)
+{
+	Out.Reset();
+	const TArray<TSharedPtr<FJsonValue>>* Missions = GetArr(Root, TEXT("missions"));
+	if (!Missions) { return false; }
+	for (const TSharedPtr<FJsonValue>& V : *Missions)
+	{
+		const TSharedPtr<FJsonObject> M = V.IsValid() ? V->AsObject() : nullptr;
+		if (!M.IsValid()) { continue; }
+		FStoryChapter Ch;
+		ParseChapter(M, Ch);
+		if (Ch.Id.IsNone()) { continue; }
+		Ch.bSideMission = true;
+		Ch.AvailableFrom = GetName(M, TEXT("availableFrom"));
+		Ch.AvailableUntil = GetName(M, TEXT("availableUntil"));
+		if (const TSharedPtr<FJsonObject> R = GetObj(M, TEXT("reward")))
+		{
+			Ch.RewardCodex = GetName(R, TEXT("codex"));
+			Ch.RewardUpgrade = GetName(R, TEXT("upgrade"));
+			Ch.RewardCosmetic = GetName(R, TEXT("cosmetic"));
+		}
+		Out.Add(MoveTemp(Ch));
+	}
+	return Out.Num() > 0;
+}
+
+bool UStoryLibrary::ParseCodex(const TSharedPtr<FJsonObject>& Root, TArray<FStoryCodexEntry>& Out)
+{
+	Out.Reset();
+	const TArray<TSharedPtr<FJsonValue>>* Entries = GetArr(Root, TEXT("entries"));
+	if (!Entries) { return false; }
+	for (const TSharedPtr<FJsonValue>& V : *Entries)
+	{
+		const TSharedPtr<FJsonObject> E = V.IsValid() ? V->AsObject() : nullptr;
+		if (!E.IsValid()) { continue; }
+		FStoryCodexEntry Entry;
+		Entry.Id = GetName(E, TEXT("id"));
+		if (Entry.Id.IsNone()) { continue; }
+		Entry.Title = GetStr(E, TEXT("title"));
+		Entry.Category = GetName(E, TEXT("category"));
+		Entry.UnlockChapter = GetName(E, TEXT("unlockChapter"));
+		Entry.UnlockedBy = GetName(E, TEXT("unlockedBy"));
+		Entry.Body = GetStr(E, TEXT("body"));
+		if (const TArray<TSharedPtr<FJsonValue>>* Suits = GetArr(E, TEXT("suits")))
+		{
+			for (const TSharedPtr<FJsonValue>& SV : *Suits) { if (SV.IsValid()) { Entry.Suits.Add(FName(*SV->AsString())); } }
+		}
+		Out.Add(MoveTemp(Entry));
+	}
+	return Out.Num() > 0;
+}
+
+void UStoryLibrary::LoadExtras(FStoryBook& Book)
+{
+	TSharedPtr<FJsonObject> Root;
+	bool bFound = false;
+	if (LoadJsonRoot(TEXT("side_missions.json"), Root, bFound)) { ParseSideMissions(Root, Book.SideMissions); }
+	else if (!bFound) { UE_LOG(LogIronManArena, Log, TEXT("Story: no side_missions.json (side missions off)")); }
+
+	Root.Reset();
+	if (LoadJsonRoot(TEXT("codex.json"), Root, bFound)) { ParseCodex(Root, Book.Codex); }
+	else if (!bFound) { UE_LOG(LogIronManArena, Log, TEXT("Story: no codex.json (codex off)")); }
+
+	for (const FStoryChapter& M : Book.SideMissions)
+	{
+		if (!M.AvailableFrom.IsNone() && Book.FindChapter(M.AvailableFrom) == INDEX_NONE)
+		{
+			UE_LOG(LogIronManArena, Warning, TEXT("Story: side mission %s availableFrom '%s' is not a chapter"), *M.Id.ToString(), *M.AvailableFrom.ToString());
+		}
+		if (!M.RewardCodex.IsNone() && !Book.Codex.ContainsByPredicate([&M](const FStoryCodexEntry& E) { return E.Id == M.RewardCodex; }))
+		{
+			UE_LOG(LogIronManArena, Warning, TEXT("Story: side mission %s rewards unknown codex entry '%s'"), *M.Id.ToString(), *M.RewardCodex.ToString());
+		}
+	}
+	UE_LOG(LogIronManArena, Log, TEXT("Story: %d side missions, %d codex entries"), Book.SideMissions.Num(), Book.Codex.Num());
+}
+
+int32 UStoryLibrary::ChapterOrder(const FStoryBook& Book, FName ChapterId)
+{
+	if (ChapterId.IsNone()) { return INDEX_NONE; }
+	if (ChapterId == FName(TEXT("prologue"))) { return -1; }
+	if (ChapterId == FName(TEXT("finale"))) { return Book.Chapters.Num(); }
+	const int32 Index = Book.FindChapter(ChapterId);
+	return Index == INDEX_NONE ? MAX_int32 : Index;
+}
+
+bool UStoryLibrary::IsSideMissionAvailable(const FStoryBook& Book, const FStoryChapter& Mission, int32 ChapterReached, bool bStoryComplete)
+{
+	if (bStoryComplete) { return true; } // replay everything after the credits
+	const int32 From = Mission.AvailableFrom.IsNone() ? 0 : ChapterOrder(Book, Mission.AvailableFrom);
+	const int32 Until = Mission.AvailableUntil.IsNone() ? MAX_int32 : ChapterOrder(Book, Mission.AvailableUntil);
+	// ChapterReached = the next chapter the player may start; a mission opens once its
+	// availableFrom chapter has been reached and closes after availableUntil is finished.
+	return ChapterReached >= From && ChapterReached <= Until;
+}
+
+bool UStoryLibrary::IsCodexUnlocked(const FStoryBook& Book, const FStoryCodexEntry& Entry, int32 ChapterReached, bool bStoryComplete,
+	bool bPrologueSeen, const TArray<FName>& Granted)
+{
+	if (Granted.Contains(Entry.Id)) { return true; }
+	if (!Entry.UnlockedBy.IsNone()) { return false; } // side-mission reward only
+	if (Entry.UnlockChapter.IsNone()) { return true; }
+	if (Entry.UnlockChapter == FName(TEXT("prologue"))) { return bPrologueSeen || ChapterReached > 0 || bStoryComplete; }
+	if (Entry.UnlockChapter == FName(TEXT("finale"))) { return bStoryComplete; }
+	const int32 Index = Book.FindChapter(Entry.UnlockChapter);
+	// Unlocked by finishing the chapter (ChapterReached is past it).
+	return bStoryComplete || (Index != INDEX_NONE && ChapterReached > Index);
+}
+
 bool UStoryLibrary::ReloadStory()
 {
 	GStoryLoaded = true;
@@ -277,6 +412,7 @@ bool UStoryLibrary::ReloadStory()
 		GStory = FStoryBook();
 		return false;
 	}
+	LoadExtras(GStory);
 	for (const FStoryChapter& C : GStory.Chapters)
 	{
 		if (!C.UnlockSuit.IsNone() && USuitLibrary::FindSuitIndex(C.UnlockSuit) == INDEX_NONE)

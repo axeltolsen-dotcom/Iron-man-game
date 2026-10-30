@@ -96,6 +96,22 @@ public:
 	 */
 	void StartStory(int32 ChapterIndex, bool bPlayPrologue, bool bSkipIntro = false);
 
+	/**
+	 * Plays a side mission (Content/Story/side_missions.json) as a one-chapter run. It never
+	 * advances main-story progress; finishing it grants its reward (codex entry + upgrade or
+	 * cosmetic, saved in UArenaSaveGame) and returns to the title. False if unknown / no player.
+	 * bIgnoreAvailability skips the availableFrom/Until window (tests, debug).
+	 */
+	bool StartSideMission(FName MissionId, bool bSkipIntro = false, bool bIgnoreAvailability = false);
+
+	bool IsSideMission() const { return bSideMission; }
+	FName GetSideMissionId() const { return bSideMission && SideBook.Chapters.Num() > 0 ? SideBook.Chapters[0].Id : NAME_None; }
+	/** True once the current side mission's reward was granted (tests). */
+	bool WasSideRewardGranted() const { return bSideRewardGranted; }
+
+	/** The book being played: the main story, or the one-chapter side-mission book. */
+	const FStoryBook& GetBook() const;
+
 	/** Tears down cutscene / objective actors and restores the player (arena mode, title). */
 	void StopStory();
 
@@ -252,6 +268,17 @@ protected:
 	bool bStoryCompleted = false;
 	EStoryStep Step = EStoryStep::Idle;
 	int32 ChapterIndex = 0;
+
+	// ---- side missions
+	void StartRun(int32 InChapterIndex, bool bPlayPrologue, bool bSkipIntro);
+	void GrantSideReward(const FStoryChapter& Mission);
+	/** Main-story chapter that sets suits / reactor / difficulty (ChapterIndex in the main story). */
+	int32 DifficultyChapter() const { return bSideMission ? SideMainIndex : ChapterIndex; }
+
+	FStoryBook SideBook;
+	bool bSideMission = false;
+	bool bSideRewardGranted = false;
+	int32 SideMainIndex = 0;
 	int32 ObjectiveIndex = 0;
 	bool bInFinale = false;
 	bool bInPrologue = false;

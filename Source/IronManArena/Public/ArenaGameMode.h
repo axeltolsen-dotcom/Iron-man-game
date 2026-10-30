@@ -67,6 +67,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Arena|Story")
 	void StartStory(int32 ChapterIndex = -1, bool bPlayPrologue = false);
 
+	/** Side mission from side_missions.json (story mode rules, no main-story progress). */
+	UFUNCTION(BlueprintCallable, Category = "Arena|Story")
+	bool StartSideMission(FName MissionId, bool bIgnoreAvailability = false);
+
 	/** Retry after death: arena mode restarts, story mode restarts the current chapter's objectives. */
 	UFUNCTION(BlueprintCallable, Category = "Arena")
 	void RestartCurrentMode();

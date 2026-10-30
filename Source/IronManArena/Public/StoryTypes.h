@@ -196,6 +196,61 @@ struct IRONMANARENA_API FStoryChapter
 	 *  Reserved for lore and Vision Quest nods - see Docs/LORE.md. Empty in the shipped script. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
 	FString Lore;
+
+	// ---- Side missions (Content/Story/side_missions.json, Friday's contrib) ----
+
+	/** True for side missions: played as a one-chapter book, never advances the main story. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story|Side")
+	bool bSideMission = false;
+
+	/** Main-story chapter ids bounding when the mission is offered (see UStoryLibrary::IsSideMissionAvailable). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story|Side")
+	FName AvailableFrom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story|Side")
+	FName AvailableUntil;
+
+	/** reward { codex, upgrade | cosmetic } */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story|Side")
+	FName RewardCodex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story|Side")
+	FName RewardUpgrade;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story|Side")
+	FName RewardCosmetic;
+};
+
+/** One lore entry from Content/Story/codex.json (Friday's contrib). */
+USTRUCT(BlueprintType)
+struct IRONMANARENA_API FStoryCodexEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	FName Id;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	FString Title;
+
+	/** places / characters / suits / tech / ai / enemies */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	FName Category;
+
+	/** Chapter id (or prologue / finale) whose completion unlocks the entry. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	FName UnlockChapter;
+
+	/** Side mission id that unlocks the entry instead (its reward). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	FName UnlockedBy;
+
+	/** Suit ids the entry covers (suit entries). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	TArray<FName> Suits;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Codex")
+	FString Body;
 };
 
 USTRUCT(BlueprintType)
@@ -242,6 +297,24 @@ struct IRONMANARENA_API FStoryBook
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
 	FStoryFinale Finale;
+
+	/** side_missions.json (optional file). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	TArray<FStoryChapter> SideMissions;
+
+	/** codex.json (optional file). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Story")
+	TArray<FStoryCodexEntry> Codex;
+
+	int32 FindChapter(FName ChapterId) const
+	{
+		return Chapters.IndexOfByPredicate([ChapterId](const FStoryChapter& C) { return C.Id == ChapterId; });
+	}
+
+	const FStoryChapter* FindSideMission(FName MissionId) const
+	{
+		return SideMissions.FindByPredicate([MissionId](const FStoryChapter& C) { return C.Id == MissionId; });
+	}
 
 	bool IsValid() const { return Chapters.Num() > 0; }
 };

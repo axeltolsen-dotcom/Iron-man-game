@@ -188,6 +188,15 @@ void AArenaPlayerController::MenuStartStory(int32 ChapterIndex, bool bPlayProlog
 	}
 }
 
+void AArenaPlayerController::MenuStartSideMission(FName MissionId)
+{
+	HideMenu();
+	if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr)
+	{
+		GM->StartSideMission(MissionId);
+	}
+}
+
 void AArenaPlayerController::MenuOpenSettings()
 {
 	if (!SettingsWidget && *SettingsWidgetClass) { SettingsWidget = CreateWidget<USettingsWidget>(this, SettingsWidgetClass); }

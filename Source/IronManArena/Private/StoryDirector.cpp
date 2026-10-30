@@ -135,6 +135,7 @@ void AStoryDirector::LoadProgress()
 		HeroName = Save->HeroName;
 		UnlockedSuits = Save->StoryUnlockedSuits;
 		Allies = Save->StoryAllies;
+		AChapterSet::bHallPodLighting = Save->IsCosmeticActive(ArenaRewards::PodLighting());
 	}
 }
 
@@ -144,6 +145,7 @@ void AStoryDirector::SaveProgress(int32 ReachedChapter, bool bComplete)
 	const FString Slot = GM ? GM->SaveSlotName : FString(TEXT("IronManArena"));
 	UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(Slot);
 	if (!Save) { return; }
+	if (bSideMission) { return; } // side missions never move main progress (GrantSideReward saves)
 	Save->StoryChapterReached = FMath::Max(Save->StoryChapterReached, ReachedChapter);
 	Save->bStoryComplete = Save->bStoryComplete || bComplete;
 	Save->bPrologueSeen = true;
@@ -156,9 +158,94 @@ void AStoryDirector::SaveProgress(int32 ReachedChapter, bool bComplete)
 
 // =============================================================================== flow
 
+const FStoryBook& AStoryDirector::GetBook() const
+{
+	return bSideMission ? SideBook : UStoryLibrary::GetStory();
+}
+
 void AStoryDirector::StartStory(int32 InChapterIndex, bool bPlayPrologue, bool bSkipIntro)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	bSideMission = false;
+	SideBook = FStoryBook();
+	StartRun(InChapterIndex, bPlayPrologue, bSkipIntro);
+}
+
+bool AStoryDirector::StartSideMission(FName MissionId, bool bSkipIntro, bool bIgnoreAvailability)
+{
+	const FStoryBook& Main = UStoryLibrary::GetStory();
+	const FStoryChapter* Mission = Main.FindSideMission(MissionId);
+	if (!Mission || !Main.IsValid() || !GetPlayer())
+	{
+		UE_LOG(LogIronManArena, Warning, TEXT("Story: side mission '%s' not found (or no story / player)"), *MissionId.ToString());
+		return false;
+	}
+	const AArenaGameMode* GM = GetGM();
+	const UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(GM ? GM->SaveSlotName : FString(TEXT("IronManArena")));
+	const int32 Reached = Save ? Save->StoryChapterReached : 0;
+	const bool bComplete = Save && Save->bStoryComplete;
+	if (!bIgnoreAvailability && !UStoryLibrary::IsSideMissionAvailable(Main, *Mission, Reached, bComplete))
+	{
+		UE_LOG(LogIronManArena, Log, TEXT("Story: side mission %s is not available yet (chapter reached %d)"), *MissionId.ToString(), Reached);
+		return false;
+	}
+
+	// Gear / reactor / difficulty follow the player's progress inside the mission's window.
+	const int32 Last = Main.Chapters.Num() - 1;
+	const int32 From = FMath::Clamp(UStoryLibrary::ChapterOrder(Main, Mission->AvailableFrom), 0, Last);
+	const int32 Until = FMath::Clamp(UStoryLibrary::ChapterOrder(Main, Mission->AvailableUntil), From, Last);
+	SideMainIndex = FMath::Clamp(FMath::Min(Reached, Until), From, Last);
+
+	SideBook = FStoryBook();
+	SideBook.Title = Mission->Title;
+	SideBook.PlayerNameDefault = Main.PlayerNameDefault;
+	SideBook.Speakers = Main.Speakers;
+	SideBook.Chapters.Add(*Mission);
+	FStoryChapter& C = SideBook.Chapters[0];
+	if (C.Reactor.Note.IsEmpty()) { C.Reactor = Main.Chapters[SideMainIndex].Reactor; }
+	if (C.UnlockSuit.IsNone()) { C.UnlockSuit = Main.Chapters[SideMainIndex].UnlockSuit; }
+	C.UnlockAlly = NAME_None;
+	bSideMission = true;
+	bSideRewardGranted = false;
+	UE_LOG(LogIronManArena, Log, TEXT("Story: side mission %s ('%s'), gear of chapter %d"), *C.Id.ToString(), *C.Title, SideMainIndex + 1);
+	StartRun(0, false, bSkipIntro);
+	return true;
+}
+
+void AStoryDirector::GrantSideReward(const FStoryChapter& Mission)
+{
+	const AArenaGameMode* GMc = GetGM();
+	const FString Slot = GMc ? GMc->SaveSlotName : FString(TEXT("IronManArena"));
+	UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(Slot);
+	if (!Save) { return; }
+	Save->SideMissionsDone.AddUnique(Mission.Id);
+	if (!Mission.RewardCodex.IsNone()) { Save->CodexGranted.AddUnique(Mission.RewardCodex); }
+	if (!Mission.RewardUpgrade.IsNone()) { Save->Upgrades.AddUnique(Mission.RewardUpgrade); }
+	if (!Mission.RewardCosmetic.IsNone()) { Save->Cosmetics.AddUnique(Mission.RewardCosmetic); }
+	for (const FName& S : UnlockedSuits) { Save->StoryUnlockedSuits.AddUnique(S); }
+	Save->Write(Slot);
+	bSideRewardGranted = true;
+	if (Mission.RewardCosmetic == ArenaRewards::PodLighting()) { AChapterSet::bHallPodLighting = true; }
+	if (AIronManCharacter* Player = GetPlayer()) { Player->ApplyRewards(); }
+
+	FString What;
+	auto Pretty = [](FName Id)
+	{
+		FString T = Id.ToString().Replace(TEXT("-"), TEXT(" "));
+		return T.ToUpper();
+	};
+	if (!Mission.RewardUpgrade.IsNone()) { What = FString::Printf(TEXT("UPGRADE: %s"), *Pretty(Mission.RewardUpgrade)); }
+	if (!Mission.RewardCosmetic.IsNone()) { What += (What.IsEmpty() ? TEXT("") : TEXT("   ")) + FString::Printf(TEXT("COSMETIC: %s"), *Pretty(Mission.RewardCosmetic)); }
+	if (!Mission.RewardCodex.IsNone()) { What += TEXT("   + CODEX ENTRY"); }
+	UE_LOG(LogIronManArena, Log, TEXT("Story: side mission %s complete - %s"), *Mission.Id.ToString(), *What);
+	if (AArenaGameMode* GM = GetGM())
+	{
+		GM->ShowBanner(LOCTEXT("SideDone", "SIDE MISSION COMPLETE"), FText::FromString(What), 6.f);
+	}
+}
+
+void AStoryDirector::StartRun(int32 InChapterIndex, bool bPlayPrologue, bool bSkipIntro)
+{
+	const FStoryBook& Story = GetBook();
 	AIronManCharacter* Player = GetPlayer();
 	if (!Story.IsValid() || !Player)
 	{
@@ -263,14 +350,17 @@ void AStoryDirector::ApplyReactor(const FStoryReactor& R)
 
 void AStoryDirector::ApplyChapterSuit(int32 Index, bool bAnnounce)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	AIronManCharacter* Player = GetPlayer();
 	if (!Player || !Story.Chapters.IsValidIndex(Index)) { return; }
 
 	// Every suit up to this chapter is built (also when starting from the chapter list).
-	for (int32 i = 0; i <= Index; ++i)
+	// Side missions: every suit up to the main-story chapter their gear comes from.
+	const FStoryBook& Main = UStoryLibrary::GetStory();
+	const int32 Upto = bSideMission ? FMath::Min(SideMainIndex, Main.Chapters.Num() - 1) : Index;
+	for (int32 i = 0; i <= Upto; ++i)
 	{
-		const FName Id = Story.Chapters[i].UnlockSuit;
+		const FName Id = Main.Chapters[i].UnlockSuit;
 		if (!Id.IsNone() && USuitLibrary::FindSuitIndex(Id) != INDEX_NONE) { UnlockedSuits.AddUnique(Id); }
 	}
 	Player->SetAllowedSuits(UnlockedSuits);
@@ -283,7 +373,7 @@ void AStoryDirector::ApplyChapterSuit(int32 Index, bool bAnnounce)
 
 void AStoryDirector::BeginChapter(int32 Index, bool bSkipIntro)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(Index)) { FinishStory(); return; }
 
 	ChapterIndex = Index;
@@ -296,10 +386,14 @@ void AStoryDirector::BeginChapter(int32 Index, bool bSkipIntro)
 	AllyCooldownLeft = 0.f;
 
 	const FStoryChapter& C = Story.Chapters[Index];
-	for (int32 i = 0; i < Index; ++i)
 	{
-		const FName A = Story.Chapters[i].UnlockAlly;
-		if (!A.IsNone()) { Allies.AddUnique(A); }
+		const FStoryBook& Main = UStoryLibrary::GetStory();
+		const int32 Upto = FMath::Min(bSideMission ? SideMainIndex : Index, Main.Chapters.Num());
+		for (int32 i = 0; i < Upto; ++i)
+		{
+			const FName A = Main.Chapters[i].UnlockAlly;
+			if (!A.IsNone()) { Allies.AddUnique(A); }
+		}
 	}
 
 	ApplyReactor(C.Reactor);
@@ -332,14 +426,14 @@ void AStoryDirector::BeginChapter(int32 Index, bool bSkipIntro)
 		}
 	}
 
-	if (AArenaGameMode* GM = GetGM()) { GM->SetDifficultyWave(Index + 1); }
+	if (AArenaGameMode* GM = GetGM()) { GM->SetDifficultyWave(DifficultyChapter() + 1); }
 	if (AIronManCharacter* Player = GetPlayer())
 	{
 		Player->Heal(10000.f);
 		Player->AddEnergy(10000.f);
 	}
 
-	const FText Title = FText::Format(LOCTEXT("ChapterN", "CHAPTER {0}"), FText::AsNumber(Index + 1));
+	const FText Title = bSideMission ? LOCTEXT("SideN", "SIDE MISSION") : FText::Format(LOCTEXT("ChapterN", "CHAPTER {0}"), FText::AsNumber(Index + 1));
 	if (bSkipIntro || C.Intro.Num() == 0)
 	{
 		StartSuitUp();
@@ -352,7 +446,7 @@ void AStoryDirector::BeginChapter(int32 Index, bool bSkipIntro)
 
 void AStoryDirector::StartSuitUp()
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	AIronManCharacter* Player = GetPlayer();
 	if (!Player || !Story.Chapters.IsValidIndex(ChapterIndex)) { return; }
 	const FStoryChapter& C = Story.Chapters[ChapterIndex];
@@ -373,7 +467,7 @@ void AStoryDirector::StartSuitUp()
 
 void AStoryDirector::FinishChapter()
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(ChapterIndex)) { return; }
 	const FStoryChapter& C = Story.Chapters[ChapterIndex];
 
@@ -400,7 +494,7 @@ void AStoryDirector::FinishChapter()
 
 	auto Next = [this]()
 	{
-		const FStoryBook& S = UStoryLibrary::GetStory();
+		const FStoryBook& S = GetBook();
 		if (!S.Chapters.IsValidIndex(ChapterIndex)) { return; }
 		const FName A = S.Chapters[ChapterIndex].UnlockAlly;
 		if (!A.IsNone() && !Allies.Contains(A))
@@ -417,6 +511,16 @@ void AStoryDirector::FinishChapter()
 			Rep->bFinished = true;
 			Rep->bAllyUnlocked = !A.IsNone() && Allies.Contains(A);
 		}
+		if (bSideMission)
+		{
+			GrantSideReward(S.Chapters[ChapterIndex]);
+			Step = EStoryStep::Complete;
+			GetWorldTimerManager().SetTimer(FinishTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				if (AArenaGameMode* GM = GetGM()) { GM->ReturnToTitle(); }
+			}), 6.5f, false);
+			return;
+		}
 		SaveProgress(ChapterIndex + 1, false);
 		if (ChapterIndex + 1 < S.Chapters.Num()) { BeginChapter(ChapterIndex + 1, false); }
 		else { StartFinale(); }
@@ -424,7 +528,7 @@ void AStoryDirector::FinishChapter()
 
 	if (C.Outro.Num() > 0)
 	{
-		PlayCutscene(C.Outro, FText::Format(LOCTEXT("ChapterN", "CHAPTER {0}"), FText::AsNumber(ChapterIndex + 1)), FText::FromString(C.Title), Next);
+		PlayCutscene(C.Outro, bSideMission ? LOCTEXT("SideN", "SIDE MISSION") : FText::Format(LOCTEXT("ChapterN", "CHAPTER {0}"), FText::AsNumber(ChapterIndex + 1)), FText::FromString(C.Title), Next);
 	}
 	else
 	{
@@ -434,7 +538,7 @@ void AStoryDirector::FinishChapter()
 
 void AStoryDirector::StartFinale()
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	bInFinale = true;
 	bFinaleReached = true;
 	ClearHostiles();
@@ -446,7 +550,7 @@ void AStoryDirector::StartFinale()
 
 void AStoryDirector::FinishStory()
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	Step = EStoryStep::Complete;
 	bInFinale = false;
 	bStoryCompleted = true;
@@ -533,7 +637,7 @@ void AStoryDirector::ClearEnvironment()
 
 void AStoryDirector::StartObjective(int32 Index)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	AIronManCharacter* Player = GetPlayer();
 	AArenaGameMode* GM = GetGM();
 	if (!Player || !GM || !Story.Chapters.IsValidIndex(ChapterIndex)) { return; }
@@ -620,8 +724,8 @@ void AStoryDirector::StartObjective(int32 Index)
 void AStoryDirector::StartObjectiveWave(int32 InWave)
 {
 	WaveNumber = InWave;
-	PendingDrones = FMath::Min(14, 3 + ChapterIndex + InWave * 2);
-	PendingTanks = ChapterIndex >= 2 ? FMath::Min(4, 1 + InWave / 2 + ChapterIndex / 4) : (InWave > 1 ? 1 : 0);
+	PendingDrones = FMath::Min(14, 3 + DifficultyChapter() + InWave * 2);
+	PendingTanks = DifficultyChapter() >= 2 ? FMath::Min(4, 1 + InWave / 2 + DifficultyChapter() / 4) : (InWave > 1 ? 1 : 0);
 	SpawnTimer = 0.8f;
 	if (AArenaGameMode* GM = GetGM())
 	{
@@ -672,7 +776,7 @@ void AStoryDirector::SetObjectiveProgress(float Fraction)
 
 void AStoryDirector::FireComms(EStoryCommsTrigger Trigger)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return; }
 	UJarvisComponent* J = UJarvisComponent::Get(this);
 	if (!J) { return; }
@@ -703,13 +807,13 @@ void AStoryDirector::CompleteObjective()
 	if (AArenaGameMode* GM = GetGM())
 	{
 		GM->ShowBanner(LOCTEXT("ObjectiveDone", "OBJECTIVE COMPLETE"), FText::GetEmpty(), 2.f);
-		GM->AddScore(1000 * (ChapterIndex + 1));
+		GM->AddScore(1000 * (DifficultyChapter() + 1));
 	}
 }
 
 void AStoryDirector::TickObjective(float DeltaSeconds)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	AIronManCharacter* Player = GetPlayer();
 	if (!Player || Player->IsDead() || !Story.Chapters.IsValidIndex(ChapterIndex)) { return; }
 	const FStoryChapter& C = Story.Chapters[ChapterIndex];
@@ -829,7 +933,7 @@ void AStoryDirector::TickObjective(float DeltaSeconds)
 void AStoryDirector::NotifyEnemyKilled(AEnemyBase* Enemy)
 {
 	if (Step != EStoryStep::Objective || !Enemy) { return; }
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return; }
 	const FStoryObjective& O = Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex];
 	switch (O.Type)
@@ -851,7 +955,7 @@ void AStoryDirector::NotifyEnemyKilled(AEnemyBase* Enemy)
 void AStoryDirector::HandleForcedLanding()
 {
 	if (Step != EStoryStep::Objective) { return; }
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return; }
 	if (Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex].Type != EStoryObjectiveType::Energy) { return; }
 
@@ -869,7 +973,7 @@ void AStoryDirector::HandleForcedLanding()
 void AStoryDirector::HandleHulkbusterActivated()
 {
 	if (Step != EStoryStep::Objective) { return; }
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return; }
 	if (Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex].Type == EStoryObjectiveType::Hulkbuster) { ++ObjectiveCount; }
 }
@@ -877,7 +981,7 @@ void AStoryDirector::HandleHulkbusterActivated()
 void AStoryDirector::HandleSummonAlly()
 {
 	if (Step != EStoryStep::Objective) { return; }
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return; }
 	const FName AllyId = Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex].AllyAvailable;
 	AArenaGameMode* GM = GetGM();
@@ -915,7 +1019,7 @@ FStoryChapterReport* AStoryDirector::CurrentReport()
 const FStoryObjective* AStoryDirector::GetCurrentObjective() const
 {
 	if (Step != EStoryStep::Objective && Step != EStoryStep::ObjectiveDone) { return nullptr; }
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return nullptr; }
 	return &Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex];
 }
@@ -939,10 +1043,11 @@ void AStoryDirector::NotifyBossPhase(int32 Phase)
 
 bool AStoryDirector::GetObjectiveInfo(FText& OutChapter, FText& OutObjective, FText& OutProgress) const
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (!IsActive() || !Story.Chapters.IsValidIndex(ChapterIndex)) { return false; }
 	const FStoryChapter& C = Story.Chapters[ChapterIndex];
 	OutChapter = bInFinale ? LOCTEXT("FinaleHud", "FINALE")
+		: bSideMission ? FText::Format(LOCTEXT("SideHud", "SIDE MISSION  -  {0}"), FText::FromString(C.Title.ToUpper()))
 		: FText::Format(LOCTEXT("ChapterHud", "CHAPTER {0}  -  {1}"), FText::AsNumber(ChapterIndex + 1), FText::FromString(C.Title.ToUpper()));
 	if ((Step != EStoryStep::Objective && Step != EStoryStep::ObjectiveDone) || !C.Objectives.IsValidIndex(ObjectiveIndex))
 	{
@@ -996,7 +1101,7 @@ bool AStoryDirector::GetObjectiveInfo(FText& OutChapter, FText& OutObjective, FT
 
 FText AStoryDirector::GetAllyHint() const
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	if (Step != EStoryStep::Objective || !Story.Chapters.IsValidIndex(ChapterIndex)) { return FText::GetEmpty(); }
 	const FStoryChapter& C = Story.Chapters[ChapterIndex];
 	if (!C.Objectives.IsValidIndex(ObjectiveIndex)) { return FText::GetEmpty(); }
@@ -1063,7 +1168,7 @@ bool AStoryDirector::ShotUsesHumanPlayer(const FStoryShot& Shot) const
 	// Out of the suit: prologue, the workshop chapters and anything the director's note says
 	// happens at the lake house / bench / with the helmet off.
 	if (!Shots.Num() || !Shot.Characters.Contains(NAME_Player)) { return false; }
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	const FString& Note = Shot.Camera;
 	if (Has(Note, TEXT("suit up")) || Has(Note, TEXT("in the suit")) || Has(Note, TEXT("armor")) || Has(Note, TEXT("armour")) || Has(Note, TEXT("thruster")) || Has(Note, TEXT("flies")) || Has(Note, TEXT("hover")))
 	{
@@ -1080,7 +1185,7 @@ bool AStoryDirector::ShotUsesHumanPlayer(const FStoryShot& Shot) const
 
 AStoryCharacterNPC* AStoryDirector::GetOrSpawnNpc(FName Speaker, bool bSuitedOverride)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	const bool bProloguePhase = bInPrologue;
 	const bool bHologram = Has(ShotCamera, TEXT("hologram")) || Has(ShotCamera, TEXT("recording")) || Has(ShotCamera, TEXT("projection"));
 
@@ -1189,7 +1294,7 @@ void AStoryDirector::PlayCutscene(const TArray<FStoryShot>& InShots, const FText
 
 void AStoryDirector::SpeakLine(const FStoryLine& Line, FText& OutSpeaker, FText& OutText, FLinearColor& OutColor, float& OutDuration)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	OutSpeaker = UStoryLibrary::GetSpeakerLabel(Line.Speaker, PlayerName);
 	const FString Text = Resolve(Line.Text);
 	OutText = FText::FromString(Text);
@@ -1224,7 +1329,7 @@ void AStoryDirector::SpeakLine(const FStoryLine& Line, FText& OutSpeaker, FText&
 void AStoryDirector::BeginShot(int32 Index)
 {
 	if (!Shots.IsValidIndex(Index)) { EndCutscene(); return; }
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	const FStoryShot& Shot = Shots[Index];
 	ShotIndex = Index;
 
@@ -1264,7 +1369,7 @@ void AStoryDirector::BeginShot(int32 Index)
 
 void AStoryDirector::StageShot(const FStoryShot& Shot)
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
+	const FStoryBook& Story = GetBook();
 	AIronManCharacter* Player = GetPlayer();
 	if (!Player) { return; }
 

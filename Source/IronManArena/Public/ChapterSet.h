@@ -54,6 +54,10 @@ public:
 	 *  floor; the preset picks the variant (night windows, wet, storm, embers). */
 	static AChapterSet* SpawnSet(UWorld* World, const FVector& Origin, FName SetName, const FEnvironmentPreset& Preset);
 
+	/** Cosmetic reward hall-of-armor-pod-lighting: lit display pods get a warm key + cool rim
+	 *  light and a brighter halo ring. Set by the story director from the save before spawning. */
+	static bool bHallPodLighting;
+
 	FName GetSetId() const { return SetId; }
 	int32 GetPartCount() const { return Parts.Num(); }
 	int32 GetLightCount() const { return Lights.Num(); }

@@ -8,6 +8,10 @@
 #include "JarvisComponent.h"
 #include "SuitUpCinematic.h"
 #include "ReactorComponent.h"
+#include "ArenaSaveGame.h"
+#include "SuitRig.h"
+#include "Components/DecalComponent.h"
+#include "Materials/MaterialInterface.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -214,10 +218,46 @@ void AIronManCharacter::BeginPlay()
 	const int32 Default = USuitLibrary::FindSuitIndex(DefaultSuitId);
 	Reactor->OnOverheatChanged.AddUniqueDynamic(this, &AIronManCharacter::HandleReactorOverheat);
 	ApplySuit(Default != INDEX_NONE ? Default : 0);
+	ApplyRewards();
 	Health = MaxHealth;
 	Energy = MaxEnergy;
 	SetFirstPerson(bStartInFirstPerson);
 	SetFlying(true); // reference game starts airborne
+}
+
+void AIronManCharacter::ApplyRewards()
+{
+	const AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr;
+	const UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(GM ? GM->SaveSlotName : FString(TEXT("IronManArena")));
+	if (!Save) { return; }
+
+	if (Reactor) { Reactor->SetPermanentUpgrades(Save->HasUpgrade(ArenaRewards::CapacitorBank()), Save->HasUpgrade(ArenaRewards::HeatSinkFins())); }
+	SuitRig::SetWhiteTrim(Save->IsCosmeticActive(ArenaRewards::WhiteTrim()));
+
+	const bool bPlaid = Save->IsCosmeticActive(ArenaRewards::PlaidDecal());
+	if (bPlaid && !PlaidDecal)
+	{
+		// Built by Content/Python/build_realism_materials.py; no material = no patch (logged once).
+		if (UMaterialInterface* M = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Realism/Materials/M_PlaidDecal.M_PlaidDecal")))
+		{
+			PlaidDecal = NewObject<UDecalComponent>(this, TEXT("PlaidDecal"));
+			PlaidDecal->SetupAttachment(GetRootComponent());
+			PlaidDecal->SetDecalMaterial(M);
+			PlaidDecal->DecalSize = FVector(6.f, 7.f, 7.f);
+			// Left shoulder plate, projected inward (+Y) from just outside the arm.
+			PlaidDecal->SetRelativeLocationAndRotation(FVector(0.f, -30.f, 52.f), FRotator(0.f, 90.f, 0.f));
+			PlaidDecal->RegisterComponent();
+		}
+		else
+		{
+			UE_LOG(LogIronManArena, Log, TEXT("Rewards: garage-plaid-decal earned but M_PlaidDecal is not built yet"));
+		}
+	}
+	bPlaidWanted = bPlaid;
+	if (PlaidDecal) { PlaidDecal->SetVisibility(bPlaid && !IsFirstPerson()); }
+
+	// Repaint (trim) and recompute max energy (capacitor bank) for the current suit.
+	ApplySuit(GetSuitIndex());
 }
 
 void AIronManCharacter::ResetForNewGame()
@@ -438,6 +478,7 @@ void AIronManCharacter::SetFirstPerson(bool bEnable)
 	FirstPersonCamera->SetActive(bEnable);
 	FollowCamera->SetActive(!bEnable);
 	RefreshSuitVisibility();
+	if (PlaidDecal) { PlaidDecal->SetVisibility(bPlaidWanted && !bEnable && !IsHulkbusterActive()); }
 }
 
 UCameraComponent* AIronManCharacter::GetActiveCamera() const

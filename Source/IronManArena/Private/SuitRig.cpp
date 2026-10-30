@@ -470,7 +470,37 @@ namespace SuitRig
 		}
 	}
 
+	static bool GWhiteTrim = false;
+
+	void SetWhiteTrim(bool bEnable) { GWhiteTrim = bEnable; }
+	bool IsWhiteTrim() { return GWhiteTrim; }
+
+	static void ApplyColorsBase(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts);
+
 	void ApplyColors(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts)
+	{
+		ApplyColorsBase(Suit, Parts);
+		if (!GWhiteTrim) { return; }
+		// Cosmetic reward "vison-white-trim" (side mission Synthezoid Signal): accent trim in
+		// Vison's pearl white - a satin ceramic-like finish, not chrome.
+		const FLinearColor Pearl(0.80f, 0.80f, 0.77f);
+		for (FArenaPaintedPart& P : Parts)
+		{
+			if (P.Role != ESuitPaintRole::Accent) { continue; }
+			P.Color = Pearl * FMath::Clamp(P.Shade, 0.6f, 1.1f);
+			P.Color.A = 1.f;
+			if (P.MID)
+			{
+				P.MID->SetScalarParameterValue(TEXT("Metallic"), 0.1f);
+				P.MID->SetScalarParameterValue(TEXT("Roughness"), 0.32f);
+				P.MID->SetScalarParameterValue(TEXT("ClearCoat"), 0.8f);
+				P.MID->SetScalarParameterValue(TEXT("FlakeAmount"), 0.f);
+			}
+			RepaintPart(P);
+		}
+	}
+
+	static void ApplyColorsBase(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts)
 	{
 		if (const FSuitMaterialDef* Def = GetSuitMaterials().Find(Suit.Id))
 		{

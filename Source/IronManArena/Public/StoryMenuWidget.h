@@ -1,5 +1,6 @@
 // UStoryMenuWidget: story-mode hub. Player name, Continue, New Story (with the Tony prologue),
-// and a chapter selector for every chapter already reached. Built in C++.
+// a chapter selector for every chapter already reached, Friday's side missions
+// (side_missions.json) and the lore codex (codex.json). Built in C++.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -35,6 +36,25 @@ protected:
 	UFUNCTION() void HandleNextChapter();
 	UFUNCTION() void HandlePlayChapter();
 	UFUNCTION() void HandleBack();
+	UFUNCTION() void HandlePrevSide();
+	UFUNCTION() void HandleNextSide();
+	UFUNCTION() void HandlePlaySide();
+	UFUNCTION() void HandleOpenCodex();
+	UFUNCTION() void HandleCloseCodex();
+	UFUNCTION() void HandlePrevCodex();
+	UFUNCTION() void HandleNextCodex();
+
+	void RefreshSide();
+	void RefreshCodex();
+
+	int32 SelectedSide = 0;
+	TArray<FName> SideDone;
+	TArray<FName> CodexGranted;
+	TArray<FName> RewardsEarned;
+	/** Indices into FStoryBook::Codex the player has unlocked (sorted by category). */
+	TArray<int32> CodexUnlocked;
+	int32 SelectedCodex = 0;
+	bool bCodexOpen = false;
 
 	int32 ChapterReached = 0;
 	int32 SelectedChapter = 0;
@@ -49,4 +69,17 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> ContinueLabel;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> ChapterText;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> ChapterInfoText;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> SideText;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> SideInfoText;
+	UPROPERTY(Transient) TObjectPtr<UButton> SidePlayButton;
+	UPROPERTY(Transient) TObjectPtr<class UBorder> CodexPanel;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> CodexHeader;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> CodexTitle;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> CodexBody;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> CodexRewards;
+
+public:
+	// ---- tests
+	int32 GetCodexUnlockedCount() const { return CodexUnlocked.Num(); }
+	bool IsCodexOpen() const { return bCodexOpen; }
 };

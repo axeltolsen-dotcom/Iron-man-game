@@ -261,8 +261,35 @@ void AArenaGameMode::StartStory(int32 ChapterIndex, bool bPlayPrologue)
 	Director->StartStory(ChapterIndex, bPlayPrologue, false);
 }
 
+bool AArenaGameMode::StartSideMission(FName MissionId, bool bIgnoreAvailability)
+{
+	AIronManCharacter* Player = GetPlayer();
+	AStoryDirector* Director = EnsureStoryDirector();
+	if (!Player || !Director) { return false; }
+	Director->StopStory();
+	PlayMode = EArenaPlayMode::Story;
+	ResetRunState();
+	Player->ResetForNewGame();
+	if (!Director->StartSideMission(MissionId, false, bIgnoreAvailability))
+	{
+		ReturnToTitle();
+		return false;
+	}
+	return true;
+}
+
 void AArenaGameMode::RestartCurrentMode()
 {
+	if (PlayMode == EArenaPlayMode::Story && StoryDirector && StoryDirector->IsSideMission())
+	{
+		AIronManCharacter* Player = GetPlayer();
+		const FName Mission = StoryDirector->GetSideMissionId();
+		StoryDirector->StopStory();
+		ResetRunState();
+		if (Player) { Player->ResetForNewGame(); }
+		StoryDirector->StartSideMission(Mission, /*bSkipIntro*/ true, /*bIgnoreAvailability*/ true);
+		return;
+	}
 	if (PlayMode == EArenaPlayMode::Story && StoryDirector)
 	{
 		AIronManCharacter* Player = GetPlayer();

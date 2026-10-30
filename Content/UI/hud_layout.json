@@ -517,7 +517,16 @@
       "font": "Rajdhani",
       "fontFeel": "Refined, wide-tracked, calm; thin strokes, generous spacing.",
       "letterSpacingBias": 40,
-      "motion": "smooth"
+      "motion": "smooth",
+      "subtitle": {
+        "hex": "#A7F9FFFF",
+        "linear": {
+          "R": 0.3864,
+          "G": 0.9473,
+          "B": 1.0,
+          "A": 1.0
+        }
+      }
     },
     "FRIDAY": {
       "label": "FRIDAY",
@@ -562,7 +571,16 @@
       "font": "Exo 2",
       "fontFeel": "Warm, rounded, quick; medium weight, friendly corners.",
       "letterSpacingBias": 20,
-      "motion": "snappy"
+      "motion": "snappy",
+      "subtitle": {
+        "hex": "#FFD59AFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.6654,
+          "B": 0.3231,
+          "A": 1.0
+        }
+      }
     },
     "EDITH": {
       "label": "EDITH",
@@ -607,7 +625,16 @@
       "font": "Share Tech Mono",
       "fontFeel": "Tactical, monospaced, terse; tight tracking, data-dense.",
       "letterSpacingBias": 0,
-      "motion": "precise"
+      "motion": "precise",
+      "subtitle": {
+        "hex": "#DDB3FFFF",
+        "linear": {
+          "R": 0.7231,
+          "G": 0.4508,
+          "B": 1.0,
+          "A": 1.0
+        }
+      }
     },
     "ULTRON": {
       "label": "ULTRON",
@@ -652,7 +679,16 @@
       "font": "Orbitron",
       "fontFeel": "Heavy, angular, oppressive; black weight, wide letters.",
       "letterSpacingBias": 80,
-      "motion": "twitchy"
+      "motion": "twitchy",
+      "subtitle": {
+        "hex": "#FF9393FF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.2918,
+          "B": 0.2918,
+          "A": 1.0
+        }
+      }
     },
     "WARMACHINE": {
       "label": "WAR MACHINE OS",
@@ -697,7 +733,16 @@
       "font": "Saira Stencil One",
       "fontFeel": "Military stencil, utilitarian; condensed, all caps.",
       "letterSpacingBias": 60,
-      "motion": "stepped"
+      "motion": "stepped",
+      "subtitle": {
+        "hex": "#D8E0E7FF",
+        "linear": {
+          "R": 0.6867,
+          "G": 0.7454,
+          "B": 0.7991,
+          "A": 1.0
+        }
+      }
     }
   },
   "elements": [
@@ -736,7 +781,8 @@
       },
       "invalidation": "static",
       "material": "MI_HUD_VisorFrame",
-      "children": []
+      "children": [],
+      "bindAs": "UImage"
     },
     {
       "id": "WarningVignette",
@@ -773,7 +819,8 @@
       },
       "invalidation": "volatile",
       "material": "MI_HUD_Vignette",
-      "children": []
+      "children": [],
+      "bindAs": "UImage"
     },
     {
       "id": "PitchLadder",
@@ -814,7 +861,8 @@
         "size": 10,
         "letterSpacing": 50
       },
-      "children": []
+      "children": [],
+      "bindAs": "UWidget"
     },
     {
       "id": "HeadingTape",
@@ -891,10 +939,12 @@
             "typeface": "Bold",
             "size": 14,
             "letterSpacing": 40
-          }
+          },
+          "bindAs": "UTextBlock"
         }
       ],
-      "tapeKind": "Heading"
+      "tapeKind": "Heading",
+      "bindAs": "UWidget"
     },
     {
       "id": "SpeedTape",
@@ -971,7 +1021,8 @@
             "typeface": "Bold",
             "size": 16,
             "letterSpacing": 20
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "MachReadout",
@@ -1008,10 +1059,12 @@
             "typeface": "Regular",
             "size": 11,
             "letterSpacing": 60
-          }
+          },
+          "bindAs": "UTextBlock"
         }
       ],
-      "tapeKind": "Speed"
+      "tapeKind": "Speed",
+      "bindAs": "UWidget"
     },
     {
       "id": "AltitudeTape",
@@ -1088,7 +1141,8 @@
             "typeface": "Bold",
             "size": 16,
             "letterSpacing": 20
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "AglReadout",
@@ -1125,7 +1179,8 @@
             "typeface": "Regular",
             "size": 11,
             "letterSpacing": 60
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "VerticalSpeedCaret",
@@ -1156,10 +1211,12 @@
               "y": 14
             },
             "zOrder": 2
-          }
+          },
+          "bindAs": "UImage"
         }
       ],
-      "tapeKind": "Altitude"
+      "tapeKind": "Altitude",
+      "bindAs": "UWidget"
     },
     {
       "id": "TargetLayer",
@@ -1202,7 +1259,8 @@
         "letterSpacing": 60
       },
       "material": "MI_HUD_Bracket",
-      "children": []
+      "children": [],
+      "bindAs": "UWidget"
     },
     {
       "id": "Reticle",
@@ -1268,7 +1326,9 @@
               "y": 48
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Reticle"
         },
         {
           "id": "LockProgressRing",
@@ -1299,9 +1359,12 @@
               "y": 96
             },
             "zOrder": 1
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Reticle"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "PersonaGlyph",
@@ -1367,7 +1430,9 @@
               "y": 64
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Glyph"
         },
         {
           "id": "PersonaNameText",
@@ -1404,7 +1469,8 @@
             "typeface": "SemiBold",
             "size": 18,
             "letterSpacing": 120
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "SuitNameText",
@@ -1441,9 +1507,11 @@
             "typeface": "Regular",
             "size": 11,
             "letterSpacing": 60
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "ObjectivePanel",
@@ -1514,7 +1582,8 @@
             "typeface": "SemiBold",
             "size": 11,
             "letterSpacing": 150
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "ObjectiveText",
@@ -1551,7 +1620,8 @@
             "typeface": "Regular",
             "size": 15,
             "letterSpacing": 20
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "ObjectiveProgressText",
@@ -1588,9 +1658,11 @@
             "typeface": "Regular",
             "size": 12,
             "letterSpacing": 40
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "BossBar",
@@ -1662,7 +1734,8 @@
             "typeface": "SemiBold",
             "size": 12,
             "letterSpacing": 200
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "BossFill",
@@ -1693,9 +1766,12 @@
               "y": 10
             },
             "zOrder": 1
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Bar"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "CommsPortrait",
@@ -1761,7 +1837,9 @@
               "y": 160
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_CommsFeed"
         },
         {
           "id": "CommsNameText",
@@ -1798,7 +1876,8 @@
             "typeface": "SemiBold",
             "size": 13,
             "letterSpacing": 160
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "CommsSignalBars",
@@ -1829,7 +1908,8 @@
               "y": 16
             },
             "zOrder": 1
-          }
+          },
+          "bindAs": "UImage"
         },
         {
           "id": "CommsRing",
@@ -1860,9 +1940,11 @@
               "y": 220
             },
             "zOrder": 2
-          }
+          },
+          "bindAs": "UImage"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "ScoreCombo",
@@ -1933,7 +2015,8 @@
             "typeface": "Bold",
             "size": 18,
             "letterSpacing": 20
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "ComboText",
@@ -1970,7 +2053,8 @@
             "typeface": "SemiBold",
             "size": 13,
             "letterSpacing": 100
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "WaveText",
@@ -2007,9 +2091,11 @@
             "typeface": "Regular",
             "size": 11,
             "letterSpacing": 80
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "IntegrityDiagram",
@@ -2075,7 +2161,9 @@
               "y": 36
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_IntegrityRegion"
         },
         {
           "id": "Region_Torso",
@@ -2106,7 +2194,9 @@
               "y": 72
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_IntegrityRegion"
         },
         {
           "id": "Region_SpineMount",
@@ -2137,7 +2227,9 @@
               "y": 52
             },
             "zOrder": 1
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_IntegrityRegion"
         },
         {
           "id": "Region_ArmL",
@@ -2168,7 +2260,9 @@
               "y": 84
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_IntegrityRegion"
         },
         {
           "id": "Region_ArmR",
@@ -2199,7 +2293,9 @@
               "y": 84
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_IntegrityRegion"
         },
         {
           "id": "Region_LegL",
@@ -2230,7 +2326,9 @@
               "y": 104
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_IntegrityRegion"
         },
         {
           "id": "Region_LegR",
@@ -2261,7 +2359,9 @@
               "y": 104
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_IntegrityRegion"
         },
         {
           "id": "IntegrityPercentText",
@@ -2298,9 +2398,11 @@
             "typeface": "Bold",
             "size": 14,
             "letterSpacing": 40
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "PowerGauge",
@@ -2366,7 +2468,9 @@
               "y": 14
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Gauge"
         },
         {
           "id": "PowerValueText",
@@ -2403,7 +2507,8 @@
             "typeface": "Bold",
             "size": 20,
             "letterSpacing": 20
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "PowerDrawText",
@@ -2440,10 +2545,12 @@
             "typeface": "Regular",
             "size": 11,
             "letterSpacing": 40
-          }
+          },
+          "bindAs": "UTextBlock"
         }
       ],
-      "gaugeKind": "Power"
+      "gaugeKind": "Power",
+      "bindAs": "UWidget"
     },
     {
       "id": "HeatGauge",
@@ -2509,7 +2616,9 @@
               "y": 14
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Gauge"
         },
         {
           "id": "HeatRecoverMarker",
@@ -2540,7 +2649,8 @@
               "y": 22
             },
             "zOrder": 2
-          }
+          },
+          "bindAs": "UImage"
         },
         {
           "id": "HeatValueText",
@@ -2577,7 +2687,8 @@
             "typeface": "Bold",
             "size": 20,
             "letterSpacing": 20
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "VentPrompt",
@@ -2614,7 +2725,8 @@
             "typeface": "SemiBold",
             "size": 12,
             "letterSpacing": 150
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "VentCooldownRing",
@@ -2645,10 +2757,13 @@
               "y": 30
             },
             "zOrder": 1
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Gauge"
         }
       ],
-      "gaugeKind": "Heat"
+      "gaugeKind": "Heat",
+      "bindAs": "UWidget"
     },
     {
       "id": "HulkbusterStatus",
@@ -2719,9 +2834,11 @@
             "typeface": "SemiBold",
             "size": 14,
             "letterSpacing": 120
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "WeaponReadout",
@@ -2792,7 +2909,8 @@
             "typeface": "SemiBold",
             "size": 15,
             "letterSpacing": 120
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "SpecialCostText",
@@ -2829,7 +2947,8 @@
             "typeface": "Regular",
             "size": 12,
             "letterSpacing": 40
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "BeamTimerText",
@@ -2866,9 +2985,11 @@
             "typeface": "Regular",
             "size": 12,
             "letterSpacing": 40
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "ThreatRadar",
@@ -2934,7 +3055,9 @@
               "y": 260
             },
             "zOrder": 0
-          }
+          },
+          "bindAs": "UImage",
+          "material": "MI_HUD_Radar"
         },
         {
           "id": "RadarRangeText",
@@ -2971,9 +3094,11 @@
             "typeface": "Regular",
             "size": 10,
             "letterSpacing": 60
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "WarningStack",
@@ -3011,7 +3136,7 @@
       "children": [
         {
           "id": "WarningSlot0",
-          "widgetClass": "UWarningEntryWidget",
+          "widgetClass": "UTextBlock",
           "slot": {
             "anchors": {
               "minX": 0.5,
@@ -3044,11 +3169,12 @@
             "typeface": "Bold",
             "size": 18,
             "letterSpacing": 180
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "WarningSlot1",
-          "widgetClass": "UWarningEntryWidget",
+          "widgetClass": "UTextBlock",
           "slot": {
             "anchors": {
               "minX": 0.5,
@@ -3081,11 +3207,12 @@
             "typeface": "SemiBold",
             "size": 14,
             "letterSpacing": 160
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "WarningSlot2",
-          "widgetClass": "UWarningEntryWidget",
+          "widgetClass": "UTextBlock",
           "slot": {
             "anchors": {
               "minX": 0.5,
@@ -3118,9 +3245,11 @@
             "typeface": "SemiBold",
             "size": 14,
             "letterSpacing": 160
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "SubtitleBar",
@@ -3191,7 +3320,8 @@
             "typeface": "SemiBold",
             "size": 13,
             "letterSpacing": 200
-          }
+          },
+          "bindAs": "UTextBlock"
         },
         {
           "id": "LineText",
@@ -3228,9 +3358,11 @@
             "typeface": "Regular",
             "size": 18,
             "letterSpacing": 10
-          }
+          },
+          "bindAs": "UTextBlock"
         }
-      ]
+      ],
+      "bindAs": "UWidget"
     },
     {
       "id": "VisorNoise",
@@ -3267,7 +3399,8 @@
       },
       "invalidation": "static",
       "material": "MI_HUD_Scanlines",
-      "children": []
+      "children": [],
+      "bindAs": "UImage"
     },
     {
       "id": "GlitchOverlay",
@@ -3304,7 +3437,8 @@
       },
       "invalidation": "volatile",
       "material": "MI_HUD_Glitch",
-      "children": []
+      "children": [],
+      "bindAs": "UImage"
     }
   ],
   "_allowedOverlaps": [
