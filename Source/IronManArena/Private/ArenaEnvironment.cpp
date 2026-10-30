@@ -1,5 +1,6 @@
 #include "ArenaEnvironment.h"
 #include "ContribLighting.h"
+#include "ChapterSet.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Components/DirectionalLightComponent.h"
@@ -142,15 +143,24 @@ AArenaEnvironment* AArenaEnvironment::Find(const UObject* WorldContext)
 
 void AArenaEnvironment::SetArenaDressingVisible(bool bVisible)
 {
+	bArenaDressingShown = bVisible;
+	AChapterSet* City = ArenaCity.Get();
+	if (City)
+	{
+		City->SetActorHiddenInGame(!bVisible);
+		City->SetActorEnableCollision(bVisible);
+	}
+	// The old placeholder dressing only shows when there is no city (fallback).
+	const bool bShowOld = bVisible && !City;
 	for (const int32 Index : DressingParts)
 	{
 		if (!Parts.IsValidIndex(Index)) { continue; }
 		if (UStaticMeshComponent* C = Parts[Index].Component)
 		{
-			C->SetVisibility(bVisible);
+			C->SetVisibility(bShowOld);
 			// Pylons / cover are solid in free play; hidden ones must not block.
 			const bool bSolidPart = Props.Contains(C);
-			if (bSolidPart) { C->SetCollisionEnabled(bVisible ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision); }
+			if (bSolidPart) { C->SetCollisionEnabled(bShowOld ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision); }
 		}
 	}
 }
@@ -190,10 +200,13 @@ void AArenaEnvironment::ApplyPreset(const FEnvironmentPreset& In)
 		UTextureCube* Cube = nullptr;
 		if (In.bHdriSkyLight)
 		{
-			static const TCHAR* HdriPackage = TEXT("/Game/Realism/Textures/hdri/T_industrial_sunset_02_puresky");
-			if (FPackageName::DoesPackageExist(HdriPackage))
+			// Dume's CC0 clear-sky HDRI first (Content/Python/import_env_assets.py), then the older one.
+			static const TCHAR* const Hdris[][2] = {
+				{ TEXT("/Game/Env/HDRI/T_kloofendal_43d_clear_puresky"), TEXT("/Game/Env/HDRI/T_kloofendal_43d_clear_puresky.T_kloofendal_43d_clear_puresky") },
+				{ TEXT("/Game/Realism/Textures/hdri/T_industrial_sunset_02_puresky"), TEXT("/Game/Realism/Textures/hdri/T_industrial_sunset_02_puresky.T_industrial_sunset_02_puresky") } };
+			for (const auto& H : Hdris)
 			{
-				Cube = LoadObject<UTextureCube>(nullptr, TEXT("/Game/Realism/Textures/hdri/T_industrial_sunset_02_puresky.T_industrial_sunset_02_puresky"));
+				if (!Cube && FPackageName::DoesPackageExist(H[0])) { Cube = LoadObject<UTextureCube>(nullptr, H[1]); }
 			}
 		}
 		if (Cube)
@@ -225,7 +238,19 @@ void AArenaEnvironment::ApplyPreset(const FEnvironmentPreset& In)
 		Fog->SetVolumetricFogExtinctionScale(In.VolumetricFogExtinction);
 		Fog->SetVolumetricFogAlbedo(In.VolumetricFogAlbedo.ToFColor(true));
 	}
-	if (PostProcess)
+	// Vison 8:57 (5): sky / cloud / fog / Lumen / post values come from the runtime JSON layer
+	// (lighting_presets.json merged with postprocess_realism.json, ContribLighting). The C++ values below are
+	// only the fallback when the JSON is missing or has no preset for this environment.
+	const FName JsonKey = ContribLighting::KeyForEnvironment(In.Id);
+	if (PostProcess && !JsonKey.IsNone())
+	{
+		FPostProcessSettings& S = PostProcess->Settings;
+		S = FPostProcessSettings();
+		S.bOverride_DynamicGlobalIlluminationMethod = true; S.DynamicGlobalIlluminationMethod = EDynamicGlobalIlluminationMethod::Lumen;
+		S.bOverride_ReflectionMethod = true;        S.ReflectionMethod = EReflectionMethod::Lumen;
+		ContribLighting::Apply(this, JsonKey);
+	}
+	else if (PostProcess)
 	{
 		FPostProcessSettings& S = PostProcess->Settings;
 		S = FPostProcessSettings();
@@ -263,13 +288,22 @@ void AArenaEnvironment::BeginPlay()
 	Super::BeginPlay();
 	ArenaVisuals::PaintAll(this, Parts);
 	ApplyArenaLook();
+	SpawnArenaCity();
+}
+
+void AArenaEnvironment::SpawnArenaCity()
+{
+	if (ArenaCity.IsValid() || !Floor || !GetWorld()) { return; }
+	ArenaCity = AChapterSet::SpawnSet(GetWorld(), GetActorLocation(), TEXT("arena_city"), Preset);
+	SetArenaDressingVisible(bArenaDressingShown);
+	// The city's plazas and roads cover the floor; keep it as plain asphalt underneath.
+	if (ArenaCity.IsValid()) { SetFloorSurface(EArenaSurface::Asphalt, FLinearColor(0.6f, 0.6f, 0.6f)); }
 }
 
 void AArenaEnvironment::ApplyArenaLook()
 {
+	// Free play has no story look: ApplyPreset maps "arena" to Vison's "city" JSON preset (clear 13:00 daylight).
 	ApplyPreset(EnvironmentPresets::Arena());
-	// Free play has no story look; Vison recommends reusing "city" (clear 13:00 daylight).
-	if (ContribLighting::HasPreset(TEXT("city"))) { ContribLighting::Apply(this, TEXT("city")); }
 }
 
 void AArenaEnvironment::RemoveLighting()
@@ -291,4 +325,6 @@ void AArenaEnvironment::RemoveGeometry()
 	Props.Empty();
 	DressingParts.Empty();
 	Floor = nullptr;
+	if (AChapterSet* City = ArenaCity.Get()) { City->Destroy(); }
+	ArenaCity.Reset();
 }

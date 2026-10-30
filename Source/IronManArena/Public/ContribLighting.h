@@ -1,5 +1,7 @@
 // ContribLighting: applies Vison's per-chapter lighting presets (Content/Story/lighting_presets.json,
-// from contrib/vison) on top of the C++ FEnvironmentPreset. The JSON names engine properties
+// from contrib/vison) on top of the C++ FEnvironmentPreset, merged with Vison's realism layer
+// (Content/Story/postprocess_realism.json: sky, clouds, fog, Lumen and post; its _tier_overrides apply at
+// Epic and Medium). The JSON names engine properties
 // directly (DirectionalLight / MoonLight / SkyAtmosphere / SkyLight / ExponentialHeightFog /
 // VolumetricCloud / PostProcessVolume), so they are written through UE reflection; every
 // post-process key also sets its bOverride_ flag. Keys starting with "_" are documentation.
@@ -29,6 +31,12 @@ namespace ContribLighting
 
 	/** Number of presets loaded (0 when the file is missing). */
 	IRONMANARENA_API int32 GetNumPresets();
+
+	/** Presets merged from postprocess_realism.json (Vison's realism layer; 0 when the file is missing). */
+	IRONMANARENA_API int32 GetNumRealismPresets();
+
+	/** Preset key for an environment: the id itself, its chapter mapping, or "city" for free-play "arena". */
+	IRONMANARENA_API FName KeyForEnvironment(FName EnvironmentPresetId);
 
 	/** Apply a preset to the light/sky/fog/cloud/post-process components found on EnvActor.
 	 *  Returns the number of properties written; OutSkipped counts keys that did not resolve. */

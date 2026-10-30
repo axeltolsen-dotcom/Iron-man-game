@@ -1268,19 +1268,17 @@ void AIronManCharacter::FireRepulsor()
 	const FVector Target = ComputeAimPoint();
 	const FVector Dir = (Target - Muzzle).GetSafeNormal();
 
-	FActorSpawnParameters Params;
-	Params.Owner = this;
-	Params.Instigator = this;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	const bool bRapidFireWeapon = S.PrimaryWeapon == ESuitPrimaryWeapon::Minigun || S.PrimaryWeapon == ESuitPrimaryWeapon::Flamethrower;
 	for (int32 i = 0; i < Count; ++i)
 	{
 		FVector ShotDir = Dir;
 		if (Count > 1) { ShotDir = Dir.RotateAngleAxis((i - (Count - 1) * 0.5f) * FanDegrees, FVector::UpVector); }
 		if (Spread > 0.f) { ShotDir = FMath::VRandCone(ShotDir, FMath::DegreesToRadians(Spread)); }
-		if (AIronProjectile* P = World->SpawnActor<AIronProjectile>(AIronProjectile::StaticClass(), Muzzle, ShotDir.Rotation(), Params))
+		if (AIronProjectile* P = AIronProjectile::SpawnPooled(World, Muzzle, ShotDir.Rotation(), this, this, false))
 		{
 			P->LifeSeconds = Life;
-			P->Configure(Damage, false, Blast, Color, Radius);
+			// Perf budget §5.3: no point light on minigun / flamethrower shots (emissive only).
+			P->Configure(Damage, false, Blast, Color, Radius, !bRapidFireWeapon);
 			P->Launch(ShotDir * Speed);
 		}
 	}
@@ -1291,7 +1289,7 @@ void AIronManCharacter::FireRepulsor()
 	// Shots also knock down boss missiles they pass close to (cheap proximity check).
 	for (TActorIterator<AIronProjectile> It(World); It; ++It)
 	{
-		if (It->IsHostile() && It->bDestroyableByPlayer)
+		if (It->IsActiveShot() && It->IsHostile() && It->bDestroyableByPlayer)
 		{
 			const FVector ToMissile = It->GetActorLocation() - Muzzle;
 			const float Along = FVector::DotProduct(ToMissile, Dir);
@@ -1397,10 +1395,6 @@ void AIronManCharacter::FireHoming(int32 Count, float Speed, float Homing, float
 		return DA > DB;
 	});
 
-	FActorSpawnParameters Params;
-	Params.Owner = this;
-	Params.Instigator = this;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	const FVector Up = FVector::UpVector;
 	const FVector Right = GetActorRightVector();
 	for (int32 i = 0; i < Count; ++i)
@@ -1410,7 +1404,7 @@ void AIronManCharacter::FireHoming(int32 Count, float Speed, float Homing, float
 		// Launch up and outward, then home in.
 		const FVector Dir = (CamFwd + Up * 0.6f + Right * Side * 0.5f * (1 + i / 2)).GetSafeNormal();
 		AEnemyBase* Target = Targets.Num() > 0 ? Targets[i % Targets.Num()] : nullptr;
-		if (AIronProjectile* P = World->SpawnActor<AIronProjectile>(AIronProjectile::StaticClass(), Origin, Dir.Rotation(), Params))
+		if (AIronProjectile* P = AIronProjectile::SpawnPooled(World, Origin, Dir.Rotation(), this, this, false))
 		{
 			P->LifeSeconds = Life;
 			P->Configure(Damage * SuitDamageMul, false, Blast, Color, Radius);

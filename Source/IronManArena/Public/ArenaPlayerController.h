@@ -16,6 +16,8 @@ class UStoryMenuWidget;
 class UUserWidget;
 struct FKeyEvent;
 
+class AMenuCameraActor;
+
 UCLASS()
 class IRONMANARENA_API AArenaPlayerController : public APlayerController
 {
@@ -102,4 +104,9 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UUserWidget> SubScreen;
 
 	EMenuMode LastMenuMode = EMenuMode::Title;
+
+	/** Title-menu background camera (slow orbit over the city). */
+	UPROPERTY(Transient) TObjectPtr<AMenuCameraActor> MenuCamera;
+	void StartMenuCamera();
+	void StopMenuCamera();
 };

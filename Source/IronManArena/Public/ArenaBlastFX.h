@@ -24,6 +24,11 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** Pool hooks (UArenaFXPool): hide + stop ticking, or come back at a new spot. */
+	void Park();
+	void ReactivateFromPool(const FVector& Location);
+	bool IsActiveBlast() const { return bActiveBlast; }
+
 	UPROPERTY(EditAnywhere, Category = "FX")
 	float MaxRadius = 200.f;
 
@@ -38,6 +43,9 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void LifeSpanExpired() override;
+	void SetLightClaimed(bool bWant);
 
 	UPROPERTY(VisibleAnywhere, Category = "FX")
 	TObjectPtr<UStaticMeshComponent> Ball;
@@ -49,4 +57,6 @@ protected:
 	TObjectPtr<UMaterialInstanceDynamic> MID;
 
 	float Age = 0.f;
+	bool bActiveBlast = true;
+	bool bHasLight = false;
 };

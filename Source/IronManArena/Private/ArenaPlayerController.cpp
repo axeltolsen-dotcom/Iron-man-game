@@ -1,4 +1,6 @@
 #include "ArenaPlayerController.h"
+#include "ArenaEnvironment.h"
+#include "MenuCameraActor.h"
 #include "ArenaFeel.h"
 #include "Camera/PlayerCameraManager.h"
 
@@ -156,12 +158,38 @@ void AArenaPlayerController::ShowMenu(EMenuMode Mode)
 	const AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr;
 	MenuWidget->SetMode(Mode, GM);
 	PresentScreen(MenuWidget, 10);
+	if (Mode == EMenuMode::Title) { StartMenuCamera(); }
+}
+
+void AArenaPlayerController::StartMenuCamera()
+{
+	UWorld* World = GetWorld();
+	if (!World || !IsLocalController()) { return; }
+	if (!MenuCamera)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		MenuCamera = World->SpawnActor<AMenuCameraActor>(AMenuCameraActor::StaticClass(), FTransform::Identity, Params);
+	}
+	if (!MenuCamera) { return; }
+	if (const AArenaEnvironment* Env = AArenaEnvironment::Find(this)) { MenuCamera->Focus = Env->GetActorLocation(); }
+	MenuCamera->UpdatePose();
+	MenuCamera->HoldFor = this;
+	SetViewTarget(MenuCamera);
+}
+
+void AArenaPlayerController::StopMenuCamera()
+{
+	if (!MenuCamera) { return; }
+	MenuCamera->HoldFor = nullptr;
+	if (GetViewTarget() == MenuCamera && GetPawn()) { SetViewTarget(GetPawn()); }
 }
 
 void AArenaPlayerController::HideMenu()
 {
 	RemoveSubScreen();
 	if (MenuWidget && MenuWidget->IsInViewport()) { MenuWidget->RemoveFromParent(); }
+	StopMenuCamera(); // before StartNewGame: the suit-up cinematic sets its own view target
 	SetPause(false);
 	SetInputMode(FInputModeGameOnly());
 	SetShowMouseCursor(false);

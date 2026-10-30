@@ -34,7 +34,21 @@ public:
 	 * @param InColor         glow colour
 	 * @param InRadius        visual / collision radius (uu)
 	 */
-	void Configure(float InDamage, bool bInHostile, float InBlastRadius, const FLinearColor& InColor, float InRadius);
+	void Configure(float InDamage, bool bInHostile, float InBlastRadius, const FLinearColor& InColor, float InRadius, bool bWantLight = true);
+
+	/**
+	 * Pooled spawn (UArenaFXPool). Use this instead of SpawnActor: shots are parked and reused,
+	 * and live shots are capped per side (32 player / 24 hostile, oldest recycled).
+	 */
+	static AIronProjectile* SpawnPooled(UWorld* World, const FVector& Location, const FRotator& Rotation, AActor* InOwner, APawn* InInstigator, bool bInHostile);
+
+	/** False while parked in the pool (hidden, no collision). Iterators must skip parked shots. */
+	bool IsActiveShot() const { return bActiveShot; }
+
+	/** Pool hooks. */
+	void ReactivateFromPool(const FVector& Location, const FRotator& Rotation, AActor* InOwner, APawn* InInstigator);
+	/** Fizzle without FX and go back to the pool. */
+	void Recycle();
 
 	/** Give it velocity. GravityScale 0 = straight line. HomingTarget optional. */
 	void Launch(const FVector& InVelocity, float GravityScale = 0.f, USceneComponent* HomingTarget = nullptr, float HomingAcceleration = 0.f);
@@ -64,6 +78,12 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void LifeSpanExpired() override;
+
+	/** Hide, stop, drop the light and hand back to the pool (or Destroy when no pool). */
+	void Park();
+	void SetGlowEnabled(bool bWant);
 
 	UFUNCTION()
 	void OnSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -97,4 +117,6 @@ protected:
 	FLinearColor Color = FLinearColor(0.4f, 0.9f, 1.f);
 
 	bool bExploded = false;
+	bool bActiveShot = true;
+	bool bHasLight = false;
 };

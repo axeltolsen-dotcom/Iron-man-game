@@ -227,6 +227,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPresetsTest, "IronManArena.Story.Light
 bool FLightingPresetsTest::RunTest(const FString& Parameters)
 {
 	TestEqual(TEXT("lighting_presets.json preset count"), ContribLighting::GetNumPresets(), 11);
+	TestEqual(TEXT("postprocess_realism.json presets merged"), ContribLighting::GetNumRealismPresets(), 11);
+	TestEqual(TEXT("free play reuses the city look"), ContribLighting::KeyForEnvironment(FName(TEXT("arena"))), FName(TEXT("city")));
 	const TCHAR* Env[] = { TEXT("workshop"), TEXT("workshop_night"), TEXT("rooftops_dusk"), TEXT("rooftops_storm"), TEXT("city_day"),
 		TEXT("city_night"), TEXT("city_overcast"), TEXT("ruins"), TEXT("battlefield"), TEXT("finale_dawn") };
 	for (const TCHAR* Id : Env)

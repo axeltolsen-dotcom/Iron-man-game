@@ -1,0 +1,4413 @@
+{
+ "modular_factory_facade": {
+  "base_end_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/base_end_01.base_end_01",
+   "min": [
+    -3029.999755859375,
+    -4.2351439333288e-06,
+    -200.0
+   ],
+   "max": [
+    -3009.999755859375,
+    20.000003814697266,
+    -125.0
+   ]
+  },
+  "base_end_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/base_end_02.base_end_02",
+   "min": [
+    -2990.000244140625,
+    -8.742276236262114e-07,
+    -200.0
+   ],
+   "max": [
+    -2970.000244140625,
+    20.000009536743164,
+    -125.0
+   ]
+  },
+  "base_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/base_standard_corner_large_01.base_standard_corner_large_01",
+   "min": [
+    -2419.999755859375,
+    -300.0,
+    -200.0
+   ],
+   "max": [
+    -2099.999755859375,
+    20.000003814697266,
+    -125.0
+   ]
+  },
+  "base_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/base_standard_corner_large_02.base_standard_corner_large_02",
+   "min": [
+    -2400.0,
+    -500.0,
+    -200.0
+   ],
+   "max": [
+    -2100.0,
+    -200.0,
+    -125.0
+   ]
+  },
+  "base_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/base_standard_corner_small_01.base_standard_corner_small_01",
+   "min": [
+    -2719.999755859375,
+    -200.0,
+    -200.0
+   ],
+   "max": [
+    -2499.999755859375,
+    20.000003814697266,
+    -125.0
+   ]
+  },
+  "base_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/base_standard_corner_small_02.base_standard_corner_small_02",
+   "min": [
+    -2700.0,
+    -500.0,
+    -200.0
+   ],
+   "max": [
+    -2500.0,
+    -300.0,
+    -125.0
+   ]
+  },
+  "base_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/base_standard_standard_01.base_standard_standard_01",
+   "min": [
+    -2000.0,
+    0.0,
+    -200.0
+   ],
+   "max": [
+    -1700.0,
+    20.0,
+    -125.0
+   ]
+  },
+  "cornice01_end_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_end_01.cornice01_end_01",
+   "min": [
+    -3031.778564453125,
+    -10.041345596313477,
+    600.0263061523438
+   ],
+   "max": [
+    -3010.000244140625,
+    6.737466812133789,
+    615.224853515625
+   ]
+  },
+  "cornice01_end_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_end_02.cornice01_end_02",
+   "min": [
+    -2990.0009765625,
+    -10.041345596313477,
+    600.0263061523438
+   ],
+   "max": [
+    -2968.220703125,
+    6.737466812133789,
+    615.224853515625
+   ]
+  },
+  "cornice01_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_pier_corner_01.cornice01_pier_corner_01",
+   "min": [
+    -2914.77880859375,
+    -28.7786922454834,
+    600.0263061523438
+   ],
+   "max": [
+    -2871.220458984375,
+    14.778810501098633,
+    615.224853515625
+   ]
+  },
+  "cornice01_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_pier_corner_02.cornice01_pier_corner_02",
+   "min": [
+    -2934.779296875,
+    -91.99999237060547,
+    600.0263061523438
+   ],
+   "max": [
+    -2897.999267578125,
+    -55.22130584716797,
+    613.9003295898438
+   ]
+  },
+  "cornice01_pier_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_pier_standard_01.cornice01_pier_standard_01",
+   "min": [
+    -2821.77880859375,
+    -2.000001907348633,
+    600.0263061523438
+   ],
+   "max": [
+    -2778.220458984375,
+    14.778810501098633,
+    615.224853515625
+   ]
+  },
+  "cornice01_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_standard_corner_large_01.cornice01_standard_corner_large_01",
+   "min": [
+    -2406.77880859375,
+    -300.0,
+    600.0263061523438
+   ],
+   "max": [
+    -2100.0,
+    6.779008388519287,
+    615.224853515625
+   ]
+  },
+  "cornice01_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_standard_corner_large_02.cornice01_standard_corner_large_02",
+   "min": [
+    -2400.0,
+    -509.9999084472656,
+    600.0263061523438
+   ],
+   "max": [
+    -2090.0,
+    -199.99964904785156,
+    615.224853515625
+   ]
+  },
+  "cornice01_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_standard_corner_small_01.cornice01_standard_corner_small_01",
+   "min": [
+    -2706.77880859375,
+    -200.0,
+    600.0263061523438
+   ],
+   "max": [
+    -2500.0,
+    6.779008388519287,
+    615.224853515625
+   ]
+  },
+  "cornice01_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_standard_corner_small_02.cornice01_standard_corner_small_02",
+   "min": [
+    -2700.0,
+    -509.9999084472656,
+    600.0263061523438
+   ],
+   "max": [
+    -2490.0,
+    -299.9996337890625,
+    615.224853515625
+   ]
+  },
+  "cornice01_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice01_standard_standard_01.cornice01_standard_standard_01",
+   "min": [
+    -2000.0003662109375,
+    -10.041343688964844,
+    600.0262451171875
+   ],
+   "max": [
+    -1699.9996337890625,
+    6.778641223907471,
+    615.2247924804688
+   ]
+  },
+  "cornice02_end_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_end_01.cornice02_end_01",
+   "min": [
+    -3027.312744140625,
+    -19.999908447265625,
+    499.9999694824219
+   ],
+   "max": [
+    -3009.999755859375,
+    5.687413215637207,
+    516.0
+   ]
+  },
+  "cornice02_end_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_end_02.cornice02_end_02",
+   "min": [
+    -2990.000244140625,
+    -19.999908447265625,
+    500.0000305175781
+   ],
+   "max": [
+    -2972.687255859375,
+    5.687413215637207,
+    516.0000610351562
+   ]
+  },
+  "cornice02_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_pier_corner_01.cornice02_pier_corner_01",
+   "min": [
+    -2911.47216796875,
+    -25.47103500366211,
+    498.2392272949219
+   ],
+   "max": [
+    -2874.5283203125,
+    11.472179412841797,
+    517.7607421875
+   ]
+  },
+  "cornice02_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_pier_corner_02.cornice02_pier_corner_02",
+   "min": [
+    -2931.471435546875,
+    -100.00003814697266,
+    498.2392272949219
+   ],
+   "max": [
+    -2890.00048828125,
+    -58.52779006958008,
+    517.7607421875
+   ]
+  },
+  "cornice02_pier_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_pier_standard_01.cornice02_pier_standard_01",
+   "min": [
+    -2818.4716796875,
+    -9.999999046325684,
+    498.2392272949219
+   ],
+   "max": [
+    -2781.5283203125,
+    11.471596717834473,
+    517.7607421875
+   ]
+  },
+  "cornice02_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_standard_corner_large_01.cornice02_standard_corner_large_01",
+   "min": [
+    -2405.6875,
+    -300.00006103515625,
+    500.0000305175781
+   ],
+   "max": [
+    -2100.0,
+    5.687413215637207,
+    516.0000610351562
+   ]
+  },
+  "cornice02_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_standard_corner_large_02.cornice02_standard_corner_large_02",
+   "min": [
+    -2400.0,
+    -511.6249694824219,
+    500.0000305175781
+   ],
+   "max": [
+    -2088.375,
+    -199.9999237060547,
+    516.0000610351562
+   ]
+  },
+  "cornice02_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_standard_corner_small_01.cornice02_standard_corner_small_01",
+   "min": [
+    -2705.6875,
+    -200.0000457763672,
+    500.0000305175781
+   ],
+   "max": [
+    -2500.0,
+    5.687413215637207,
+    516.0000610351562
+   ]
+  },
+  "cornice02_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_standard_corner_small_02.cornice02_standard_corner_small_02",
+   "min": [
+    -2700.0,
+    -511.6249694824219,
+    500.0000305175781
+   ],
+   "max": [
+    -2488.375,
+    -299.99993896484375,
+    516.0000610351562
+   ]
+  },
+  "cornice02_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice02_standard_standard_01.cornice02_standard_standard_01",
+   "min": [
+    -2000.0,
+    -11.624958038330078,
+    500.0000305175781
+   ],
+   "max": [
+    -1699.9998779296875,
+    5.687412738800049,
+    516.0000610351562
+   ]
+  },
+  "cornice03_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice03_standard_corner_large_01.cornice03_standard_corner_large_01",
+   "min": [
+    -2403.0,
+    -299.9998474121094,
+    397.5307312011719
+   ],
+   "max": [
+    -2100.000244140625,
+    3.0000038146972656,
+    410.0
+   ]
+  },
+  "cornice03_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice03_standard_corner_large_02.cornice03_standard_corner_large_02",
+   "min": [
+    -2399.999755859375,
+    -514.6249389648438,
+    397.5307312011719
+   ],
+   "max": [
+    -2082.375,
+    -200.0001678466797,
+    410.0
+   ]
+  },
+  "cornice03_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice03_standard_corner_small_01.cornice03_standard_corner_small_01",
+   "min": [
+    -2703.0,
+    -199.9998321533203,
+    397.5307312011719
+   ],
+   "max": [
+    -2500.000244140625,
+    3.0000038146972656,
+    410.0
+   ]
+  },
+  "cornice03_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice03_standard_corner_small_02.cornice03_standard_corner_small_02",
+   "min": [
+    -2699.999755859375,
+    -514.6249389648438,
+    397.5307312011719
+   ],
+   "max": [
+    -2482.375,
+    -300.0001525878906,
+    410.0
+   ]
+  },
+  "cornice03_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/cornice03_standard_standard_01.cornice03_standard_standard_01",
+   "min": [
+    -1999.9998779296875,
+    -14.624958038330078,
+    397.5307312011719
+   ],
+   "max": [
+    -1700.0001220703125,
+    3.0,
+    410.0
+   ]
+  },
+  "crown_end_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_end_01.crown_end_01",
+   "min": [
+    -3032.999755859375,
+    -19.999998092651367,
+    699.9999389648438
+   ],
+   "max": [
+    -3009.999755859375,
+    13.0,
+    732.0
+   ]
+  },
+  "crown_end_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_end_02.crown_end_02",
+   "min": [
+    -2989.999267578125,
+    -19.999998092651367,
+    699.9999389648438
+   ],
+   "max": [
+    -2966.99951171875,
+    13.0,
+    732.0
+   ]
+  },
+  "crown_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_pier_corner_01.crown_pier_corner_01",
+   "min": [
+    -2921.0,
+    -34.999977111816406,
+    699.9999389648438
+   ],
+   "max": [
+    -2865.0,
+    21.0,
+    732.3468017578125
+   ]
+  },
+  "crown_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_pier_corner_02.crown_pier_corner_02",
+   "min": [
+    -2941.0,
+    -89.99999237060547,
+    699.9999389648438
+   ],
+   "max": [
+    -2900.000244140625,
+    -49.00002670288086,
+    732.3468017578125
+   ]
+  },
+  "crown_pier_pedestal_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_pier_pedestal_01.crown_pier_pedestal_01",
+   "min": [
+    -2828.0,
+    -4.544854164123535e-05,
+    699.9999389648438
+   ],
+   "max": [
+    -2772.0,
+    20.99994468688965,
+    732.3468017578125
+   ]
+  },
+  "crown_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_standard_corner_large_01.crown_standard_corner_large_01",
+   "min": [
+    -2413.0,
+    -300.0,
+    699.9999389648438
+   ],
+   "max": [
+    -2100.0,
+    13.0,
+    732.0
+   ]
+  },
+  "crown_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_standard_corner_large_02.crown_standard_corner_large_02",
+   "min": [
+    -2400.0,
+    -500.0,
+    699.9999389648438
+   ],
+   "max": [
+    -2099.99951171875,
+    -199.99961853027344,
+    732.0
+   ]
+  },
+  "crown_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_standard_corner_small_01.crown_standard_corner_small_01",
+   "min": [
+    -2713.0,
+    -200.0,
+    699.9999389648438
+   ],
+   "max": [
+    -2500.0,
+    13.0,
+    732.0
+   ]
+  },
+  "crown_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_standard_corner_small_02.crown_standard_corner_small_02",
+   "min": [
+    -2700.0,
+    -500.0,
+    699.9999389648438
+   ],
+   "max": [
+    -2499.99951171875,
+    -299.9996337890625,
+    732.0
+   ]
+  },
+  "crown_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/crown_standard_standard_01.crown_standard_standard_01",
+   "min": [
+    -2000.0,
+    0.0,
+    699.9999389648438
+   ],
+   "max": [
+    -1700.0,
+    13.0,
+    732.0
+   ]
+  },
+  "dado_door_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_door_centered_large_01.dado_door_centered_large_01",
+   "min": [
+    1599.999755859375,
+    -36.0000114440918,
+    -100.00001525878906
+   ],
+   "max": [
+    1899.9998779296875,
+    9.999992370605469,
+    -45.000003814697266
+   ]
+  },
+  "dado_door_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_door_centered_small_01.dado_door_centered_small_01",
+   "min": [
+    1999.999755859375,
+    -36.0000114440918,
+    -100.00001525878906
+   ],
+   "max": [
+    2299.99951171875,
+    9.999995231628418,
+    -45.000003814697266
+   ]
+  },
+  "dado_door_recessed_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_door_recessed_large_01.dado_door_recessed_large_01",
+   "min": [
+    799.9998779296875,
+    -36.00001525878906,
+    -100.00001525878906
+   ],
+   "max": [
+    1100.0,
+    9.999991416931152,
+    -45.0000114440918
+   ]
+  },
+  "dado_door_recessed_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_door_recessed_small_01.dado_door_recessed_small_01",
+   "min": [
+    1199.9996337890625,
+    -36.000003814697266,
+    -100.0000228881836
+   ],
+   "max": [
+    1499.9996337890625,
+    10.000001907348633,
+    -45.0000114440918
+   ]
+  },
+  "dado_end_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_end_01.dado_end_01",
+   "min": [
+    -3019.999755859375,
+    -36.00001525878906,
+    -100.00001525878906
+   ],
+   "max": [
+    -3010.0,
+    9.99998950958252,
+    -45.0000114440918
+   ]
+  },
+  "dado_end_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_end_02.dado_end_02",
+   "min": [
+    -2989.9990234375,
+    -36.00001525878906,
+    -100.00001525878906
+   ],
+   "max": [
+    -2979.99951171875,
+    9.999991416931152,
+    -45.00001525878906
+   ]
+  },
+  "dado_garage_centered_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_garage_centered_01.dado_garage_centered_01",
+   "min": [
+    -1600.000244140625,
+    -36.000003814697266,
+    -100.0000228881836
+   ],
+   "max": [
+    -1000.00048828125,
+    10.000001907348633,
+    -45.0000114440918
+   ]
+  },
+  "dado_garage_door_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_garage_door_01.dado_garage_door_01",
+   "min": [
+    99.99992370605469,
+    -36.000003814697266,
+    -100.0000228881836
+   ],
+   "max": [
+    700.0,
+    10.0,
+    -45.00001525878906
+   ]
+  },
+  "dado_garage_door_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_garage_door_02.dado_garage_door_02",
+   "min": [
+    99.99992370605469,
+    -236.00001525878906,
+    -100.0000228881836
+   ],
+   "max": [
+    700.0,
+    -190.00001525878906,
+    -45.00001525878906
+   ]
+  },
+  "dado_garage_double_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_garage_double_01.dado_garage_double_01",
+   "min": [
+    -900.000244140625,
+    -36.000003814697266,
+    -100.0000228881836
+   ],
+   "max": [
+    -0.0005125999450683594,
+    10.000001907348633,
+    -45.0000114440918
+   ]
+  },
+  "dado_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_pier_corner_01.dado_pier_corner_01",
+   "min": [
+    -2913.000732421875,
+    -26.999393463134766,
+    -100.0
+   ],
+   "max": [
+    -2873.0,
+    13.00058650970459,
+    -24.99999237060547
+   ]
+  },
+  "dado_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_pier_corner_02.dado_pier_corner_02",
+   "min": [
+    -2932.99951171875,
+    -100.00003814697266,
+    -100.0
+   ],
+   "max": [
+    -2890.0,
+    -56.99943161010742,
+    -24.99999237060547
+   ]
+  },
+  "dado_pier_pedestal_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_pier_pedestal_01.dado_pier_pedestal_01",
+   "min": [
+    -2820.0,
+    -9.999999046325684,
+    -100.0
+   ],
+   "max": [
+    -2780.0,
+    13.00000286102295,
+    -25.0
+   ]
+  },
+  "dado_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_standard_corner_large_01.dado_standard_corner_large_01",
+   "min": [
+    -2410.0,
+    -300.0002746582031,
+    -100.0
+   ],
+   "max": [
+    -2099.999755859375,
+    9.999993324279785,
+    -45.000003814697266
+   ]
+  },
+  "dado_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_standard_corner_large_02.dado_standard_corner_large_02",
+   "min": [
+    -2400.000732421875,
+    -500.0003662109375,
+    -99.99999237060547
+   ],
+   "max": [
+    -2100.00048828125,
+    -199.99978637695312,
+    -45.0
+   ]
+  },
+  "dado_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_standard_corner_small_01.dado_standard_corner_small_01",
+   "min": [
+    -2710.0,
+    -200.0002899169922,
+    -100.0
+   ],
+   "max": [
+    -2499.999755859375,
+    9.999993324279785,
+    -45.000003814697266
+   ]
+  },
+  "dado_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_standard_corner_small_02.dado_standard_corner_small_02",
+   "min": [
+    -2700.000732421875,
+    -500.0003662109375,
+    -99.99999237060547
+   ],
+   "max": [
+    -2500.00048828125,
+    -299.9997863769531,
+    -45.0
+   ]
+  },
+  "dado_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/dado_standard_standard_01.dado_standard_standard_01",
+   "min": [
+    -2000.0,
+    -5.6236905948026106e-05,
+    -100.0
+   ],
+   "max": [
+    -1700.0,
+    9.999993324279785,
+    -45.000003814697266
+   ]
+  },
+  "door_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_centered_large_01.door_centered_large_01",
+   "min": [
+    1660.0001220703125,
+    -20.500009536743164,
+    0.0
+   ],
+   "max": [
+    1839.9998779296875,
+    3.0,
+    232.99993896484375
+   ]
+  },
+  "door_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_centered_small_01.door_centered_small_01",
+   "min": [
+    2087.000244140625,
+    -20.500009536743164,
+    0.0
+   ],
+   "max": [
+    2212.999755859375,
+    3.000002384185791,
+    232.99993896484375
+   ]
+  },
+  "door_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_centered_small_02.door_centered_small_02",
+   "min": [
+    2087.000244140625,
+    -220.50001525878906,
+    0.0
+   ],
+   "max": [
+    2212.999755859375,
+    -197.0,
+    232.99993896484375
+   ]
+  },
+  "door_garage_centered_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_garage_centered_01.door_garage_centered_01",
+   "min": [
+    -1465.9998779296875,
+    -50.000083923339844,
+    7.078051567077637e-06
+   ],
+   "max": [
+    -1134.000244140625,
+    3.000009536743164,
+    273.99993896484375
+   ]
+  },
+  "door_garage_door_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_garage_door_01.door_garage_door_01",
+   "min": [
+    134.0001678466797,
+    -50.000083923339844,
+    7.078051567077637e-06
+   ],
+   "max": [
+    665.9998168945312,
+    3.000009536743164,
+    273.99993896484375
+   ]
+  },
+  "door_garage_door_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_garage_door_02.door_garage_door_02",
+   "min": [
+    134.0001678466797,
+    -250.00009155273438,
+    7.078051567077637e-06
+   ],
+   "max": [
+    665.9998168945312,
+    -196.99998474121094,
+    273.99993896484375
+   ]
+  },
+  "door_garage_double_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_garage_double_01.door_garage_double_01",
+   "min": [
+    -815.999755859375,
+    -50.000083923339844,
+    7.078051567077637e-06
+   ],
+   "max": [
+    -84.00017547607422,
+    3.000009536743164,
+    273.99993896484375
+   ]
+  },
+  "door_recessed_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_recessed_large_01.door_recessed_large_01",
+   "min": [
+    834.0001831054688,
+    -50.00009536743164,
+    0.0
+   ],
+   "max": [
+    1065.9998779296875,
+    3.0,
+    273.99993896484375
+   ]
+  },
+  "door_recessed_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_recessed_small_01.door_recessed_small_01",
+   "min": [
+    1284.0001220703125,
+    -50.00003433227539,
+    7.078051567077637e-06
+   ],
+   "max": [
+    1415.9998779296875,
+    3.000009536743164,
+    273.99993896484375
+   ]
+  },
+  "door_recessed_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_recessed_small_02.door_recessed_small_02",
+   "min": [
+    1284.0001220703125,
+    -250.00003051757812,
+    7.078051567077637e-06
+   ],
+   "max": [
+    1415.9998779296875,
+    -196.99998474121094,
+    273.99993896484375
+   ]
+  },
+  "door_window_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_01.door_window_small_01",
+   "min": [
+    2029.0001220703125,
+    -20.500009536743164,
+    400.0
+   ],
+   "max": [
+    2287.999755859375,
+    3.0000128746032715,
+    633.4998779296875
+   ]
+  },
+  "door_window_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_02.door_window_small_02",
+   "min": [
+    2012.0001220703125,
+    -220.50001525878906,
+    400.0
+   ],
+   "max": [
+    2269.999755859375,
+    -196.99998474121094,
+    633.4998779296875
+   ]
+  },
+  "door_window_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_03.door_window_small_03",
+   "min": [
+    2029.0001220703125,
+    -20.500009536743164,
+    800.0
+   ],
+   "max": [
+    2287.999755859375,
+    3.0000128746032715,
+    1033.5
+   ]
+  },
+  "door_window_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_04.door_window_small_04",
+   "min": [
+    2012.0001220703125,
+    -220.50001525878906,
+    800.0
+   ],
+   "max": [
+    2269.999755859375,
+    -196.99998474121094,
+    1033.5
+   ]
+  },
+  "door_window_small_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_05.door_window_small_05",
+   "min": [
+    2029.0001220703125,
+    -20.500009536743164,
+    1200.0
+   ],
+   "max": [
+    2287.999755859375,
+    3.0000128746032715,
+    1435.4998779296875
+   ]
+  },
+  "door_window_small_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_06.door_window_small_06",
+   "min": [
+    2012.0001220703125,
+    -220.50001525878906,
+    1200.0
+   ],
+   "max": [
+    2269.999755859375,
+    -196.99998474121094,
+    1435.4998779296875
+   ]
+  },
+  "door_window_small_07": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_07.door_window_small_07",
+   "min": [
+    2029.0001220703125,
+    -20.500009536743164,
+    1600.0
+   ],
+   "max": [
+    2287.999755859375,
+    3.0000128746032715,
+    1835.5
+   ]
+  },
+  "door_window_small_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/door_window_small_08.door_window_small_08",
+   "min": [
+    2012.0001220703125,
+    -220.50001525878906,
+    1600.0
+   ],
+   "max": [
+    2269.999755859375,
+    -196.99998474121094,
+    1835.5
+   ]
+  },
+  "wall_door_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_centered_large_01.wall_door_centered_large_01",
+   "min": [
+    1599.999755859375,
+    0.0,
+    0.0
+   ],
+   "max": [
+    1899.999755859375,
+    0.0,
+    300.0
+   ]
+  },
+  "wall_door_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_centered_small_01.wall_door_centered_small_01",
+   "min": [
+    2000.0,
+    0.0,
+    -2.384185791015625e-05
+   ],
+   "max": [
+    2300.0,
+    0.0,
+    300.0
+   ]
+  },
+  "wall_door_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_centered_small_02.wall_door_centered_small_02",
+   "min": [
+    2000.0,
+    -200.0,
+    -2.384185791015625e-05
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    300.0
+   ]
+  },
+  "wall_door_garage_centered_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_garage_centered_01.wall_door_garage_centered_01",
+   "min": [
+    -1600.00048828125,
+    -26.000011444091797,
+    -5.9604644775390625e-06
+   ],
+   "max": [
+    -1000.0003662109375,
+    6.020384716975968e-06,
+    300.0000305175781
+   ]
+  },
+  "wall_door_garage_door_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_garage_door_01.wall_door_garage_door_01",
+   "min": [
+    99.99949645996094,
+    -26.000011444091797,
+    -1.6763806343078613e-05
+   ],
+   "max": [
+    699.9996337890625,
+    6.020384716975968e-06,
+    300.0000305175781
+   ]
+  },
+  "wall_door_garage_door_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_garage_door_02.wall_door_garage_door_02",
+   "min": [
+    99.99949645996094,
+    -226.00001525878906,
+    -1.6763806343078613e-05
+   ],
+   "max": [
+    699.9996337890625,
+    -200.0,
+    300.0000305175781
+   ]
+  },
+  "wall_door_garage_double_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_garage_double_01.wall_door_garage_double_01",
+   "min": [
+    -900.00048828125,
+    -26.000011444091797,
+    -5.9604644775390625e-06
+   ],
+   "max": [
+    -0.0003814697265625,
+    6.020384716975968e-06,
+    300.0000305175781
+   ]
+  },
+  "wall_door_recessed_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_recessed_large_01.wall_door_recessed_large_01",
+   "min": [
+    799.99951171875,
+    -26.000019073486328,
+    -1.30385160446167e-05
+   ],
+   "max": [
+    1099.9996337890625,
+    -3.2778605145722395e-06,
+    300.0000305175781
+   ]
+  },
+  "wall_door_recessed_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_recessed_small_01.wall_door_recessed_small_01",
+   "min": [
+    1199.99951171875,
+    -26.000011444091797,
+    -1.6763806343078613e-05
+   ],
+   "max": [
+    1499.9996337890625,
+    6.020384716975968e-06,
+    300.0000305175781
+   ]
+  },
+  "wall_door_recessed_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_recessed_small_02.wall_door_recessed_small_02",
+   "min": [
+    1199.99951171875,
+    -226.00001525878906,
+    -1.6763806343078613e-05
+   ],
+   "max": [
+    1499.9996337890625,
+    -200.0,
+    300.0000305175781
+   ]
+  },
+  "wall_door_window_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_01.wall_door_window_small_01",
+   "min": [
+    2000.0,
+    -19.999998092651367,
+    399.9999694824219
+   ],
+   "max": [
+    2300.0,
+    3.6756855479325168e-06,
+    700.0
+   ]
+  },
+  "wall_door_window_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_02.wall_door_window_small_02",
+   "min": [
+    2000.0,
+    -220.0,
+    399.9999694824219
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    700.0
+   ]
+  },
+  "wall_door_window_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_03.wall_door_window_small_03",
+   "min": [
+    2000.0,
+    -19.999998092651367,
+    800.0
+   ],
+   "max": [
+    2300.0,
+    3.6756855479325168e-06,
+    1100.0
+   ]
+  },
+  "wall_door_window_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_04.wall_door_window_small_04",
+   "min": [
+    2000.0,
+    -220.0,
+    800.0
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    1100.0
+   ]
+  },
+  "wall_door_window_small_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_05.wall_door_window_small_05",
+   "min": [
+    2000.0,
+    -19.999998092651367,
+    1200.0
+   ],
+   "max": [
+    2300.0,
+    3.6756855479325168e-06,
+    1500.0
+   ]
+  },
+  "wall_door_window_small_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_06.wall_door_window_small_06",
+   "min": [
+    2000.0,
+    -220.0,
+    1200.0
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    1500.0
+   ]
+  },
+  "wall_door_window_small_07": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_07.wall_door_window_small_07",
+   "min": [
+    2000.0,
+    -19.999998092651367,
+    1600.0
+   ],
+   "max": [
+    2300.0,
+    3.6756855479325168e-06,
+    1900.0
+   ]
+  },
+  "wall_door_window_small_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_door_window_small_08.wall_door_window_small_08",
+   "min": [
+    2000.0,
+    -220.0,
+    1600.0
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    1900.0
+   ]
+  },
+  "wall_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_pier_corner_01.wall_pier_corner_01",
+   "min": [
+    -2908.0,
+    -21.999691009521484,
+    0.0
+   ],
+   "max": [
+    -2877.999755859375,
+    7.999952793121338,
+    300.0
+   ]
+  },
+  "wall_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_pier_corner_02.wall_pier_corner_02",
+   "min": [
+    -2927.999755859375,
+    -90.0,
+    0.0
+   ],
+   "max": [
+    -2900.0,
+    -61.999855041503906,
+    300.0
+   ]
+  },
+  "wall_pier_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_pier_standard_01.wall_pier_standard_01",
+   "min": [
+    -2815.0,
+    0.0,
+    0.0
+   ],
+   "max": [
+    -2785.0,
+    8.000011444091797,
+    300.0
+   ]
+  },
+  "wall_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_standard_corner_large_01.wall_standard_corner_large_01",
+   "min": [
+    -2400.0,
+    -300.0,
+    0.0
+   ],
+   "max": [
+    -2100.0,
+    0.0,
+    300.0
+   ]
+  },
+  "wall_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_standard_corner_large_02.wall_standard_corner_large_02",
+   "min": [
+    -2400.0,
+    -500.00006103515625,
+    0.0
+   ],
+   "max": [
+    -2100.0,
+    -200.0,
+    300.0
+   ]
+  },
+  "wall_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_standard_corner_small_01.wall_standard_corner_small_01",
+   "min": [
+    -2700.0,
+    -200.0,
+    0.0
+   ],
+   "max": [
+    -2500.0,
+    0.0,
+    300.0
+   ]
+  },
+  "wall_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_standard_corner_small_02.wall_standard_corner_small_02",
+   "min": [
+    -2700.0,
+    -500.00006103515625,
+    0.0
+   ],
+   "max": [
+    -2500.0,
+    -300.0,
+    300.0
+   ]
+  },
+  "wall_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_standard_standard_01.wall_standard_standard_01",
+   "min": [
+    -2000.0,
+    0.0,
+    0.0
+   ],
+   "max": [
+    -1700.0,
+    0.0,
+    300.0
+   ]
+  },
+  "wall_window_centered_double_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_double_01.wall_window_centered_double_01",
+   "min": [
+    1200.0,
+    -20.0,
+    400.0
+   ],
+   "max": [
+    1500.0,
+    0.0,
+    699.9999389648438
+   ]
+  },
+  "wall_window_centered_double_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_double_02.wall_window_centered_double_02",
+   "min": [
+    1200.0,
+    -20.0,
+    800.0000610351562
+   ],
+   "max": [
+    1500.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_centered_double_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_double_03.wall_window_centered_double_03",
+   "min": [
+    1200.0,
+    -19.999998092651367,
+    1200.0
+   ],
+   "max": [
+    1500.0,
+    1.4901161193847656e-06,
+    1500.0
+   ]
+  },
+  "wall_window_centered_double_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_double_04.wall_window_centered_double_04",
+   "min": [
+    1200.0,
+    -19.999998092651367,
+    1600.0
+   ],
+   "max": [
+    1500.0,
+    1.4901161193847656e-06,
+    1900.0
+   ]
+  },
+  "wall_window_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_large_01.wall_window_centered_large_01",
+   "min": [
+    -0.0003662109375,
+    -20.0,
+    400.0
+   ],
+   "max": [
+    300.0,
+    0.0,
+    699.9999389648438
+   ]
+  },
+  "wall_window_centered_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_large_02.wall_window_centered_large_02",
+   "min": [
+    -0.0003662109375,
+    -23.5,
+    800.0
+   ],
+   "max": [
+    300.0,
+    1.5,
+    1099.9998779296875
+   ]
+  },
+  "wall_window_centered_large_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_large_03.wall_window_centered_large_03",
+   "min": [
+    0.0,
+    -19.999998092651367,
+    1200.0
+   ],
+   "max": [
+    300.0,
+    1.4901161193847656e-06,
+    1500.0
+   ]
+  },
+  "wall_window_centered_large_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_large_04.wall_window_centered_large_04",
+   "min": [
+    -0.0003662109375,
+    -23.499998092651367,
+    1600.0
+   ],
+   "max": [
+    300.0,
+    1.5000015497207642,
+    1900.0
+   ]
+  },
+  "wall_window_centered_large_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_large_05.wall_window_centered_large_05",
+   "min": [
+    -0.0003662109375,
+    -23.5,
+    2000.0
+   ],
+   "max": [
+    300.0,
+    1.5,
+    2300.0
+   ]
+  },
+  "wall_window_centered_large_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_large_06.wall_window_centered_large_06",
+   "min": [
+    -0.0003662109375,
+    -23.499998092651367,
+    2400.0
+   ],
+   "max": [
+    300.0,
+    1.5000015497207642,
+    2700.0
+   ]
+  },
+  "wall_window_centered_medium_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_medium_01.wall_window_centered_medium_01",
+   "min": [
+    400.00006103515625,
+    -20.0,
+    400.0
+   ],
+   "max": [
+    699.9992065429688,
+    0.0,
+    699.9999389648438
+   ]
+  },
+  "wall_window_centered_medium_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_medium_02.wall_window_centered_medium_02",
+   "min": [
+    399.9992370605469,
+    -23.5,
+    800.0
+   ],
+   "max": [
+    700.0,
+    1.5000476837158203,
+    1099.9998779296875
+   ]
+  },
+  "wall_window_centered_medium_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_medium_03.wall_window_centered_medium_03",
+   "min": [
+    400.0,
+    -19.999998092651367,
+    1200.0
+   ],
+   "max": [
+    700.0,
+    1.4901161193847656e-06,
+    1500.0
+   ]
+  },
+  "wall_window_centered_medium_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_medium_04.wall_window_centered_medium_04",
+   "min": [
+    399.9992370605469,
+    -23.499998092651367,
+    1600.0
+   ],
+   "max": [
+    700.0,
+    1.5000492334365845,
+    1900.0
+   ]
+  },
+  "wall_window_centered_medium_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_medium_05.wall_window_centered_medium_05",
+   "min": [
+    399.9992370605469,
+    -23.5,
+    2000.0001220703125
+   ],
+   "max": [
+    700.0,
+    1.5000476837158203,
+    2300.0
+   ]
+  },
+  "wall_window_centered_medium_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_medium_06.wall_window_centered_medium_06",
+   "min": [
+    399.9992370605469,
+    -23.499998092651367,
+    2400.0
+   ],
+   "max": [
+    700.0,
+    1.5000492334365845,
+    2700.0
+   ]
+  },
+  "wall_window_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_small_01.wall_window_centered_small_01",
+   "min": [
+    800.0,
+    -20.0,
+    400.0
+   ],
+   "max": [
+    1100.0,
+    0.0,
+    699.9999389648438
+   ]
+  },
+  "wall_window_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_small_02.wall_window_centered_small_02",
+   "min": [
+    800.0,
+    -20.0,
+    800.0000610351562
+   ],
+   "max": [
+    1100.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_centered_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_small_03.wall_window_centered_small_03",
+   "min": [
+    800.0,
+    -19.999998092651367,
+    1200.0
+   ],
+   "max": [
+    1100.0,
+    1.4901161193847656e-06,
+    1500.0
+   ]
+  },
+  "wall_window_centered_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_centered_small_04.wall_window_centered_small_04",
+   "min": [
+    800.0,
+    -19.999998092651367,
+    1600.0
+   ],
+   "max": [
+    1100.0,
+    1.4901161193847656e-06,
+    1900.0
+   ]
+  },
+  "wall_window_offset_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_01.wall_window_offset_small_01",
+   "min": [
+    1600.0,
+    -20.0,
+    400.0
+   ],
+   "max": [
+    1900.0,
+    0.0,
+    699.9999389648438
+   ]
+  },
+  "wall_window_offset_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_02.wall_window_offset_small_02",
+   "min": [
+    1600.0,
+    -220.0,
+    400.0
+   ],
+   "max": [
+    1900.0,
+    -200.0,
+    699.9999389648438
+   ]
+  },
+  "wall_window_offset_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_03.wall_window_offset_small_03",
+   "min": [
+    1600.0,
+    -20.0,
+    800.0000610351562
+   ],
+   "max": [
+    1900.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_offset_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_04.wall_window_offset_small_04",
+   "min": [
+    1600.0,
+    -220.0,
+    800.0000610351562
+   ],
+   "max": [
+    1900.0,
+    -200.0,
+    1100.0
+   ]
+  },
+  "wall_window_offset_small_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_05.wall_window_offset_small_05",
+   "min": [
+    1600.0,
+    -19.999998092651367,
+    1200.0
+   ],
+   "max": [
+    1900.0,
+    1.4901161193847656e-06,
+    1500.0
+   ]
+  },
+  "wall_window_offset_small_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_06.wall_window_offset_small_06",
+   "min": [
+    1600.0,
+    -220.0,
+    1200.0
+   ],
+   "max": [
+    1900.0,
+    -200.0,
+    1500.0
+   ]
+  },
+  "wall_window_offset_small_07": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_07.wall_window_offset_small_07",
+   "min": [
+    1600.0,
+    -19.999998092651367,
+    1600.0
+   ],
+   "max": [
+    1900.0,
+    1.4901161193847656e-06,
+    1900.0
+   ]
+  },
+  "wall_window_offset_small_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_offset_small_08.wall_window_offset_small_08",
+   "min": [
+    1600.0,
+    -220.0,
+    1600.0
+   ],
+   "max": [
+    1900.0,
+    -200.0,
+    1900.0
+   ]
+  },
+  "wall_window_tall_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_01.wall_window_tall_large_01",
+   "min": [
+    -1200.0,
+    -16.999998092651367,
+    400.0
+   ],
+   "max": [
+    -899.9999389648438,
+    1.4901161193847656e-06,
+    700.0000610351562
+   ]
+  },
+  "wall_window_tall_large_010": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_010.wall_window_tall_large_010",
+   "min": [
+    -1600.0,
+    -28.500001907348633,
+    2000.0
+   ],
+   "max": [
+    -1300.0,
+    1.5000005960464478,
+    2299.999755859375
+   ]
+  },
+  "wall_window_tall_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_02.wall_window_tall_large_02",
+   "min": [
+    -1200.0,
+    -16.9999942779541,
+    800.0
+   ],
+   "max": [
+    -899.9999389648438,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_tall_large_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_03.wall_window_tall_large_03",
+   "min": [
+    -1200.0,
+    -17.000003814697266,
+    1200.0
+   ],
+   "max": [
+    -899.9999389648438,
+    0.0,
+    1500.0001220703125
+   ]
+  },
+  "wall_window_tall_large_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_04.wall_window_tall_large_04",
+   "min": [
+    -1200.0,
+    -28.500001907348633,
+    1600.0
+   ],
+   "max": [
+    -899.9999389648438,
+    1.5000005960464478,
+    1899.999755859375
+   ]
+  },
+  "wall_window_tall_large_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_05.wall_window_tall_large_05",
+   "min": [
+    -1200.0,
+    -28.500001907348633,
+    2000.0
+   ],
+   "max": [
+    -899.9999389648438,
+    1.5000005960464478,
+    2299.999755859375
+   ]
+  },
+  "wall_window_tall_large_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_06.wall_window_tall_large_06",
+   "min": [
+    -1600.0,
+    -16.999998092651367,
+    400.0
+   ],
+   "max": [
+    -1300.0,
+    1.4901161193847656e-06,
+    700.0000610351562
+   ]
+  },
+  "wall_window_tall_large_07": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_07.wall_window_tall_large_07",
+   "min": [
+    -1600.0,
+    -16.9999942779541,
+    800.0
+   ],
+   "max": [
+    -1300.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_tall_large_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_08.wall_window_tall_large_08",
+   "min": [
+    -1600.0,
+    -16.9999942779541,
+    1200.0
+   ],
+   "max": [
+    -1300.0,
+    0.0,
+    1500.0
+   ]
+  },
+  "wall_window_tall_large_09": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_large_09.wall_window_tall_large_09",
+   "min": [
+    -1600.0,
+    -28.500001907348633,
+    1600.0
+   ],
+   "max": [
+    -1300.0,
+    1.5000005960464478,
+    1899.999755859375
+   ]
+  },
+  "wall_window_tall_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_01.wall_window_tall_small_01",
+   "min": [
+    -400.0,
+    -16.999998092651367,
+    400.0
+   ],
+   "max": [
+    -99.99995422363281,
+    1.4901161193847656e-06,
+    700.0000610351562
+   ]
+  },
+  "wall_window_tall_small_010": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_010.wall_window_tall_small_010",
+   "min": [
+    -800.0000610351562,
+    -28.500001907348633,
+    2000.0
+   ],
+   "max": [
+    -499.99993896484375,
+    1.500048279762268,
+    2299.999755859375
+   ]
+  },
+  "wall_window_tall_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_02.wall_window_tall_small_02",
+   "min": [
+    -400.0,
+    -16.999996185302734,
+    800.0
+   ],
+   "max": [
+    -100.00148010253906,
+    1.4901161193847656e-06,
+    1100.0
+   ]
+  },
+  "wall_window_tall_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_03.wall_window_tall_small_03",
+   "min": [
+    -400.0,
+    -17.000001907348633,
+    1200.0
+   ],
+   "max": [
+    -99.99995422363281,
+    0.0,
+    1500.0001220703125
+   ]
+  },
+  "wall_window_tall_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_04.wall_window_tall_small_04",
+   "min": [
+    -400.00006103515625,
+    -28.500001907348633,
+    1600.0
+   ],
+   "max": [
+    -100.00106048583984,
+    1.500048279762268,
+    1899.999755859375
+   ]
+  },
+  "wall_window_tall_small_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_05.wall_window_tall_small_05",
+   "min": [
+    -400.00006103515625,
+    -28.500001907348633,
+    2000.0
+   ],
+   "max": [
+    -99.99995422363281,
+    1.500048279762268,
+    2299.999755859375
+   ]
+  },
+  "wall_window_tall_small_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_06.wall_window_tall_small_06",
+   "min": [
+    -800.0,
+    -16.999998092651367,
+    400.0
+   ],
+   "max": [
+    -499.99993896484375,
+    1.4901161193847656e-06,
+    700.0000610351562
+   ]
+  },
+  "wall_window_tall_small_07": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_07.wall_window_tall_small_07",
+   "min": [
+    -800.0,
+    -16.999996185302734,
+    799.9999389648438
+   ],
+   "max": [
+    -500.00146484375,
+    1.4901161193847656e-06,
+    1100.0
+   ]
+  },
+  "wall_window_tall_small_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_08.wall_window_tall_small_08",
+   "min": [
+    -800.0,
+    -17.000001907348633,
+    1200.0
+   ],
+   "max": [
+    -499.99993896484375,
+    0.0,
+    1500.0001220703125
+   ]
+  },
+  "wall_window_tall_small_09": {
+   "path": "/Game/Env/Kits/modular_factory_facade/wall_window_tall_small_09.wall_window_tall_small_09",
+   "min": [
+    -800.0000610351562,
+    -28.500001907348633,
+    1599.999755859375
+   ],
+   "max": [
+    -500.0010681152344,
+    1.500048279762268,
+    1899.999755859375
+   ]
+  },
+  "window_centered_double_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_double_01.window_centered_double_01",
+   "min": [
+    1229.0001220703125,
+    -18.666667938232422,
+    459.0306396484375
+   ],
+   "max": [
+    1469.9998779296875,
+    3.000009059906006,
+    633.4998779296875
+   ]
+  },
+  "window_centered_double_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_double_02.window_centered_double_02",
+   "min": [
+    1229.0001220703125,
+    -18.666667938232422,
+    895.7805786132812
+   ],
+   "max": [
+    1469.9998779296875,
+    3.000009059906006,
+    1033.5
+   ]
+  },
+  "window_centered_double_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_double_03.window_centered_double_03",
+   "min": [
+    1229.0001220703125,
+    -18.66666603088379,
+    1334.0306396484375
+   ],
+   "max": [
+    1469.9998779296875,
+    3.0000104904174805,
+    1435.4998779296875
+   ]
+  },
+  "window_centered_double_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_double_04.window_centered_double_04",
+   "min": [
+    1229.0001220703125,
+    -18.66666603088379,
+    1769.7806396484375
+   ],
+   "max": [
+    1469.9998779296875,
+    3.0000104904174805,
+    1835.5
+   ]
+  },
+  "window_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_large_01.window_centered_large_01",
+   "min": [
+    39.00018310546875,
+    -18.666667938232422,
+    459.03057861328125
+   ],
+   "max": [
+    260.99981689453125,
+    2.9999985694885254,
+    633.4998779296875
+   ]
+  },
+  "window_centered_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_large_02.window_centered_large_02",
+   "min": [
+    45.000244140625,
+    -18.666671752929688,
+    847.5306396484375
+   ],
+   "max": [
+    254.999755859375,
+    2.9999985694885254,
+    1010.0005493164062
+   ]
+  },
+  "window_centered_large_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_large_03.window_centered_large_03",
+   "min": [
+    39.00018310546875,
+    -18.66666603088379,
+    1334.0306396484375
+   ],
+   "max": [
+    260.99981689453125,
+    3.0,
+    1435.5
+   ]
+  },
+  "window_centered_large_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_large_04.window_centered_large_04",
+   "min": [
+    45.000244140625,
+    -18.666669845581055,
+    1722.0306396484375
+   ],
+   "max": [
+    254.999755859375,
+    3.0,
+    1810.0006103515625
+   ]
+  },
+  "window_centered_medium_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_medium_01.window_centered_medium_01",
+   "min": [
+    472.00018310546875,
+    -18.666667938232422,
+    459.0306396484375
+   ],
+   "max": [
+    627.9998168945312,
+    2.9999985694885254,
+    633.4998779296875
+   ]
+  },
+  "window_centered_medium_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_medium_02.window_centered_medium_02",
+   "min": [
+    480.00048828125,
+    -18.669734954833984,
+    847.5306396484375
+   ],
+   "max": [
+    619.9998779296875,
+    2.999992609024048,
+    1009.9891357421875
+   ]
+  },
+  "window_centered_medium_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_medium_03.window_centered_medium_03",
+   "min": [
+    472.00018310546875,
+    -18.66666603088379,
+    1334.0306396484375
+   ],
+   "max": [
+    627.9998168945312,
+    3.0,
+    1435.5
+   ]
+  },
+  "window_centered_medium_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_medium_04.window_centered_medium_04",
+   "min": [
+    480.00048828125,
+    -18.66973304748535,
+    1722.0306396484375
+   ],
+   "max": [
+    619.9998779296875,
+    2.9999942779541016,
+    1809.9891357421875
+   ]
+  },
+  "window_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_small_01.window_centered_small_01",
+   "min": [
+    904.0001831054688,
+    -18.666667938232422,
+    459.0306396484375
+   ],
+   "max": [
+    994.9998168945312,
+    3.000009059906006,
+    633.4998779296875
+   ]
+  },
+  "window_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_small_02.window_centered_small_02",
+   "min": [
+    904.0001831054688,
+    -18.666667938232422,
+    895.7805786132812
+   ],
+   "max": [
+    994.9998168945312,
+    3.000009059906006,
+    1033.5
+   ]
+  },
+  "window_centered_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_small_03.window_centered_small_03",
+   "min": [
+    904.0001831054688,
+    -18.66666603088379,
+    1334.0306396484375
+   ],
+   "max": [
+    994.9998168945312,
+    3.0000104904174805,
+    1435.4998779296875
+   ]
+  },
+  "window_centered_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_centered_small_04.window_centered_small_04",
+   "min": [
+    904.0001831054688,
+    -18.66666603088379,
+    1769.7806396484375
+   ],
+   "max": [
+    994.9998168945312,
+    3.0000104904174805,
+    1835.5
+   ]
+  },
+  "window_offset_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_01.window_offset_small_01",
+   "min": [
+    1779.0001220703125,
+    -18.666667938232422,
+    459.0306396484375
+   ],
+   "max": [
+    1869.9998779296875,
+    3.000009059906006,
+    633.4998779296875
+   ]
+  },
+  "window_offset_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_02.window_offset_small_02",
+   "min": [
+    1629.0001220703125,
+    -218.6666717529297,
+    459.0306396484375
+   ],
+   "max": [
+    1719.9998779296875,
+    -196.99998474121094,
+    633.4998779296875
+   ]
+  },
+  "window_offset_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_03.window_offset_small_03",
+   "min": [
+    1779.0001220703125,
+    -18.666667938232422,
+    895.7805786132812
+   ],
+   "max": [
+    1869.9998779296875,
+    3.000009059906006,
+    1033.5
+   ]
+  },
+  "window_offset_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_04.window_offset_small_04",
+   "min": [
+    1629.0001220703125,
+    -218.6666717529297,
+    895.7805786132812
+   ],
+   "max": [
+    1719.9998779296875,
+    -196.99998474121094,
+    1033.5
+   ]
+  },
+  "window_offset_small_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_05.window_offset_small_05",
+   "min": [
+    1779.0001220703125,
+    -18.666667938232422,
+    1334.0306396484375
+   ],
+   "max": [
+    1869.9998779296875,
+    3.000009059906006,
+    1435.4998779296875
+   ]
+  },
+  "window_offset_small_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_06.window_offset_small_06",
+   "min": [
+    1629.0001220703125,
+    -218.6666717529297,
+    1334.0306396484375
+   ],
+   "max": [
+    1719.9998779296875,
+    -196.99998474121094,
+    1435.4998779296875
+   ]
+  },
+  "window_offset_small_07": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_07.window_offset_small_07",
+   "min": [
+    1779.0001220703125,
+    -18.666667938232422,
+    1769.7806396484375
+   ],
+   "max": [
+    1869.9998779296875,
+    3.000009059906006,
+    1835.5
+   ]
+  },
+  "window_offset_small_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_offset_small_08.window_offset_small_08",
+   "min": [
+    1629.0001220703125,
+    -218.6666717529297,
+    1769.7806396484375
+   ],
+   "max": [
+    1719.9998779296875,
+    -196.99998474121094,
+    1835.5
+   ]
+  },
+  "window_tall_large_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_01.window_tall_large_01",
+   "min": [
+    -1191.7784423828125,
+    -19.999990463256836,
+    498.0262451171875
+   ],
+   "max": [
+    -908.22119140625,
+    6.778685569763184,
+    700.0000610351562
+   ]
+  },
+  "window_tall_large_010": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_010.window_tall_large_010",
+   "min": [
+    -1600.0,
+    -25.249916076660156,
+    2000.0
+   ],
+   "max": [
+    -1299.9998779296875,
+    -7.937544822692871,
+    2075.000244140625
+   ]
+  },
+  "window_tall_large_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_02.window_tall_large_02",
+   "min": [
+    -1150.0003662109375,
+    -18.666667938232422,
+    800.0
+   ],
+   "max": [
+    -950.0000610351562,
+    -12.0,
+    1100.0
+   ]
+  },
+  "window_tall_large_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_03.window_tall_large_03",
+   "min": [
+    -1200.0,
+    -25.249916076660156,
+    1200.0
+   ],
+   "max": [
+    -899.9999389648438,
+    -7.937544822692871,
+    1500.0
+   ]
+  },
+  "window_tall_large_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_04.window_tall_large_04",
+   "min": [
+    -1150.0003662109375,
+    -18.666671752929688,
+    1600.0
+   ],
+   "max": [
+    -949.9998779296875,
+    -12.0,
+    1862.4996337890625
+   ]
+  },
+  "window_tall_large_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_05.window_tall_large_05",
+   "min": [
+    -1200.0,
+    -25.249916076660156,
+    2000.0
+   ],
+   "max": [
+    -899.9999389648438,
+    -7.937544822692871,
+    2262.49951171875
+   ]
+  },
+  "window_tall_large_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_06.window_tall_large_06",
+   "min": [
+    -1591.7784423828125,
+    -19.999990463256836,
+    498.0262451171875
+   ],
+   "max": [
+    -1308.22119140625,
+    6.778685569763184,
+    513.224853515625
+   ]
+  },
+  "window_tall_large_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_large_08.window_tall_large_08",
+   "min": [
+    -1600.0,
+    -25.249916076660156,
+    1200.0
+   ],
+   "max": [
+    -1299.9998779296875,
+    -7.937544822692871,
+    1275.0001220703125
+   ]
+  },
+  "window_tall_small_01": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_01.window_tall_small_01",
+   "min": [
+    -351.7786560058594,
+    -19.999990463256836,
+    498.0262451171875
+   ],
+   "max": [
+    -148.22097778320312,
+    6.778687477111816,
+    700.0000610351562
+   ]
+  },
+  "window_tall_small_010": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_010.window_tall_small_010",
+   "min": [
+    -749.9998168945312,
+    -25.249916076660156,
+    2000.0
+   ],
+   "max": [
+    -549.999755859375,
+    -7.937544822692871,
+    2075.000244140625
+   ]
+  },
+  "window_tall_small_02": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_02.window_tall_small_02",
+   "min": [
+    -317.33416748046875,
+    -18.66666603088379,
+    799.9998779296875
+   ],
+   "max": [
+    -182.66778564453125,
+    -11.999999046325684,
+    1100.0
+   ]
+  },
+  "window_tall_small_03": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_03.window_tall_small_03",
+   "min": [
+    -349.99981689453125,
+    -25.249916076660156,
+    1200.0
+   ],
+   "max": [
+    -149.99974060058594,
+    -7.937544822692871,
+    1500.0
+   ]
+  },
+  "window_tall_small_04": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_04.window_tall_small_04",
+   "min": [
+    -317.33416748046875,
+    -18.669734954833984,
+    1599.9998779296875
+   ],
+   "max": [
+    -182.66754150390625,
+    -12.0,
+    1862.489013671875
+   ]
+  },
+  "window_tall_small_05": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_05.window_tall_small_05",
+   "min": [
+    -349.99981689453125,
+    -25.249916076660156,
+    2000.0
+   ],
+   "max": [
+    -149.99974060058594,
+    -7.937544822692871,
+    2262.489013671875
+   ]
+  },
+  "window_tall_small_06": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_06.window_tall_small_06",
+   "min": [
+    -751.7786865234375,
+    -19.999990463256836,
+    498.0262451171875
+   ],
+   "max": [
+    -548.2210083007812,
+    6.778687477111816,
+    513.224853515625
+   ]
+  },
+  "window_tall_small_08": {
+   "path": "/Game/Env/Kits/modular_factory_facade/window_tall_small_08.window_tall_small_08",
+   "min": [
+    -749.9998168945312,
+    -25.249916076660156,
+    1200.0
+   ],
+   "max": [
+    -549.999755859375,
+    -7.937544822692871,
+    1275.0001220703125
+   ]
+  }
+ },
+ "modular_urban_apartments_facade": {
+  "base_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_angled_large_01.base_angled_large_01",
+   "min": [
+    -1120.0,
+    -299.9999694824219,
+    -200.0
+   ],
+   "max": [
+    -800.0,
+    20.00004768371582,
+    -125.0
+   ]
+  },
+  "base_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_angled_small_01.base_angled_small_01",
+   "min": [
+    -1719.999755859375,
+    -199.99993896484375,
+    -200.0
+   ],
+   "max": [
+    -1499.999755859375,
+    20.000059127807617,
+    -125.0
+   ]
+  },
+  "base_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_corner_large_01.base_corner_large_01",
+   "min": [
+    -720.0,
+    -300.0,
+    -200.0
+   ],
+   "max": [
+    -400.0,
+    20.000003814697266,
+    -125.0
+   ]
+  },
+  "base_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_corner_large_02.base_corner_large_02",
+   "min": [
+    -700.0,
+    -400.0,
+    -200.0
+   ],
+   "max": [
+    -400.0,
+    -100.0,
+    -125.0
+   ]
+  },
+  "base_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_corner_small_01.base_corner_small_01",
+   "min": [
+    -1420.0,
+    -200.0,
+    -199.99996948242188
+   ],
+   "max": [
+    -1200.0,
+    20.000001907348633,
+    -124.9999771118164
+   ]
+  },
+  "base_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_corner_small_02.base_corner_small_02",
+   "min": [
+    -1400.0,
+    -400.0,
+    -199.99996948242188
+   ],
+   "max": [
+    -1200.0,
+    -200.0,
+    -124.9999771118164
+   ]
+  },
+  "base_end_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_end_01.base_end_01",
+   "min": [
+    -2429.999755859375,
+    -8.742276236262114e-07,
+    -200.0
+   ],
+   "max": [
+    -2409.999755859375,
+    20.000009536743164,
+    -125.0
+   ]
+  },
+  "base_end_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_end_02.base_end_02",
+   "min": [
+    -2390.000244140625,
+    -8.742276236262114e-07,
+    -200.0
+   ],
+   "max": [
+    -2370.000244140625,
+    20.000009536743164,
+    -125.0
+   ]
+  },
+  "base_standard_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/base_standard_01.base_standard_01",
+   "min": [
+    -300.0,
+    0.0,
+    -200.0
+   ],
+   "max": [
+    0.0,
+    20.0,
+    -125.0
+   ]
+  },
+  "cornice_end_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_end_01.cornice_end_01",
+   "min": [
+    -2423.999755859375,
+    -9.999995231628418,
+    339.9999694824219
+   ],
+   "max": [
+    -2409.999755859375,
+    4.000006198883057,
+    360.0
+   ]
+  },
+  "cornice_end_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_end_02.cornice_end_02",
+   "min": [
+    -2390.0,
+    -9.999995231628418,
+    339.9999694824219
+   ],
+   "max": [
+    -2376.0,
+    4.000006198883057,
+    360.0
+   ]
+  },
+  "cornice_pier_angled_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_pier_angled_01.cornice_pier_angled_01",
+   "min": [
+    -1824.748779296875,
+    -17.677635192871094,
+    339.99993896484375
+   ],
+   "max": [
+    -1775.0001220703125,
+    9.999999046325684,
+    359.99993896484375
+   ]
+  },
+  "cornice_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_pier_corner_01.cornice_pier_corner_01",
+   "min": [
+    -2010.0,
+    -24.999908447265625,
+    339.99993896484375
+   ],
+   "max": [
+    -1975.0,
+    10.000066757202148,
+    359.99993896484375
+   ]
+  },
+  "cornice_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_pier_corner_02.cornice_pier_corner_02",
+   "min": [
+    -2034.9998779296875,
+    -199.99986267089844,
+    339.9999084472656
+   ],
+   "max": [
+    -1999.9998779296875,
+    -165.0,
+    359.9999084472656
+   ]
+  },
+  "cornice_pier_standard_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_pier_standard_01.cornice_pier_standard_01",
+   "min": [
+    -2217.5,
+    0.0,
+    339.99993896484375
+   ],
+   "max": [
+    -2182.500244140625,
+    9.999995231628418,
+    359.99993896484375
+   ]
+  },
+  "cornice_standard_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_standard_angled_large_01.cornice_standard_angled_large_01",
+   "min": [
+    -1104.0,
+    -299.99993896484375,
+    339.9999694824219
+   ],
+   "max": [
+    -800.0,
+    4.00004768371582,
+    360.0
+   ]
+  },
+  "cornice_standard_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_standard_angled_small_01.cornice_standard_angled_small_01",
+   "min": [
+    -1703.999755859375,
+    -199.99993896484375,
+    339.9999694824219
+   ],
+   "max": [
+    -1499.999755859375,
+    4.000059604644775,
+    359.9999694824219
+   ]
+  },
+  "cornice_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_standard_corner_large_01.cornice_standard_corner_large_01",
+   "min": [
+    -704.0,
+    -300.0,
+    339.9999694824219
+   ],
+   "max": [
+    -399.9999694824219,
+    4.000008583068848,
+    360.0000305175781
+   ]
+  },
+  "cornice_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_standard_corner_large_02.cornice_standard_corner_large_02",
+   "min": [
+    -700.0,
+    -400.0,
+    340.0000305175781
+   ],
+   "max": [
+    -400.0,
+    -100.0,
+    360.0000305175781
+   ]
+  },
+  "cornice_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_standard_corner_small_01.cornice_standard_corner_small_01",
+   "min": [
+    -1404.0,
+    -200.0,
+    339.9999694824219
+   ],
+   "max": [
+    -1200.0,
+    4.000000953674316,
+    360.0
+   ]
+  },
+  "cornice_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_standard_corner_small_02.cornice_standard_corner_small_02",
+   "min": [
+    -1400.0,
+    -400.0,
+    340.0
+   ],
+   "max": [
+    -1200.0,
+    -200.0,
+    360.0
+   ]
+  },
+  "cornice_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/cornice_standard_standard_01.cornice_standard_standard_01",
+   "min": [
+    -300.0,
+    0.0,
+    339.9999694824219
+   ],
+   "max": [
+    0.0,
+    4.0,
+    359.9999694824219
+   ]
+  },
+  "crown_end_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_end_01.crown_end_01",
+   "min": [
+    -2452.999755859375,
+    -10.000011444091797,
+    400.0
+   ],
+   "max": [
+    -2409.999755859375,
+    33.000003814697266,
+    475.0
+   ]
+  },
+  "crown_end_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_end_02.crown_end_02",
+   "min": [
+    -2390.000244140625,
+    -10.000011444091797,
+    400.0
+   ],
+   "max": [
+    -2347.0,
+    33.000003814697266,
+    475.0
+   ]
+  },
+  "crown_pier_angled_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_pier_angled_01.crown_pier_angled_01",
+   "min": [
+    -1862.6033935546875,
+    -40.13808059692383,
+    394.5
+   ],
+   "max": [
+    -1755.394287109375,
+    42.434059143066406,
+    478.0
+   ]
+  },
+  "crown_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_pier_corner_01.crown_pier_corner_01",
+   "min": [
+    -2042.5,
+    -43.00007247924805,
+    394.5
+   ],
+   "max": [
+    -1956.9998779296875,
+    42.4999885559082,
+    478.0
+   ]
+  },
+  "crown_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_pier_corner_02.crown_pier_corner_02",
+   "min": [
+    -2053.0,
+    -209.99990844726562,
+    394.4999694824219
+   ],
+   "max": [
+    -1989.999755859375,
+    -146.999755859375,
+    477.99993896484375
+   ]
+  },
+  "crown_pier_pedestal_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_pier_pedestal_01.crown_pier_pedestal_01",
+   "min": [
+    -2235.5,
+    -9.999995231628418,
+    394.5
+   ],
+   "max": [
+    -2164.5,
+    42.500003814697266,
+    478.0
+   ]
+  },
+  "crown_standard_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_standard_angled_large_01.crown_standard_angled_large_01",
+   "min": [
+    -1133.0,
+    -299.99993896484375,
+    400.0
+   ],
+   "max": [
+    -800.0,
+    33.000038146972656,
+    475.0
+   ]
+  },
+  "crown_standard_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_standard_angled_small_01.crown_standard_angled_small_01",
+   "min": [
+    -1732.999755859375,
+    -199.99993896484375,
+    400.0
+   ],
+   "max": [
+    -1499.999755859375,
+    33.00005340576172,
+    475.0
+   ]
+  },
+  "crown_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_standard_corner_large_01.crown_standard_corner_large_01",
+   "min": [
+    -733.0001831054688,
+    -300.00018310546875,
+    400.0
+   ],
+   "max": [
+    -400.0000305175781,
+    33.0,
+    475.0
+   ]
+  },
+  "crown_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_standard_corner_large_02.crown_standard_corner_large_02",
+   "min": [
+    -700.0001831054688,
+    -410.0002746582031,
+    400.0
+   ],
+   "max": [
+    -389.99981689453125,
+    -100.0,
+    475.0
+   ]
+  },
+  "crown_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_standard_corner_small_01.crown_standard_corner_small_01",
+   "min": [
+    -1433.000244140625,
+    -200.00018310546875,
+    399.9999694824219
+   ],
+   "max": [
+    -1200.0001220703125,
+    33.0,
+    474.9999694824219
+   ]
+  },
+  "crown_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_standard_corner_small_02.crown_standard_corner_small_02",
+   "min": [
+    -1400.000244140625,
+    -410.0002746582031,
+    399.9999694824219
+   ],
+   "max": [
+    -1189.9998779296875,
+    -200.00010681152344,
+    474.9999694824219
+   ]
+  },
+  "crown_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/crown_standard_standard_01.crown_standard_standard_01",
+   "min": [
+    -300.00018310546875,
+    -9.999996185302734,
+    400.0
+   ],
+   "max": [
+    -2.384185791015625e-05,
+    33.0,
+    475.0
+   ]
+  },
+  "dado_door_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_angled_large_01.dado_door_angled_large_01",
+   "min": [
+    96.0,
+    -300.0000305175781,
+    -100.0
+   ],
+   "max": [
+    400.0,
+    4.000001907348633,
+    -49.99999237060547
+   ]
+  },
+  "dado_door_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_angled_small_01.dado_door_angled_small_01",
+   "min": [
+    496.0,
+    -199.99998474121094,
+    -100.0
+   ],
+   "max": [
+    700.0,
+    4.0000200271606445,
+    -50.0
+   ]
+  },
+  "dado_door_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_centered_large_01.dado_door_centered_large_01",
+   "min": [
+    800.0001831054688,
+    -3.9999990463256836,
+    -100.0
+   ],
+   "max": [
+    1100.000244140625,
+    4.000030994415283,
+    -50.0
+   ]
+  },
+  "dado_door_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_centered_small_01.dado_door_centered_small_01",
+   "min": [
+    1200.0,
+    -3.9999990463256836,
+    -100.0
+   ],
+   "max": [
+    1500.0,
+    4.000030994415283,
+    -50.0
+   ]
+  },
+  "dado_door_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_centered_small_02.dado_door_centered_small_02",
+   "min": [
+    1600.0,
+    -3.9999990463256836,
+    -100.0
+   ],
+   "max": [
+    1900.0,
+    4.000030994415283,
+    -50.0
+   ]
+  },
+  "dado_door_offset_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_offset_small_01.dado_door_offset_small_01",
+   "min": [
+    2000.0,
+    -3.9999990463256836,
+    -100.0
+   ],
+   "max": [
+    2300.0,
+    4.000030994415283,
+    -49.99999237060547
+   ]
+  },
+  "dado_door_offset_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_offset_small_02.dado_door_offset_small_02",
+   "min": [
+    1999.9998779296875,
+    -204.0,
+    -100.0
+   ],
+   "max": [
+    2300.0,
+    -195.99996948242188,
+    -50.0
+   ]
+  },
+  "dado_door_window_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_door_window_small_01.dado_door_window_small_01",
+   "min": [
+    2399.999755859375,
+    -3.9999990463256836,
+    -100.0
+   ],
+   "max": [
+    2700.0,
+    4.000030517578125,
+    -50.0
+   ]
+  },
+  "dado_end_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_end_01.dado_end_01",
+   "min": [
+    -2423.999755859375,
+    -3.9999990463256836,
+    -100.0
+   ],
+   "max": [
+    -2409.999755859375,
+    4.000003337860107,
+    -50.0
+   ]
+  },
+  "dado_end_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_end_02.dado_end_02",
+   "min": [
+    -2390.000244140625,
+    -3.999997615814209,
+    -100.0
+   ],
+   "max": [
+    -2376.000244140625,
+    4.000030517578125,
+    -50.0
+   ]
+  },
+  "dado_pier_angled_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_pier_angled_01.dado_pier_angled_01",
+   "min": [
+    -1828.9913330078125,
+    -21.920276641845703,
+    -100.0
+   ],
+   "max": [
+    -1772.0001220703125,
+    12.999998092651367,
+    -46.000003814697266
+   ]
+  },
+  "dado_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_pier_corner_01.dado_pier_corner_01",
+   "min": [
+    -2013.0,
+    -27.999910354614258,
+    -100.0
+   ],
+   "max": [
+    -1972.0,
+    13.000067710876465,
+    -46.000003814697266
+   ]
+  },
+  "dado_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_pier_corner_02.dado_pier_corner_02",
+   "min": [
+    -2037.9998779296875,
+    -199.99986267089844,
+    -100.0
+   ],
+   "max": [
+    -1999.9998779296875,
+    -162.0,
+    -46.0000114440918
+   ]
+  },
+  "dado_pier_pedestal_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_pier_pedestal_01.dado_pier_pedestal_01",
+   "min": [
+    -2220.0,
+    4.76837158203125e-05,
+    -100.0
+   ],
+   "max": [
+    -2180.0,
+    13.000042915344238,
+    -46.000003814697266
+   ]
+  },
+  "dado_standard_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_standard_angled_large_01.dado_standard_angled_large_01",
+   "min": [
+    -1104.0,
+    -299.99993896484375,
+    -100.0
+   ],
+   "max": [
+    -800.0,
+    4.000067710876465,
+    -50.0
+   ]
+  },
+  "dado_standard_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_standard_angled_small_01.dado_standard_angled_small_01",
+   "min": [
+    -1704.0,
+    -199.9999542236328,
+    -100.0
+   ],
+   "max": [
+    -1500.0,
+    4.00005578994751,
+    -50.0
+   ]
+  },
+  "dado_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_standard_corner_large_01.dado_standard_corner_large_01",
+   "min": [
+    -704.0,
+    -300.0,
+    -100.0
+   ],
+   "max": [
+    -400.0,
+    4.000005722045898,
+    -50.0
+   ]
+  },
+  "dado_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_standard_corner_large_02.dado_standard_corner_large_02",
+   "min": [
+    -700.0,
+    -400.0000305175781,
+    -100.0
+   ],
+   "max": [
+    -400.0,
+    -100.0,
+    -50.0
+   ]
+  },
+  "dado_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_standard_corner_small_01.dado_standard_corner_small_01",
+   "min": [
+    -1404.0,
+    -200.0,
+    -99.99998474121094
+   ],
+   "max": [
+    -1200.0,
+    4.000004291534424,
+    -49.9999885559082
+   ]
+  },
+  "dado_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_standard_corner_small_02.dado_standard_corner_small_02",
+   "min": [
+    -1400.0,
+    -400.0000305175781,
+    -99.99998474121094
+   ],
+   "max": [
+    -1200.0,
+    -200.0,
+    -49.9999885559082
+   ]
+  },
+  "dado_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/dado_standard_standard_01.dado_standard_standard_01",
+   "min": [
+    -300.0,
+    0.0,
+    -100.0
+   ],
+   "max": [
+    0.0,
+    4.000003337860107,
+    -50.0
+   ]
+  },
+  "door_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_angled_large_01.door_angled_large_01",
+   "min": [
+    112.61083984375,
+    -190.5098419189453,
+    0.0
+   ],
+   "max": [
+    290.509765625,
+    -12.610906600952148,
+    280.9999694824219
+   ]
+  },
+  "door_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_angled_small_01.door_angled_small_01",
+   "min": [
+    483.8241271972656,
+    -119.296630859375,
+    0.0
+   ],
+   "max": [
+    619.2966918945312,
+    16.175901412963867,
+    280.9999694824219
+   ]
+  },
+  "door_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_centered_large_01.door_centered_large_01",
+   "min": [
+    845.9998779296875,
+    -24.0,
+    0.0
+   ],
+   "max": [
+    1054.00048828125,
+    20.000003814697266,
+    280.9999694824219
+   ]
+  },
+  "door_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_centered_small_01.door_centered_small_01",
+   "min": [
+    1275.999755859375,
+    -24.0,
+    0.0
+   ],
+   "max": [
+    1424.000244140625,
+    20.000003814697266,
+    280.9999694824219
+   ]
+  },
+  "door_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_centered_small_02.door_centered_small_02",
+   "min": [
+    1694.0,
+    -20.000019073486328,
+    9.5367431640625e-05
+   ],
+   "max": [
+    1806.0,
+    2.999994993209839,
+    226.0000762939453
+   ]
+  },
+  "door_offset_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_offset_small_01.door_offset_small_01",
+   "min": [
+    2169.0,
+    -20.000019073486328,
+    9.5367431640625e-05
+   ],
+   "max": [
+    2281.0,
+    2.999994993209839,
+    226.0000762939453
+   ]
+  },
+  "door_offset_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_offset_small_02.door_offset_small_02",
+   "min": [
+    2019.0,
+    -220.00001525878906,
+    9.5367431640625e-05
+   ],
+   "max": [
+    2131.0,
+    -197.0,
+    226.0000762939453
+   ]
+  },
+  "door_offset_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_offset_small_03.door_offset_small_03",
+   "min": [
+    2150.999755859375,
+    -424.0,
+    0.0
+   ],
+   "max": [
+    2299.000244140625,
+    -380.0,
+    280.9999694824219
+   ]
+  },
+  "door_offset_small_04": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_offset_small_04.door_offset_small_04",
+   "min": [
+    2000.999755859375,
+    -624.0,
+    0.0
+   ],
+   "max": [
+    2149.000244140625,
+    -580.0,
+    280.9999694824219
+   ]
+  },
+  "door_window_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_01.door_window_small_01",
+   "min": [
+    2418.9990234375,
+    -24.0,
+    399.9999694824219
+   ],
+   "max": [
+    2681.0,
+    15.000746726989746,
+    629.9999389648438
+   ]
+  },
+  "door_window_small_010": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_010.door_window_small_010",
+   "min": [
+    2419.0,
+    -221.4400177001953,
+    1200.0001220703125
+   ],
+   "max": [
+    2667.0,
+    -195.95257568359375,
+    1426.0001220703125
+   ]
+  },
+  "door_window_small_011": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_011.door_window_small_011",
+   "min": [
+    2433.0,
+    -424.0,
+    1200.0
+   ],
+   "max": [
+    2699.000244140625,
+    -380.0,
+    1481.0
+   ]
+  },
+  "door_window_small_012": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_012.door_window_small_012",
+   "min": [
+    2400.999755859375,
+    -624.0,
+    1200.0
+   ],
+   "max": [
+    2667.0,
+    -580.0,
+    1481.0
+   ]
+  },
+  "door_window_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_02.door_window_small_02",
+   "min": [
+    2419.0,
+    -224.0,
+    399.9999694824219
+   ],
+   "max": [
+    2681.0009765625,
+    -184.99925231933594,
+    629.9999389648438
+   ]
+  },
+  "door_window_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_03.door_window_small_03",
+   "min": [
+    2418.9990234375,
+    -424.0,
+    399.9999694824219
+   ],
+   "max": [
+    2699.000244140625,
+    -380.0,
+    681.0
+   ]
+  },
+  "door_window_small_04": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_04.door_window_small_04",
+   "min": [
+    2400.999755859375,
+    -624.0,
+    399.9999694824219
+   ],
+   "max": [
+    2681.0009765625,
+    -580.0,
+    681.0
+   ]
+  },
+  "door_window_small_05": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_05.door_window_small_05",
+   "min": [
+    2418.9990234375,
+    -24.0,
+    800.0001220703125
+   ],
+   "max": [
+    2681.0,
+    15.000746726989746,
+    1030.0
+   ]
+  },
+  "door_window_small_06": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_06.door_window_small_06",
+   "min": [
+    2419.0,
+    -224.0,
+    800.0001220703125
+   ],
+   "max": [
+    2681.0009765625,
+    -184.99925231933594,
+    1030.0
+   ]
+  },
+  "door_window_small_07": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_07.door_window_small_07",
+   "min": [
+    2418.9990234375,
+    -424.0,
+    800.0
+   ],
+   "max": [
+    2699.000244140625,
+    -380.0,
+    1081.0
+   ]
+  },
+  "door_window_small_08": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_08.door_window_small_08",
+   "min": [
+    2400.999755859375,
+    -624.0,
+    800.0
+   ],
+   "max": [
+    2681.0009765625,
+    -580.0,
+    1081.0
+   ]
+  },
+  "door_window_small_09": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/door_window_small_09.door_window_small_09",
+   "min": [
+    2433.0,
+    -21.440011978149414,
+    1200.0001220703125
+   ],
+   "max": [
+    2681.0,
+    4.047426223754883,
+    1426.0001220703125
+   ]
+  },
+  "wall_door_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_angled_large_01.wall_door_angled_large_01",
+   "min": [
+    99.99984741210938,
+    -299.9999694824219,
+    0.0
+   ],
+   "max": [
+    400.0,
+    6.4909465436358e-05,
+    300.00006103515625
+   ]
+  },
+  "wall_door_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_angled_small_01.wall_door_angled_small_01",
+   "min": [
+    499.9999084472656,
+    -199.99996948242188,
+    0.0
+   ],
+   "max": [
+    700.0,
+    6.451660010498017e-05,
+    300.00006103515625
+   ]
+  },
+  "wall_door_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_centered_large_01.wall_door_centered_large_01",
+   "min": [
+    800.000244140625,
+    4.371138857095502e-06,
+    0.0
+   ],
+   "max": [
+    1100.0001220703125,
+    4.371139766590204e-06,
+    300.00006103515625
+   ]
+  },
+  "wall_door_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_centered_small_01.wall_door_centered_small_01",
+   "min": [
+    1200.0,
+    0.0,
+    0.0
+   ],
+   "max": [
+    1500.0,
+    4.371139766590204e-06,
+    300.00006103515625
+   ]
+  },
+  "wall_door_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_centered_small_02.wall_door_centered_small_02",
+   "min": [
+    1600.0,
+    0.0,
+    0.0
+   ],
+   "max": [
+    1900.0,
+    0.0,
+    300.00006103515625
+   ]
+  },
+  "wall_door_offset_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_offset_small_01.wall_door_offset_small_01",
+   "min": [
+    2000.0,
+    0.0,
+    0.0
+   ],
+   "max": [
+    2300.0,
+    0.0,
+    300.00006103515625
+   ]
+  },
+  "wall_door_offset_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_offset_small_02.wall_door_offset_small_02",
+   "min": [
+    2000.0,
+    -200.0,
+    0.0
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    300.00006103515625
+   ]
+  },
+  "wall_door_offset_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_offset_small_03.wall_door_offset_small_03",
+   "min": [
+    2000.0,
+    -400.0,
+    0.0
+   ],
+   "max": [
+    2300.0,
+    -400.0,
+    300.00006103515625
+   ]
+  },
+  "wall_door_offset_small_04": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_offset_small_04.wall_door_offset_small_04",
+   "min": [
+    2000.0,
+    -600.0,
+    0.0
+   ],
+   "max": [
+    2300.0,
+    -600.0,
+    300.00006103515625
+   ]
+  },
+  "wall_door_window_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_01.wall_door_window_small_01",
+   "min": [
+    2400.0,
+    0.0,
+    400.0
+   ],
+   "max": [
+    2700.0,
+    0.0,
+    700.0000610351562
+   ]
+  },
+  "wall_door_window_small_010": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_010.wall_door_window_small_010",
+   "min": [
+    2400.0,
+    -218.00001525878906,
+    1200.0
+   ],
+   "max": [
+    2700.0,
+    -200.0,
+    1500.0
+   ]
+  },
+  "wall_door_window_small_012": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_012.wall_door_window_small_012",
+   "min": [
+    2400.0,
+    -418.0,
+    1200.0
+   ],
+   "max": [
+    2700.0,
+    -400.0,
+    1500.0
+   ]
+  },
+  "wall_door_window_small_013": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_013.wall_door_window_small_013",
+   "min": [
+    2400.0,
+    -618.0,
+    1200.0
+   ],
+   "max": [
+    2700.0,
+    -600.0,
+    1500.0
+   ]
+  },
+  "wall_door_window_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_02.wall_door_window_small_02",
+   "min": [
+    2400.0,
+    -200.0,
+    400.0
+   ],
+   "max": [
+    2700.0,
+    -200.0,
+    700.0000610351562
+   ]
+  },
+  "wall_door_window_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_03.wall_door_window_small_03",
+   "min": [
+    2400.0,
+    -400.0,
+    400.0
+   ],
+   "max": [
+    2700.0,
+    -400.0,
+    700.0000610351562
+   ]
+  },
+  "wall_door_window_small_04": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_04.wall_door_window_small_04",
+   "min": [
+    2400.0,
+    -600.0,
+    400.0
+   ],
+   "max": [
+    2700.0,
+    -600.0,
+    700.0000610351562
+   ]
+  },
+  "wall_door_window_small_05": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_05.wall_door_window_small_05",
+   "min": [
+    2400.0,
+    0.0,
+    800.0
+   ],
+   "max": [
+    2700.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_door_window_small_06": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_06.wall_door_window_small_06",
+   "min": [
+    2400.0,
+    -200.0,
+    800.0
+   ],
+   "max": [
+    2700.0,
+    -200.0,
+    1100.0
+   ]
+  },
+  "wall_door_window_small_07": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_07.wall_door_window_small_07",
+   "min": [
+    2400.0,
+    -400.0,
+    800.0
+   ],
+   "max": [
+    2700.0,
+    -400.0,
+    1100.0
+   ]
+  },
+  "wall_door_window_small_08": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_08.wall_door_window_small_08",
+   "min": [
+    2400.0,
+    -600.0,
+    800.0
+   ],
+   "max": [
+    2700.0,
+    -600.0,
+    1100.0
+   ]
+  },
+  "wall_door_window_small_09": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_door_window_small_09.wall_door_window_small_09",
+   "min": [
+    2400.0,
+    -18.00001335144043,
+    1200.0
+   ],
+   "max": [
+    2700.0,
+    0.0,
+    1500.0
+   ]
+  },
+  "wall_pier_angled_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_pier_angled_01.wall_pier_angled_01",
+   "min": [
+    -1817.263427734375,
+    -14.142106056213379,
+    0.0
+   ],
+   "max": [
+    -1780.0001220703125,
+    4.999999046325684,
+    300.0
+   ]
+  },
+  "wall_pier_corner_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_pier_corner_01.wall_pier_corner_01",
+   "min": [
+    -2005.0,
+    -19.999908447265625,
+    0.0
+   ],
+   "max": [
+    -1980.0,
+    5.000067710876465,
+    300.0
+   ]
+  },
+  "wall_pier_corner_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_pier_corner_02.wall_pier_corner_02",
+   "min": [
+    -2029.9998779296875,
+    -199.99986267089844,
+    0.0
+   ],
+   "max": [
+    -1999.9998779296875,
+    -170.0,
+    299.9999694824219
+   ]
+  },
+  "wall_pier_standard_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_pier_standard_01.wall_pier_standard_01",
+   "min": [
+    -2212.5,
+    0.0,
+    0.0
+   ],
+   "max": [
+    -2187.5,
+    4.999995231628418,
+    300.0
+   ]
+  },
+  "wall_standard_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_standard_angled_large_01.wall_standard_angled_large_01",
+   "min": [
+    -1100.0001220703125,
+    -299.9999694824219,
+    0.0
+   ],
+   "max": [
+    -800.0,
+    6.4909465436358e-05,
+    300.00006103515625
+   ]
+  },
+  "wall_standard_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_standard_angled_small_01.wall_standard_angled_small_01",
+   "min": [
+    -1700.0001220703125,
+    -199.99996948242188,
+    0.0
+   ],
+   "max": [
+    -1500.0,
+    6.451660010498017e-05,
+    300.00006103515625
+   ]
+  },
+  "wall_standard_corner_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_standard_corner_large_01.wall_standard_corner_large_01",
+   "min": [
+    -700.0000610351562,
+    -300.00006103515625,
+    0.0
+   ],
+   "max": [
+    -400.0,
+    1.311341839027591e-05,
+    300.00006103515625
+   ]
+  },
+  "wall_standard_corner_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_standard_corner_large_02.wall_standard_corner_large_02",
+   "min": [
+    -700.0000610351562,
+    -400.00006103515625,
+    0.0
+   ],
+   "max": [
+    -399.9999084472656,
+    -100.0,
+    300.00006103515625
+   ]
+  },
+  "wall_standard_corner_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_standard_corner_small_01.wall_standard_corner_small_01",
+   "min": [
+    -1400.0,
+    -200.00003051757812,
+    5.960465387033764e-06
+   ],
+   "max": [
+    -1200.0,
+    5.762048203905579e-06,
+    300.00006103515625
+   ]
+  },
+  "wall_standard_corner_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_standard_corner_small_02.wall_standard_corner_small_02",
+   "min": [
+    -1400.0,
+    -400.0000305175781,
+    5.960465387033764e-06
+   ],
+   "max": [
+    -1199.9998779296875,
+    -200.0,
+    300.00006103515625
+   ]
+  },
+  "wall_standard_standard_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_standard_standard_01.wall_standard_standard_01",
+   "min": [
+    -300.00006103515625,
+    0.0,
+    0.0
+   ],
+   "max": [
+    0.0,
+    0.0,
+    300.00006103515625
+   ]
+  },
+  "wall_window_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_angled_large_01.wall_window_angled_large_01",
+   "min": [
+    99.99990844726562,
+    -299.9999694824219,
+    400.0
+   ],
+   "max": [
+    400.0,
+    6.453693640651181e-05,
+    700.0000610351562
+   ]
+  },
+  "wall_window_angled_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_angled_large_02.wall_window_angled_large_02",
+   "min": [
+    99.99990844726562,
+    -299.9999694824219,
+    800.0
+   ],
+   "max": [
+    400.0,
+    6.453693640651181e-05,
+    1100.0
+   ]
+  },
+  "wall_window_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_angled_small_01.wall_window_angled_small_01",
+   "min": [
+    499.9999084472656,
+    -199.99996948242188,
+    400.0
+   ],
+   "max": [
+    700.0,
+    6.453693640651181e-05,
+    700.0000610351562
+   ]
+  },
+  "wall_window_angled_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_angled_small_02.wall_window_angled_small_02",
+   "min": [
+    499.9999084472656,
+    -199.99996948242188,
+    800.0
+   ],
+   "max": [
+    700.0,
+    6.449223292293027e-05,
+    1100.0
+   ]
+  },
+  "wall_window_centered_double_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_double_01.wall_window_centered_double_01",
+   "min": [
+    1600.0,
+    0.0,
+    400.0
+   ],
+   "max": [
+    1900.0,
+    0.0,
+    700.0000610351562
+   ]
+  },
+  "wall_window_centered_double_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_double_02.wall_window_centered_double_02",
+   "min": [
+    1600.0,
+    0.0,
+    800.0
+   ],
+   "max": [
+    1900.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_centered_double_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_double_03.wall_window_centered_double_03",
+   "min": [
+    1600.0,
+    -18.000015258789062,
+    1200.0
+   ],
+   "max": [
+    1900.0,
+    0.0,
+    1500.0
+   ]
+  },
+  "wall_window_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_large_01.wall_window_centered_large_01",
+   "min": [
+    799.9999389648438,
+    0.0,
+    400.0
+   ],
+   "max": [
+    1100.0,
+    0.0,
+    700.0000610351562
+   ]
+  },
+  "wall_window_centered_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_large_02.wall_window_centered_large_02",
+   "min": [
+    799.9999389648438,
+    0.0,
+    800.0
+   ],
+   "max": [
+    1100.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_centered_large_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_large_03.wall_window_centered_large_03",
+   "min": [
+    799.9999389648438,
+    -18.00001335144043,
+    1200.0
+   ],
+   "max": [
+    1100.0,
+    0.0,
+    1500.0
+   ]
+  },
+  "wall_window_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_small_01.wall_window_centered_small_01",
+   "min": [
+    1200.0,
+    0.0,
+    400.0
+   ],
+   "max": [
+    1500.0,
+    0.0,
+    700.0000610351562
+   ]
+  },
+  "wall_window_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_small_02.wall_window_centered_small_02",
+   "min": [
+    1200.0,
+    0.0,
+    800.0
+   ],
+   "max": [
+    1500.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_centered_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_centered_small_03.wall_window_centered_small_03",
+   "min": [
+    1200.0,
+    -18.00001335144043,
+    1200.0
+   ],
+   "max": [
+    1500.0,
+    0.0,
+    1500.0
+   ]
+  },
+  "wall_window_offset_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_offset_small_01.wall_window_offset_small_01",
+   "min": [
+    2000.0,
+    0.0,
+    400.0
+   ],
+   "max": [
+    2300.0,
+    0.0,
+    700.0000610351562
+   ]
+  },
+  "wall_window_offset_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_offset_small_02.wall_window_offset_small_02",
+   "min": [
+    2000.0,
+    -200.0,
+    400.0
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    700.0000610351562
+   ]
+  },
+  "wall_window_offset_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_offset_small_03.wall_window_offset_small_03",
+   "min": [
+    2000.0,
+    0.0,
+    800.0
+   ],
+   "max": [
+    2300.0,
+    0.0,
+    1100.0
+   ]
+  },
+  "wall_window_offset_small_04": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_offset_small_04.wall_window_offset_small_04",
+   "min": [
+    2000.0,
+    -200.0,
+    800.0
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    1100.0
+   ]
+  },
+  "wall_window_offset_small_05": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_offset_small_05.wall_window_offset_small_05",
+   "min": [
+    2000.0,
+    -18.00001335144043,
+    1200.0
+   ],
+   "max": [
+    2300.0,
+    0.0,
+    1500.0
+   ]
+  },
+  "wall_window_offset_small_06": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/wall_window_offset_small_06.wall_window_offset_small_06",
+   "min": [
+    2000.0,
+    -218.00001525878906,
+    1200.0
+   ],
+   "max": [
+    2300.0,
+    -200.0,
+    1500.0
+   ]
+  },
+  "window_angled_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_angled_large_01.window_angled_large_01",
+   "min": [
+    114.66650390625,
+    -191.92401123046875,
+    399.9999694824219
+   ],
+   "max": [
+    291.924072265625,
+    -14.666414260864258,
+    629.9999389648438
+   ]
+  },
+  "window_angled_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_angled_large_02.window_angled_large_02",
+   "min": [
+    118.2020263671875,
+    -188.3884735107422,
+    830.0
+   ],
+   "max": [
+    295.4595947265625,
+    -11.130887031555176,
+    1030.0
+   ]
+  },
+  "window_angled_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_angled_small_01.window_angled_small_01",
+   "min": [
+    500.0218505859375,
+    -106.56869506835938,
+    399.9999694824219
+   ],
+   "max": [
+    606.5687255859375,
+    -0.02179741859436035,
+    629.9999389648438
+   ]
+  },
+  "window_angled_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_angled_small_02.window_angled_small_02",
+   "min": [
+    500.0218505859375,
+    -106.56869506835938,
+    830.0
+   ],
+   "max": [
+    606.5687255859375,
+    -0.02179741859436035,
+    1030.0
+   ]
+  },
+  "window_centered_double_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_double_01.window_centered_double_01",
+   "min": [
+    1618.9990234375,
+    -24.0,
+    399.9999694824219
+   ],
+   "max": [
+    1881.0009765625,
+    15.000746726989746,
+    629.9999389648438
+   ]
+  },
+  "window_centered_double_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_double_02.window_centered_double_02",
+   "min": [
+    1618.9990234375,
+    -24.0,
+    830.0
+   ],
+   "max": [
+    1881.0009765625,
+    15.000746726989746,
+    1030.0
+   ]
+  },
+  "window_centered_double_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_double_03.window_centered_double_03",
+   "min": [
+    1633.0,
+    -21.440011978149414,
+    1245.300048828125
+   ],
+   "max": [
+    1867.0,
+    4.047426223754883,
+    1413.7637939453125
+   ]
+  },
+  "window_centered_large_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_large_01.window_centered_large_01",
+   "min": [
+    843.9990234375,
+    -24.0,
+    399.9999694824219
+   ],
+   "max": [
+    1056.0009765625,
+    15.000746726989746,
+    629.9999389648438
+   ]
+  },
+  "window_centered_large_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_large_02.window_centered_large_02",
+   "min": [
+    843.9990234375,
+    -24.0,
+    830.0
+   ],
+   "max": [
+    1056.0009765625,
+    15.000746726989746,
+    1030.0
+   ]
+  },
+  "window_centered_large_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_large_03.window_centered_large_03",
+   "min": [
+    863.0,
+    -16.440011978149414,
+    1245.300048828125
+   ],
+   "max": [
+    1037.0,
+    4.047426223754883,
+    1413.7637939453125
+   ]
+  },
+  "window_centered_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_small_01.window_centered_small_01",
+   "min": [
+    1293.9990234375,
+    -24.0,
+    399.9999694824219
+   ],
+   "max": [
+    1406.0009765625,
+    15.000746726989746,
+    629.9999389648438
+   ]
+  },
+  "window_centered_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_small_02.window_centered_small_02",
+   "min": [
+    1293.9990234375,
+    -24.0,
+    830.0
+   ],
+   "max": [
+    1406.0009765625,
+    15.000746726989746,
+    1030.0
+   ]
+  },
+  "window_centered_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_centered_small_03.window_centered_small_03",
+   "min": [
+    1308.0,
+    -21.440011978149414,
+    1245.300048828125
+   ],
+   "max": [
+    1392.0,
+    4.047426223754883,
+    1413.7637939453125
+   ]
+  },
+  "window_offset_small_01": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_offset_small_01.window_offset_small_01",
+   "min": [
+    2168.9990234375,
+    -24.0,
+    399.9999694824219
+   ],
+   "max": [
+    2281.0009765625,
+    15.000746726989746,
+    629.9999389648438
+   ]
+  },
+  "window_offset_small_02": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_offset_small_02.window_offset_small_02",
+   "min": [
+    2018.9990234375,
+    -224.0,
+    399.9999694824219
+   ],
+   "max": [
+    2131.0009765625,
+    -184.99925231933594,
+    629.9999389648438
+   ]
+  },
+  "window_offset_small_03": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_offset_small_03.window_offset_small_03",
+   "min": [
+    2168.9990234375,
+    -24.0,
+    830.0
+   ],
+   "max": [
+    2281.0009765625,
+    15.000746726989746,
+    1030.0
+   ]
+  },
+  "window_offset_small_04": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_offset_small_04.window_offset_small_04",
+   "min": [
+    2018.9990234375,
+    -224.0,
+    830.0
+   ],
+   "max": [
+    2131.0009765625,
+    -184.99925231933594,
+    1030.0
+   ]
+  },
+  "window_offset_small_05": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_offset_small_05.window_offset_small_05",
+   "min": [
+    2183.0,
+    -21.440011978149414,
+    1245.300048828125
+   ],
+   "max": [
+    2267.0,
+    4.047426223754883,
+    1413.7637939453125
+   ]
+  },
+  "window_offset_small_06": {
+   "path": "/Game/Env/Kits/modular_urban_apartments_facade/window_offset_small_06.window_offset_small_06",
+   "min": [
+    2033.0,
+    -221.4400177001953,
+    1245.300048828125
+   ],
+   "max": [
+    2117.0,
+    -195.95257568359375,
+    1413.7637939453125
+   ]
+  }
+ }
+}

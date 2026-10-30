@@ -1,0 +1,231 @@
+{
+  "license": "CC0 (Poly Haven)",
+  "models": [
+    {
+      "id": "street_lamp_01",
+      "name": "Street Lamp 01",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/street_lamp_01",
+      "authors": [
+        "Josh Dean"
+      ],
+      "dimensions_mm": [
+        704.3362259864807,
+        386.49316132068634,
+        3870.5554008483887
+      ],
+      "gltf": "street_lamp_01_1k.gltf"
+    },
+    {
+      "id": "street_lamp_02",
+      "name": "Street Lamp 02",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/street_lamp_02",
+      "authors": [
+        "Josh Dean"
+      ],
+      "dimensions_mm": [
+        386.49316132068634,
+        806.7893021069672,
+        1675.0419437885284
+      ],
+      "gltf": "street_lamp_02_1k.gltf"
+    },
+    {
+      "id": "concrete_road_barrier_02",
+      "name": "Concrete Road Barrier 02",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/concrete_road_barrier_02",
+      "authors": [
+        "Amal Kumar"
+      ],
+      "dimensions_mm": [
+        1566.9698119163513,
+        442.20101833343506,
+        1111.9812715332955
+      ],
+      "gltf": "concrete_road_barrier_02_1k.gltf"
+    },
+    {
+      "id": "fire_hydrant",
+      "name": "Fire Hydrant",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/fire_hydrant",
+      "authors": [
+        "Gon\u00e7alo Fel\u00edcio"
+      ],
+      "dimensions_mm": [
+        874.623566865921,
+        317.74356961250305,
+        799.4560238003032
+      ],
+      "gltf": "fire_hydrant_1k.gltf"
+    },
+    {
+      "id": "metal_trash_can",
+      "name": "Metal Trash Can",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/metal_trash_can",
+      "authors": [
+        "GurJas Studios"
+      ],
+      "dimensions_mm": [
+        1846.9352722167969,
+        556.2898814678192,
+        906.1697272554738
+      ],
+      "gltf": "metal_trash_can_1k.gltf"
+    },
+    {
+      "id": "utility_box_01",
+      "name": "Utility Box 01",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/utility_box_01",
+      "authors": [
+        "James Ray Cock"
+      ],
+      "dimensions_mm": [
+        520.0002193450928,
+        431.999996304512,
+        1120.3334331512451
+      ],
+      "gltf": "utility_box_01_1k.gltf"
+    },
+    {
+      "id": "utility_box_02",
+      "name": "Utility Box 02",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/utility_box_02",
+      "authors": [
+        "James Ray Cock"
+      ],
+      "dimensions_mm": [
+        920.0001955032349,
+        431.999996304512,
+        1120.3334331512451
+      ],
+      "gltf": "utility_box_02_1k.gltf"
+    },
+    {
+      "id": "covered_car",
+      "name": "Covered Car",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/covered_car",
+      "authors": [
+        "MP"
+      ],
+      "dimensions_mm": [
+        1788.962960243225,
+        4380.25426864624,
+        1411.1130833625793
+      ],
+      "gltf": "covered_car_1k.gltf"
+    },
+    {
+      "id": "water_manhole_cover",
+      "name": "Water Manhole Cover",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/water_manhole_cover",
+      "authors": [
+        "Raunox"
+      ],
+      "dimensions_mm": [
+        690.7604932785034,
+        690.7604932785034,
+        67.61780008673668
+      ],
+      "gltf": "water_manhole_cover_1k.gltf"
+    },
+    {
+      "id": "barrel_03",
+      "name": "Barrel 03",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/barrel_03",
+      "authors": [
+        "Serhii Khromov"
+      ],
+      "dimensions_mm": [
+        633.943498134613,
+        638.5995149612427,
+        930.4736243899824
+      ],
+      "gltf": "barrel_03_1k.gltf"
+    },
+    {
+      "id": "wooden_crate_02",
+      "name": "Wooden Crate 02",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/wooden_crate_02",
+      "authors": [
+        "James Ray Cock",
+        "Jurita Burger"
+      ],
+      "dimensions_mm": [
+        1166.325867176056,
+        529.1010439395905,
+        463.95453810691833
+      ],
+      "gltf": "wooden_crate_02_1k.gltf"
+    },
+    {
+      "id": "modular_street_seating",
+      "name": "Modular Street Seating",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/modular_street_seating",
+      "authors": [
+        "Stuart Attenborrow"
+      ],
+      "dimensions_mm": [
+        4339.9999141693115,
+        770.3700959682465,
+        950.000050743509
+      ],
+      "gltf": "modular_street_seating_1k.gltf"
+    },
+    {
+      "id": "old_tyre",
+      "name": "Old Tyre",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/old_tyre",
+      "authors": [
+        "MP"
+      ],
+      "dimensions_mm": [
+        600.0000238418579,
+        164.99999910593033,
+        600.0000238418579
+      ],
+      "gltf": "old_tyre_1k.gltf"
+    },
+    {
+      "id": "trashbag",
+      "name": "Trashbag",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/trashbag",
+      "authors": [
+        "Benny Weimer"
+      ],
+      "dimensions_mm": [
+        528.0700623989105,
+        462.893009185791,
+        574.9993845820427
+      ],
+      "gltf": "trashbag_1k.gltf"
+    },
+    {
+      "id": "rollershutter_door",
+      "name": "Rollershutter Door",
+      "license": "CC0",
+      "page": "https://polyhaven.com/a/rollershutter_door",
+      "authors": [
+        "MP"
+      ],
+      "dimensions_mm": [
+        3079.9999833106995,
+        300.0857066363096,
+        2399.973489344575
+      ],
+      "gltf": "rollershutter_door_1k.gltf"
+    }
+  ]
+}

@@ -40,19 +40,35 @@ namespace ArenaVisuals
 
 	UStaticMesh* GetShapeMesh(EArenaShape Shape)
 	{
-		const TCHAR* Path = TEXT("/Engine/BasicShapes/Cube.Cube");
+		// Prefer the project's Nanite copies (Content/Python/env_nanite.py, perf budget §3): Nanite
+		// makes VSM much cheaper even for low-poly meshes. Fall back to the engine basic shapes.
+		const TCHAR* Name = TEXT("Cube");
 		switch (Shape)
 		{
-		case EArenaShape::Sphere:   Path = TEXT("/Engine/BasicShapes/Sphere.Sphere"); break;
-		case EArenaShape::Cylinder: Path = TEXT("/Engine/BasicShapes/Cylinder.Cylinder"); break;
-		case EArenaShape::Cone:     Path = TEXT("/Engine/BasicShapes/Cone.Cone"); break;
+		case EArenaShape::Sphere:   Name = TEXT("Sphere"); break;
+		case EArenaShape::Cylinder: Name = TEXT("Cylinder"); break;
+		case EArenaShape::Cone:     Name = TEXT("Cone"); break;
 		default: break;
 		}
-		UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, Path);
+		static TMap<FName, TWeakObjectPtr<UStaticMesh>> Cache;
+		const FName Key(Name);
+		if (const TWeakObjectPtr<UStaticMesh>* Hit = Cache.Find(Key))
+		{
+			if (Hit->IsValid()) { return Hit->Get(); }
+		}
+		UStaticMesh* Mesh = nullptr;
+		const FString NanitePackage = FString::Printf(TEXT("/Game/Env/Shapes/SM_%s"), Name);
+		if (FPackageName::DoesPackageExist(NanitePackage))
+		{
+			Mesh = LoadObject<UStaticMesh>(nullptr, *FString::Printf(TEXT("%s.SM_%s"), *NanitePackage, Name));
+		}
 		if (!Mesh)
 		{
-			UE_LOG(LogIronManArena, Warning, TEXT("Could not load basic shape %s"), Path);
+			const FString EnginePath = FString::Printf(TEXT("/Engine/BasicShapes/%s.%s"), Name, Name);
+			Mesh = LoadObject<UStaticMesh>(nullptr, *EnginePath);
+			if (!Mesh) { UE_LOG(LogIronManArena, Warning, TEXT("Could not load basic shape %s"), *EnginePath); }
 		}
+		if (Mesh) { Cache.Add(Key, Mesh); }
 		return Mesh;
 	}
 

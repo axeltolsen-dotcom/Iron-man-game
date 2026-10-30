@@ -113,11 +113,7 @@ AIronProjectile* AEnemyBase::FireShot(const FVector& Origin, const FVector& InVe
 {
 	UWorld* World = GetWorld();
 	if (!World) { return nullptr; }
-	FActorSpawnParameters Params;
-	Params.Owner = this;
-	Params.Instigator = this;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	AIronProjectile* P = World->SpawnActor<AIronProjectile>(AIronProjectile::StaticClass(), Origin, InVelocity.Rotation(), Params);
+	AIronProjectile* P = AIronProjectile::SpawnPooled(World, Origin, InVelocity.Rotation(), this, this, true);
 	if (P)
 	{
 		P->LifeSeconds = LifeSeconds;

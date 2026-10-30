@@ -12,6 +12,8 @@ class ULocalLightComponent;
 class UPointLightComponent;
 class USpotLightComponent;
 class UDecalComponent;
+class UMaterialInterface;
+class UMaterialInstanceDynamic;
 
 /** A two-joint workshop robot arm (U / Dum-E): pivots animated in Tick. */
 USTRUCT()
@@ -60,6 +62,7 @@ public:
 
 	FName GetSetId() const { return SetId; }
 	int32 GetPartCount() const { return Parts.Num(); }
+	int32 GetEnvMeshCount() const { return EnvMeshes.Num(); }
 	int32 GetLightCount() const { return Lights.Num(); }
 	int32 GetAnimatedArmCount() const { return Arms.Num(); }
 	int32 GetParticleCount() const { return Particles.Num(); }
@@ -78,6 +81,12 @@ private:
 	void BuildRooftops(bool bStorm);
 	void BuildCity(bool bNight, bool bWet);
 	void BuildRuins(bool bBattlefield);
+	/** Free-play backdrop (AArenaEnvironment): a city grid with CC0 PBR roads, sidewalks, curbs,
+	 *  procedural towers and Dume's / Poly Haven props. The four blocks inside the arena radius
+	 *  are plazas with cover; buildings start beyond ArenaRadius. */
+	void BuildArenaCity(bool bNight);
+	void CityPlaza(const FVector2D& Center, float Size, int32 Seed, bool bNight);
+	void CityBuildingBlock(const FVector2D& Center, float Size, bool bInnerRing, bool bNight);
 	void BuildWeather();
 
 	// --- helpers (all sizes are full extents in Unreal units, locations relative to the origin) ---
@@ -102,6 +111,23 @@ private:
 	void Ruin(const FVector2D& XY, float Yaw, float Width, float Height, int32 Seed);
 
 	void TickParticles(float DeltaSeconds);
+
+	// --- arena city helpers ---
+	/** A /Game/Env/Props/<Id>/SM_<Id> mesh (glTF materials kept), or nullptr if not imported. */
+	UStaticMeshComponent* EnvMesh(const TCHAR* Id, const FVector& Loc, float Yaw, bool bSolid, float Scale = 1.f);
+	/** One shared dynamic instance per key (Ultron perf budget: fewer unique MIDs, so parts can batch). */
+	UMaterialInstanceDynamic* SharedMID(const FString& Key, UMaterialInterface* Parent, const FLinearColor& Color, float Emissive = 0.f);
+	/** /Game/Env/Materials/<Name>, or nullptr when the import has not been run. */
+	static UMaterialInterface* EnvMaterial(const TCHAR* Name);
+	/** Box with a shared material (EnvMI if it exists, else the Fallback surface). */
+	UStaticMeshComponent* CityBox(const FVector& Center, const FVector& Size, float Yaw, const TCHAR* EnvMI, EArenaSurface Fallback,
+		const FLinearColor& Color, bool bSolid, float Emissive = 0.f);
+
+	UPROPERTY()
+	TArray<TObjectPtr<UStaticMeshComponent>> EnvMeshes;
+
+	UPROPERTY()
+	TMap<FString, TObjectPtr<UMaterialInstanceDynamic>> SharedMIDs;
 
 	UPROPERTY(VisibleAnywhere, Category = "Set")
 	TObjectPtr<USceneComponent> Root;

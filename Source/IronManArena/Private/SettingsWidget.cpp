@@ -352,8 +352,12 @@ void USettingsWidget::HandleDefaults()
 {
 	if (UArenaGameUserSettings* S = UArenaGameUserSettings::GetArenaSettings())
 	{
+		// Ultron's perf budget: High (2) is the 60 fps tier on the RTX 2070 SUPER target; Epic is the
+		// 30 fps console tier. Textures cost VRAM, not GPU time, so they stay Epic.
 		S->SetToDefaults();
-		S->SetOverallScalabilityLevel(3);
+		S->SetOverallScalabilityLevel(2);
+		S->SetTextureQuality(3);
+		S->SetFrameRateLimit(60.f);
 		S->ApplySettings(false);
 		S->SaveSettings();
 		S->ApplyGameplaySettings(GetOwningPlayer());

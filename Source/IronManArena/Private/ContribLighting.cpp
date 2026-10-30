@@ -13,6 +13,7 @@
 #include "JsonObjectConverter.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Scalability.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 
@@ -24,8 +25,100 @@ namespace
 	{
 		TMap<FName, TSharedPtr<FJsonObject>> Presets;
 		TMap<FName, FName> IdToPreset;
+		/** postprocess_realism.json "_tier_overrides" per preset ({"Epic": {...}, "Medium": {...}}). */
+		TMap<FName, TSharedPtr<FJsonObject>> TierOverrides;
+		int32 NumRealism = 0;
 		bool bLoaded = false;
 	};
+
+	TSharedPtr<FJsonObject> CloneObject(const TSharedPtr<FJsonObject>& Src)
+	{
+		TSharedPtr<FJsonObject> Out = MakeShared<FJsonObject>();
+		for (const auto& Pair : Src->Values)
+		{
+			const FString Key(*Pair.Key);
+			const TSharedPtr<FJsonObject>* Child = nullptr;
+			if (Pair.Value.IsValid() && Pair.Value->Type == EJson::Object && Pair.Value->TryGetObject(Child) && Child)
+			{
+				Out->SetObjectField(Key, CloneObject(*Child));
+			}
+			else
+			{
+				Out->SetField(Key, Pair.Value);
+			}
+		}
+		return Out;
+	}
+
+	/** Deep-merges Src into Dst (Src wins; nested objects merge key by key). "_" keys are documentation and skipped. */
+	int32 MergeInto(const TSharedPtr<FJsonObject>& Dst, const TSharedPtr<FJsonObject>& Src)
+	{
+		int32 Merged = 0;
+		for (const auto& Pair : Src->Values)
+		{
+			const FString Key(*Pair.Key);
+			if (Key.StartsWith(TEXT("_")) || !Pair.Value.IsValid()) { continue; }
+			const TSharedPtr<FJsonObject>* SrcChild = nullptr;
+			const TSharedPtr<FJsonObject>* DstChild = nullptr;
+			if (Pair.Value->Type == EJson::Object && Pair.Value->TryGetObject(SrcChild) && SrcChild
+				&& Dst->TryGetObjectField(Key, DstChild) && DstChild && DstChild->IsValid())
+			{
+				Merged += MergeInto(*DstChild, *SrcChild);
+			}
+			else
+			{
+				Dst->SetField(Key, Pair.Value);
+				++Merged;
+			}
+		}
+		return Merged;
+	}
+
+	/** Vison's realism layer (Content/Story/postprocess_realism.json): same 11 preset ids as lighting_presets.json.
+	 *  Its SkyAtmosphere / VolumetricCloud / ExponentialHeightFog / PostProcessVolume / CineCamera blocks merge over
+	 *  the lighting presets (it has no light, exposure or grading keys, so the physical sun and EV100 stay). */
+	void LoadRealismLayer(FLightingFile& File)
+	{
+		FString Text;
+		TSharedPtr<FJsonObject> Root;
+		const FString Path = FPaths::ProjectContentDir() / TEXT("Story/postprocess_realism.json");
+		if (!FFileHelper::LoadFileToString(Text, *Path)
+			|| !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Root) || !Root.IsValid())
+		{
+			UE_LOG(LogContribLighting, Warning, TEXT("postprocess_realism.json not found or invalid (%s); lighting presets only."), *Path);
+			return;
+		}
+		const TSharedPtr<FJsonObject>* Presets = nullptr;
+		if (!Root->TryGetObjectField(TEXT("presets"), Presets) || !Presets) { return; }
+		static const TCHAR* const Blocks[] = { TEXT("SkyAtmosphere"), TEXT("VolumetricCloud"), TEXT("ExponentialHeightFog"),
+			TEXT("PostProcessVolume"), TEXT("CineCamera") };
+		int32 Keys = 0;
+		for (const auto& Pair : (*Presets)->Values)
+		{
+			const FString Id(*Pair.Key);
+			const TSharedPtr<FJsonObject>* Obj = nullptr;
+			if (!Pair.Value.IsValid() || !Pair.Value->TryGetObject(Obj) || !Obj) { continue; }
+			TSharedPtr<FJsonObject>& Target = File.Presets.FindOrAdd(FName(*Id));
+			if (!Target.IsValid()) { Target = MakeShared<FJsonObject>(); }
+			for (const TCHAR* BlockName : Blocks)
+			{
+				const TSharedPtr<FJsonObject>* Src = nullptr;
+				if (!(*Obj)->TryGetObjectField(BlockName, Src) || !Src) { continue; }
+				const TSharedPtr<FJsonObject>* Dst = nullptr;
+				if (Target->TryGetObjectField(BlockName, Dst) && Dst && Dst->IsValid()) { Keys += MergeInto(*Dst, *Src); }
+				else
+				{
+					TSharedPtr<FJsonObject> Fresh = MakeShared<FJsonObject>();
+					Keys += MergeInto(Fresh, *Src);
+					Target->SetObjectField(BlockName, Fresh);
+				}
+			}
+			const TSharedPtr<FJsonObject>* Tiers = nullptr;
+			if ((*Obj)->TryGetObjectField(TEXT("_tier_overrides"), Tiers) && Tiers) { File.TierOverrides.Add(FName(*Id), *Tiers); }
+			++File.NumRealism;
+		}
+		UE_LOG(LogContribLighting, Log, TEXT("Merged %d realism presets (%d keys) from postprocess_realism.json."), File.NumRealism, Keys);
+	}
 
 	const FLightingFile& GetFile()
 	{
@@ -68,6 +161,7 @@ namespace
 			}
 		}
 		UE_LOG(LogContribLighting, Log, TEXT("Loaded %d contrib lighting presets (%d id mappings)."), File.Presets.Num(), File.IdToPreset.Num());
+		LoadRealismLayer(File);
 		return File;
 	}
 
@@ -162,6 +256,23 @@ namespace
 		bool bVisible = true;
 		if (Obj->TryGetBoolField(TEXT("Visible"), bVisible)) { Comp->SetVisibility(bVisible); }
 	}
+
+	/** The merged preset plus the realism layer's delta for the active tier (High = base; Epic = sg 3+;
+	 *  Medium = sg 0-1). Keyed off GlobalIlluminationQuality because the deltas are mostly Lumen. */
+	TSharedPtr<FJsonObject> EffectivePreset(FName PresetKey)
+	{
+		const FLightingFile& File = GetFile();
+		const TSharedPtr<FJsonObject>* PresetPtr = File.Presets.Find(PresetKey);
+		if (!PresetPtr || !PresetPtr->IsValid()) { return nullptr; }
+		const TSharedPtr<FJsonObject>* Tiers = File.TierOverrides.Find(PresetKey);
+		const int32 Tier = Scalability::GetQualityLevels().GlobalIlluminationQuality;
+		const TCHAR* TierName = Tier >= 3 ? TEXT("Epic") : (Tier <= 1 ? TEXT("Medium") : nullptr);
+		const TSharedPtr<FJsonObject>* Delta = nullptr;
+		if (!TierName || !Tiers || !Tiers->IsValid() || !(*Tiers)->TryGetObjectField(TierName, Delta) || !Delta) { return *PresetPtr; }
+		TSharedPtr<FJsonObject> Out = CloneObject(*PresetPtr);
+		MergeInto(Out, *Delta);
+		return Out;
+	}
 }
 
 namespace ContribLighting
@@ -182,17 +293,31 @@ namespace ContribLighting
 		return GetFile().Presets.Num();
 	}
 
+	int32 GetNumRealismPresets()
+	{
+		return GetFile().NumRealism;
+	}
+
+	FName KeyForEnvironment(FName EnvironmentPresetId)
+	{
+		if (HasPreset(EnvironmentPresetId)) { return EnvironmentPresetId; }
+		const FName Key = PresetKeyFor(EnvironmentPresetId);
+		if (!Key.IsNone() && HasPreset(Key)) { return Key; }
+		// Free play has no story look; Vison recommends reusing "city" (clear 13:00 daylight).
+		if (EnvironmentPresetId == FName(TEXT("arena")) && HasPreset(TEXT("city"))) { return TEXT("city"); }
+		return NAME_None;
+	}
+
 	int32 Apply(AActor* EnvActor, FName PresetKey, float LuxScale, int32* OutSkipped)
 	{
 		int32 Skipped = 0;
 		int32 Written = 0;
-		const TSharedPtr<FJsonObject>* PresetPtr = GetFile().Presets.Find(PresetKey);
-		if (!EnvActor || !PresetPtr || !PresetPtr->IsValid())
+		const TSharedPtr<FJsonObject> Preset = EffectivePreset(PresetKey);
+		if (!EnvActor || !Preset.IsValid())
 		{
 			if (OutSkipped) { *OutSkipped = 0; }
 			return 0;
 		}
-		const TSharedPtr<FJsonObject>& Preset = *PresetPtr;
 		const TSet<FString> LightSpecial = { TEXT("Rotation"), TEXT("Visible") };
 		const TSet<FString> SkySpecial = { TEXT("Cubemap"), TEXT("Visible") };
 		const TSet<FString> NoSpecial = { TEXT("Visible") };
@@ -289,9 +414,9 @@ namespace ContribLighting
 	{
 		int32 Skipped = 0;
 		int32 Written = 0;
-		const TSharedPtr<FJsonObject>* PresetPtr = GetFile().Presets.Find(PresetKey);
+		const TSharedPtr<FJsonObject> PresetObj = EffectivePreset(PresetKey);
 		const TSharedPtr<FJsonObject>* CamPtr = nullptr;
-		if (!Camera || !PresetPtr || !PresetPtr->IsValid() || !(*PresetPtr)->TryGetObjectField(TEXT("CineCamera"), CamPtr) || !CamPtr)
+		if (!Camera || !PresetObj.IsValid() || !PresetObj->TryGetObjectField(TEXT("CineCamera"), CamPtr) || !CamPtr)
 		{
 			if (OutSkipped) { *OutSkipped = 0; }
 			return 0;

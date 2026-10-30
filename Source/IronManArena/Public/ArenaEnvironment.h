@@ -18,6 +18,7 @@ class USkyAtmosphereComponent;
 class UExponentialHeightFogComponent;
 class UVolumetricCloudComponent;
 class UPostProcessComponent;
+class AChapterSet;
 
 UCLASS()
 class IRONMANARENA_API AArenaEnvironment : public AActor
@@ -46,6 +47,9 @@ public:
 	/** Show / hide the free-play arena dressing (grid lines, pylons, cover). Story chapters
 	 *  hide it and bring their own set; the floor stays (it is the walkable ground). */
 	void SetArenaDressingVisible(bool bVisible);
+
+	/** The free-play city backdrop (AChapterSet "arena_city"), spawned in BeginPlay. */
+	AChapterSet* GetArenaCity() const { return ArenaCity.Get(); }
 
 	/** Re-skin the floor (garage concrete, asphalt, rubble ...). */
 	void SetFloorSurface(EArenaSurface Surface, const FLinearColor& Tint = FLinearColor::White);
@@ -97,4 +101,10 @@ protected:
 	TArray<int32> DressingParts;
 
 	FEnvironmentPreset Preset;
+
+	/** Free-play city (replaces the old glow grid / pylons / cover blocks when it spawns). */
+	TWeakObjectPtr<AChapterSet> ArenaCity;
+	bool bArenaDressingShown = true;
+
+	void SpawnArenaCity();
 };

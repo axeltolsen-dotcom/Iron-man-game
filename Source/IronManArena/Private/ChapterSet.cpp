@@ -9,6 +9,8 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/StaticMesh.h"
+#include "Misc/PackageName.h"
 
 namespace
 {
@@ -58,6 +60,7 @@ void AChapterSet::BeginPlay()
 void AChapterSet::Build()
 {
 	const FString Id = SetId.ToString();
+	if (Id == TEXT("arena_city"))             { BuildArenaCity(Preset.bNight); return; }
 	if (Id.StartsWith(TEXT("workshop")))      { BuildWorkshop(Preset.bNight); }
 	else if (Id.StartsWith(TEXT("rooftops"))) { BuildRooftops(Preset.bWet && Preset.bNight); }
 	else if (Id.StartsWith(TEXT("city")))     { BuildCity(Preset.bNight, Preset.bWet); }
@@ -789,5 +792,400 @@ void AChapterSet::TickParticles(float DeltaSeconds)
 			P.Home = Center + Rel;
 			P.Comp->SetRelativeLocation(P.Home);
 		}
+	}
+}
+
+// =============================================================================== arena city
+
+UMaterialInterface* AChapterSet::EnvMaterial(const TCHAR* Name)
+{
+	if (!Name || !*Name) { return nullptr; }
+	static TMap<FName, TWeakObjectPtr<UMaterialInterface>> Cache;
+	const FName Key(Name);
+	if (const TWeakObjectPtr<UMaterialInterface>* Hit = Cache.Find(Key))
+	{
+		if (Hit->IsValid()) { return Hit->Get(); }
+	}
+	const FString Pkg = FString::Printf(TEXT("/Game/Env/Materials/%s"), Name);
+	UMaterialInterface* Mat = FPackageName::DoesPackageExist(Pkg)
+		? LoadObject<UMaterialInterface>(nullptr, *FString::Printf(TEXT("%s.%s"), *Pkg, Name)) : nullptr;
+	if (Mat) { Cache.Add(Key, Mat); }
+	return Mat;
+}
+
+UMaterialInstanceDynamic* AChapterSet::SharedMID(const FString& Key, UMaterialInterface* Parent, const FLinearColor& Color, float Emissive)
+{
+	if (const TObjectPtr<UMaterialInstanceDynamic>* Hit = SharedMIDs.Find(Key)) { return Hit->Get(); }
+	if (!Parent) { return nullptr; }
+	UMaterialInstanceDynamic* Mid = UMaterialInstanceDynamic::Create(Parent, this);
+	Mid->SetVectorParameterValue(TEXT("Color"), Color);
+	Mid->SetScalarParameterValue(NAME_Emissive, ArenaVisuals::EmissiveToNits(Emissive));
+	SharedMIDs.Add(Key, Mid);
+	return Mid;
+}
+
+UStaticMeshComponent* AChapterSet::CityBox(const FVector& Center, const FVector& Size, float Yaw, const TCHAR* EnvMI, EArenaSurface Fallback,
+	const FLinearColor& Color, bool bSolid, float Emissive)
+{
+	UStaticMeshComponent* C = Box(Center, Size, Color, Fallback, bSolid, FRotator(0.f, Yaw, 0.f), Emissive);
+	if (!C || Parts.Num() == 0) { return C; }
+	UMaterialInterface* Parent = EnvMaterial(EnvMI);
+	const bool bEnv = Parent != nullptr;
+	if (!Parent) { Parent = ArenaVisuals::GetSurfaceMaterial(ArenaVisuals::ResolveSurface(Parts.Last())); }
+	const FString Key = FString::Printf(TEXT("%s|%d|%s|%.2f"), bEnv ? EnvMI : TEXT("-"), int32(Fallback), *Color.ToString(), Emissive);
+	if (UMaterialInstanceDynamic* Mid = SharedMID(Key, Parent, Color, Emissive))
+	{
+		C->SetMaterial(0, Mid);
+		Parts.Last().MID = Mid;
+	}
+	return C;
+}
+
+UStaticMeshComponent* AChapterSet::EnvMesh(const TCHAR* Id, const FVector& Loc, float Yaw, bool bSolid, float Scale)
+{
+	static TMap<FName, TWeakObjectPtr<UStaticMesh>> Cache;
+	const FName Key(Id);
+	UStaticMesh* Mesh = nullptr;
+	if (const TWeakObjectPtr<UStaticMesh>* Hit = Cache.Find(Key)) { Mesh = Hit->Get(); }
+	if (!Mesh)
+	{
+		const FString Pkg = FString::Printf(TEXT("/Game/Env/Props/%s/SM_%s"), Id, Id);
+		if (FPackageName::DoesPackageExist(Pkg))
+		{
+			Mesh = LoadObject<UStaticMesh>(nullptr, *FString::Printf(TEXT("%s.SM_%s"), *Pkg, Id));
+		}
+		if (!Mesh) { return nullptr; }
+		Cache.Add(Key, Mesh);
+	}
+	UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+	C->SetMobility(EComponentMobility::Movable);
+	C->SetStaticMesh(Mesh);
+	C->SetupAttachment(Root);
+	C->SetRelativeLocation(Loc);
+	C->SetRelativeRotation(FRotator(0.f, Yaw, 0.f));
+	C->SetRelativeScale3D(FVector(Scale));
+	if (bSolid)
+	{
+		C->SetCollisionProfileName(TEXT("BlockAll"));
+		C->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+	else
+	{
+		C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	C->SetGenerateOverlapEvents(false);
+	C->SetCanEverAffectNavigation(false);
+	C->RegisterComponent();
+	AddInstanceComponent(C);
+	EnvMeshes.Add(C);
+	return C;
+}
+
+namespace
+{
+	constexpr float CityPitch = 6000.f;   // road centre to road centre
+	constexpr float CityRoadW = 1800.f;   // four lanes
+	constexpr float CityWalk = 450.f;     // sidewalk depth
+	constexpr int32 CityHalf = 4;         // roads at k * CityPitch, k = -4..4
+	const FLinearColor PaveTint(0.92f, 0.92f, 0.9f);
+	const FLinearColor CurbTint(0.78f, 0.77f, 0.75f);
+	const FLinearColor RoadTint(0.95f, 0.95f, 0.95f);
+	const FLinearColor StripeTint(0.85f, 0.85f, 0.82f);
+}
+
+void AChapterSet::BuildArenaCity(bool bNight)
+{
+	Rng.Initialize(20261030);
+	const float Extent = CityHalf * CityPitch + CityRoadW * 0.5f;
+
+	// Ground beyond the grid so the horizon is never a void (fog hides the far edge).
+	if (UStaticMeshComponent* G = CityBox(FVector(0, 0, -6), FVector(240000.f, 240000.f, 8.f), 0.f, TEXT("MI_Env_Ground"), EArenaSurface::DebrisGround, FLinearColor(0.85f, 0.85f, 0.82f), false))
+	{
+		G->SetCastShadow(false);
+	}
+
+	// Roads: segments between intersections (the road texture runs along each box's local X).
+	for (int32 k = -CityHalf; k <= CityHalf; ++k)
+	{
+		const bool bMain = FMath::Abs(k) <= 2;
+		const TCHAR* RoadMI = bMain ? TEXT("MI_Env_Road4Lane") : TEXT("MI_Env_Road2Lane");
+		for (int32 j = -CityHalf; j < CityHalf; ++j)
+		{
+			const float Mid = (j + 0.5f) * CityPitch;
+			const float Len = CityPitch - CityRoadW;
+			UStaticMeshComponent* A = CityBox(FVector(Mid, k * CityPitch, 2), FVector(Len, CityRoadW, 4), 0.f, RoadMI, EArenaSurface::Asphalt, RoadTint, false);
+			UStaticMeshComponent* B = CityBox(FVector(k * CityPitch, Mid, 2), FVector(Len, CityRoadW, 4), 90.f, RoadMI, EArenaSurface::Asphalt, RoadTint, false);
+			if (A) { A->SetCastShadow(false); }
+			if (B) { B->SetCastShadow(false); }
+			// Manhole covers in the lanes, every other segment.
+			if (((j + k) & 1) == 0)
+			{
+				EnvMesh(TEXT("water_manhole_cover"), FVector(Mid + Rng.FRandRange(-900.f, 900.f), k * CityPitch + 450.f, 4), Rng.FRandRange(0.f, 360.f), false);
+				EnvMesh(TEXT("water_manhole_cover"), FVector(k * CityPitch - 450.f, Mid + Rng.FRandRange(-900.f, 900.f), 4), Rng.FRandRange(0.f, 360.f), false);
+			}
+		}
+		for (int32 j = -CityHalf; j <= CityHalf; ++j)
+		{
+			if (UStaticMeshComponent* X = CityBox(FVector(j * CityPitch, k * CityPitch, 1.5f), FVector(CityRoadW, CityRoadW, 3), 0.f, nullptr, EArenaSurface::Asphalt, FLinearColor(0.55f, 0.55f, 0.56f), false))
+			{
+				X->SetCastShadow(false);
+			}
+			// Zebra crossings on the intersections around the arena.
+			if (FMath::Abs(k) <= 1 && FMath::Abs(j) <= 1)
+			{
+				for (int32 Side = 0; Side < 4; ++Side)
+				{
+					const float Yaw = Side * 90.f;
+					const FVector Out = FRotator(0, Yaw, 0).RotateVector(FVector(CityRoadW * 0.5f + 220.f, 0, 0));
+					const FVector Along = FRotator(0, Yaw, 0).RotateVector(FVector(0, 1, 0));
+					for (int32 s = -3; s <= 3; ++s)
+					{
+						if (UStaticMeshComponent* Z = CityBox(FVector(j * CityPitch, k * CityPitch, 4.5f) + Out + Along * (s * 220.f),
+							FVector(320.f, 110.f, 1.f), Yaw, nullptr, EArenaSurface::Plain, StripeTint, false))
+						{
+							Z->SetCastShadow(false);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Blocks: the four around the origin are plazas inside the arena; the rest carry buildings.
+	const float Block = CityPitch - CityRoadW;
+	for (int32 i = -CityHalf; i < CityHalf; ++i)
+	{
+		for (int32 j = -CityHalf; j < CityHalf; ++j)
+		{
+			const FVector2D C((i + 0.5f) * CityPitch, (j + 0.5f) * CityPitch);
+			const bool bPlaza = (i == -1 || i == 0) && (j == -1 || j == 0);
+			if (bPlaza) { CityPlaza(C, Block, (i + 1) * 2 + (j + 1), bNight); }
+			else { CityBuildingBlock(C, Block, FMath::Abs(i + 0.5f) < 2.f && FMath::Abs(j + 0.5f) < 2.f, bNight); }
+		}
+	}
+
+	// Parked cars (covered) along the kerbs of the inner roads.
+	for (int32 n = 0; n < 14; ++n)
+	{
+		const int32 k = Rng.RandRange(-1, 1);
+		const float Along = (Rng.FRand() < 0.5f ? -1.f : 1.f) * Rng.FRandRange(1400.f, CityPitch * 1.5f);
+		const float Lane = (Rng.FRand() < 0.5f ? -1.f : 1.f) * (CityRoadW * 0.5f - 160.f);
+		const bool bAlongX = (n & 1) == 0;
+		const FVector L = bAlongX ? FVector(Along, k * CityPitch + Lane, 4) : FVector(k * CityPitch + Lane, Along, 4);
+		if (FMath::Abs(Along - FMath::RoundToFloat(Along / CityPitch) * CityPitch) < CityRoadW * 0.6f) { continue; } // keep intersections clear
+		const float Yaw = (bAlongX ? 90.f : 0.f) + Rng.FRandRange(-3.f, 3.f); // the mesh's length runs along its Y
+		if (!EnvMesh(TEXT("covered_car"), L, Yaw, true))
+		{
+			Car(L, bAlongX ? 0.f : 90.f, FLinearColor(0.3f, 0.3f, 0.32f), false, false);
+		}
+	}
+
+	// Skyline: far silhouettes past the grid.
+	for (int32 n = 0; n < 28; ++n)
+	{
+		const float Ang = n * 2.f * PI / 28.f + Rng.FRandRange(-0.05f, 0.05f);
+		const float R = Rng.FRandRange(Extent + 6000.f, Extent + 20000.f);
+		const float H = Rng.FRandRange(8000.f, 30000.f);
+		const FVector2D P(FMath::Cos(Ang) * R, FMath::Sin(Ang) * R);
+		const bool bGlass = (n % 3) != 0;
+		CityBox(FVector(P.X, P.Y, H * 0.5f), FVector(Rng.FRandRange(3000.f, 6000.f), Rng.FRandRange(3000.f, 6000.f), H), Rng.FRandRange(0.f, 90.f),
+			bGlass ? TEXT("MI_Env_GlassTower") : TEXT("MI_Env_ConcreteTiles"), EArenaSurface::Facade, FLinearColor(0.8f, 0.82f, 0.85f), false);
+	}
+}
+
+void AChapterSet::CityPlaza(const FVector2D& Center, float Size, int32 Seed, bool bNight)
+{
+	FRandomStream R(9100 + Seed);
+	const FVector C3(Center.X, Center.Y, 0.f);
+	// Raised paved plaza with a kerb all round.
+	if (UStaticMeshComponent* S = CityBox(C3 + FVector(0, 0, 8), FVector(Size, Size, 16), 0.f, TEXT("MI_Env_Pavement"), EArenaSurface::Concrete, PaveTint, true))
+	{
+		S->SetCastShadow(false);
+	}
+	for (int32 Side = 0; Side < 4; ++Side)
+	{
+		const float Yaw = Side * 90.f;
+		const FVector Out = FRotator(0, Yaw, 0).RotateVector(FVector(Size * 0.5f - 15.f, 0, 0));
+		CityBox(C3 + Out + FVector(0, 0, 10), FVector(30.f, Size, 20.f), Yaw, TEXT("MI_Env_ConcreteWall"), EArenaSurface::Concrete, CurbTint, true);
+	}
+	// Tactile paving at the corner facing the central intersection.
+	const FVector2D ToOrigin = (-Center).GetSafeNormal();
+	const FVector Corner = C3 + FVector(FMath::Sign(ToOrigin.X) * (Size * 0.5f - 200.f), FMath::Sign(ToOrigin.Y) * (Size * 0.5f - 200.f), 17.f);
+	CityBox(Corner, FVector(360.f, 360.f, 2.f), 0.f, TEXT("MI_Env_Tactile"), EArenaSurface::Plain, FLinearColor(0.9f, 0.75f, 0.2f), false);
+
+	auto Rand2 = [&R, Size](float Margin) { return FVector(R.FRandRange(-Size * 0.5f + Margin, Size * 0.5f - Margin), R.FRandRange(-Size * 0.5f + Margin, Size * 0.5f - Margin), 16.f); };
+	const float Top = 16.f;
+
+	// Lamps on the four corners (lights only at night, unshadowed).
+	for (int32 q = 0; q < 4; ++q)
+	{
+		const FVector L = C3 + FVector(((q & 1) ? 1.f : -1.f) * (Size * 0.5f - 250.f), ((q & 2) ? 1.f : -1.f) * (Size * 0.5f - 250.f), Top);
+		if (EnvMesh(TEXT("street_lamp_01"), L, R.FRandRange(0.f, 360.f), true, 1.5f))
+		{
+			if (bNight) { PointLight(L + FVector(0, 0, 560), Warm, 9000.f, 1600.f, false); }
+		}
+		else
+		{
+			StreetLamp(L, q * 90.f, bNight);
+		}
+	}
+	// Street furniture.
+	EnvMesh(TEXT("modular_street_seating"), C3 + FVector(0, -Size * 0.5f + 500.f, Top), 0.f, true);
+	EnvMesh(TEXT("modular_street_seating"), C3 + FVector(-Size * 0.5f + 500.f, 0, Top), 90.f, true);
+	EnvMesh(TEXT("metal_trash_can"), C3 + FVector(Size * 0.5f - 350.f, -Size * 0.25f, Top), R.FRandRange(0.f, 360.f), true);
+	EnvMesh(TEXT("metal_trash_can"), C3 + FVector(-Size * 0.25f, Size * 0.5f - 350.f, Top), R.FRandRange(0.f, 360.f), true);
+	EnvMesh(TEXT("fire_hydrant"), C3 + FVector(Size * 0.5f - 300.f, Size * 0.5f - 600.f, Top), R.FRandRange(0.f, 360.f), true);
+	EnvMesh(TEXT("utility_box_01"), C3 + FVector(-Size * 0.5f + 300.f, -Size * 0.5f + 700.f, Top), 90.f, true);
+	EnvMesh(TEXT("utility_box_02"), C3 + FVector(-Size * 0.5f + 300.f, -Size * 0.5f + 900.f, Top), 90.f, true);
+	for (int32 n = 0; n < 3; ++n) { EnvMesh(TEXT("trashbag"), C3 + FVector(Size * 0.5f - 420.f, -Size * 0.25f + 90.f * (n + 1), Top), R.FRandRange(0.f, 360.f), false); }
+
+	// Cover: barrier lines, crate stacks, barrels, a covered car, tyres.
+	for (int32 n = 0; n < 3; ++n)
+	{
+		const FVector L = C3 + Rand2(600.f);
+		const float Yaw = R.FRandRange(0.f, 180.f);
+		const FVector Step = FRotator(0, Yaw, 0).RotateVector(FVector(160.f, 0, 0));
+		for (int32 b = 0; b < 3; ++b)
+		{
+			if (!EnvMesh(b == 1 ? TEXT("concrete_road_barrier_02") : TEXT("concrete_road_barrier"), L + Step * (b - 1), Yaw, true))
+			{
+				CityBox(L + Step * (b - 1) + FVector(0, 0, 50), FVector(150, 60, 100), Yaw, TEXT("MI_Env_ConcreteWall"), EArenaSurface::Concrete, CurbTint, true);
+			}
+		}
+	}
+	for (int32 n = 0; n < 2; ++n)
+	{
+		const FVector L = C3 + Rand2(700.f);
+		const float Yaw = R.FRandRange(0.f, 90.f);
+		if (EnvMesh(TEXT("wooden_military_crate"), L, Yaw, true))
+		{
+			EnvMesh(TEXT("wooden_military_crate"), L + FVector(0, 0, 46), Yaw + R.FRandRange(-8.f, 8.f), true);
+			EnvMesh(TEXT("wooden_crate_01"), L + FRotator(0, Yaw, 0).RotateVector(FVector(0, 80, 0)), Yaw + 5.f, true);
+			EnvMesh(TEXT("wooden_crate_02"), L + FRotator(0, Yaw, 0).RotateVector(FVector(140, 60, 0)), Yaw - 12.f, true);
+			EnvMesh(TEXT("plastic_crate_01"), L + FVector(0, 0, 92), Yaw + 20.f, false);
+		}
+		else
+		{
+			CityBox(L + FVector(0, 0, 60), FVector(240, 120, 120), Yaw, TEXT("MI_Env_Metal"), EArenaSurface::MetalPlate, FLinearColor(0.5f, 0.45f, 0.35f), true);
+		}
+	}
+	for (int32 n = 0; n < 3; ++n) { EnvMesh(TEXT("barrel_03"), C3 + Rand2(500.f), R.FRandRange(0.f, 360.f), true); }
+	for (int32 n = 0; n < 2; ++n) { EnvMesh(TEXT("old_tyre"), C3 + Rand2(500.f) + FVector(0, 0, 8), R.FRandRange(0.f, 360.f), false); }
+	if ((Seed & 1) == 0)
+	{
+		EnvMesh(TEXT("covered_car"), C3 + Rand2(900.f), R.FRandRange(0.f, 360.f), true);
+	}
+	else
+	{
+		// Rubble pile (a crashed drone's work): tumbled concrete chunks.
+		const FVector P = C3 + Rand2(800.f);
+		for (int32 n = 0; n < 10; ++n)
+		{
+			const float S = R.FRandRange(40.f, 160.f);
+			Box(P + FVector(R.FRandRange(-260.f, 260.f), R.FRandRange(-260.f, 260.f), S * 0.3f), FVector(S, S * R.FRandRange(0.6f, 1.2f), S * R.FRandRange(0.4f, 0.9f)),
+				FLinearColor(0.8f, 0.78f, 0.75f), EArenaSurface::Rubble, S > 110.f, FRotator(R.FRandRange(-25.f, 25.f), R.FRandRange(0.f, 360.f), R.FRandRange(-25.f, 25.f)));
+			if (UMaterialInstanceDynamic* Mid = SharedMID(TEXT("debris"), EnvMaterial(TEXT("MI_Env_Debris")), FLinearColor(0.8f, 0.78f, 0.75f)))
+			{
+				Parts.Last().Component->SetMaterial(0, Mid);
+				Parts.Last().MID = Mid;
+			}
+		}
+	}
+}
+
+void AChapterSet::CityBuildingBlock(const FVector2D& Center, float Size, bool bInnerRing, bool bNight)
+{
+	const FVector C3(Center.X, Center.Y, 0.f);
+	if (UStaticMeshComponent* S = CityBox(C3 + FVector(0, 0, 8), FVector(Size, Size, 16), 0.f, TEXT("MI_Env_Pavement"), EArenaSurface::Concrete, PaveTint, bInnerRing))
+	{
+		S->SetCastShadow(false);
+	}
+	for (int32 Side = 0; Side < 4; ++Side)
+	{
+		const float Yaw = Side * 90.f;
+		const FVector Out = FRotator(0, Yaw, 0).RotateVector(FVector(Size * 0.5f - 15.f, 0, 0));
+		CityBox(C3 + Out + FVector(0, 0, 10), FVector(30.f, Size, 20.f), Yaw, TEXT("MI_Env_ConcreteWall"), EArenaSurface::Concrete, CurbTint, false);
+	}
+
+	// One, two or four buildings on the lot.
+	const float Lot = Size - 2.f * CityWalk;
+	const int32 Split = Rng.RandRange(0, 2); // 0 = one, 1 = two, 2 = four
+	const int32 NX = Split == 0 ? 1 : 2;
+	const int32 NY = Split == 2 ? 2 : 1;
+	const float Dist = Center.Size();
+	for (int32 bx = 0; bx < NX; ++bx)
+	{
+		for (int32 by = 0; by < NY; ++by)
+		{
+			const float W = Lot / NX - (NX > 1 ? 60.f : 0.f);
+			const float D = Lot / NY - (NY > 1 ? 60.f : 0.f);
+			const FVector2D XY(Center.X - Lot * 0.5f + (bx + 0.5f) * (Lot / NX), Center.Y - Lot * 0.5f + (by + 0.5f) * (Lot / NY));
+			const float MaxH = bInnerRing ? 9000.f : FMath::Lerp(9000.f, 22000.f, FMath::Clamp((Dist - 9000.f) / 18000.f, 0.f, 1.f));
+			const float H = Rng.FRandRange(bInnerRing ? 2400.f : 3500.f, MaxH);
+			const int32 Style = H < 3200.f ? 3 : Rng.RandRange(0, 2);
+			const FVector Sz(W, D, H);
+			const FVector Mid(XY.X, XY.Y, H * 0.5f);
+
+			// Podium: a 4.5 m ground floor in concrete (storefront level).
+			CityBox(FVector(XY.X, XY.Y, 225.f), FVector(W + 30.f, D + 30.f, 450.f), 0.f, TEXT("MI_Env_ConcreteWall"), EArenaSurface::BlockWall, FLinearColor(0.82f, 0.8f, 0.78f), bInnerRing);
+			switch (Style)
+			{
+			case 0:
+				// Procedural window grid (M_Facade): its own instance for floor height / lit windows.
+				Box(Mid + FVector(0, 0, 225.f), Sz - FVector(0, 0, 450.f), FLinearColor(Rng.FRandRange(0.4f, 0.7f), Rng.FRandRange(0.4f, 0.7f), Rng.FRandRange(0.42f, 0.72f)), EArenaSurface::Facade, bInnerRing);
+				SetLastScalar(TEXT("LitFraction"), bNight ? 0.4f : 0.12f);
+				SetLastScalar(NAME_Emissive, ArenaVisuals::EmissiveToNits(bNight ? 0.15f : 0.f));
+				SetLastScalar(TEXT("FloorHeight"), 360.f + Rng.FRandRange(0.f, 60.f));
+				SetLastScalar(TEXT("WindowWidth"), 200.f + Rng.FRandRange(0.f, 140.f));
+				break;
+			case 1:
+				CityBox(Mid + FVector(0, 0, 225.f), Sz - FVector(0, 0, 450.f), 0.f, TEXT("MI_Env_GlassTower"), EArenaSurface::Facade, FLinearColor(0.85f, 0.88f, 0.92f), bInnerRing);
+				break;
+			case 2:
+				CityBox(Mid + FVector(0, 0, 225.f), Sz - FVector(0, 0, 450.f), 0.f, TEXT("MI_Env_ConcreteTiles"), EArenaSurface::Facade, FLinearColor(0.9f, 0.88f, 0.85f), bInnerRing);
+				break;
+			default:
+				CityBox(Mid + FVector(0, 0, 225.f), Sz - FVector(0, 0, 450.f), 0.f, nullptr, EArenaSurface::RedBrick, FLinearColor(0.9f, 0.85f, 0.8f), bInnerRing);
+				break;
+			}
+			// Roof: parapet cap + plant room.
+			CityBox(FVector(XY.X, XY.Y, H + 20.f), FVector(W + 40.f, D + 40.f, 40.f), 0.f, nullptr, EArenaSurface::RoofGravel, FLinearColor(0.7f, 0.7f, 0.7f), false);
+			CityBox(FVector(XY.X + W * 0.15f, XY.Y - D * 0.1f, H + 190.f), FVector(W * 0.3f, D * 0.3f, 300.f), 0.f, TEXT("MI_Env_Metal"), EArenaSurface::MetalPlate, FLinearColor(0.7f, 0.7f, 0.72f), false);
+			if (H > 12000.f)
+			{
+				Shape(EArenaShape::Sphere, FVector(XY.X, XY.Y, H + 420.f), FVector(60.f), FRotator::ZeroRotator, FLinearColor(1.f, 0.05f, 0.03f), EArenaSurface::Glow, false, 12.f);
+				BlinkParts.Add(Parts.Num() - 1);
+			}
+
+			// Inner ring: rolling shutters on the face looking at the arena, bins by the door.
+			if (bInnerRing)
+			{
+				const FVector2D ToArena = (-XY).GetSafeNormal();
+				const bool bUseX = FMath::Abs(ToArena.X) > FMath::Abs(ToArena.Y);
+				// Outward normal of that face and the yaw that turns the shutter's -Y towards it.
+				const FVector N = bUseX ? FVector(FMath::Sign(ToArena.X), 0, 0) : FVector(0, FMath::Sign(ToArena.Y), 0);
+				const float Yaw = bUseX ? (N.X > 0.f ? 90.f : 270.f) : (N.Y > 0.f ? 180.f : 0.f);
+				const float HalfFace = bUseX ? D * 0.5f : W * 0.5f;
+				const float HalfDepth = bUseX ? W * 0.5f : D * 0.5f;
+				const FVector T = FRotator(0, Yaw, 0).RotateVector(FVector(1, 0, 0));
+				const FVector FaceC(XY.X + N.X * (HalfDepth + 15.f), XY.Y + N.Y * (HalfDepth + 15.f), 16.f);
+				const int32 Doors = FMath::Clamp(int32(HalfFace * 2.f / 700.f), 1, 4);
+				for (int32 d = 0; d < Doors; ++d)
+				{
+					const float S = -HalfFace + (d + 0.5f) * (HalfFace * 2.f / Doors);
+					EnvMesh((d & 1) ? TEXT("rollershutter_window_01") : TEXT("rollershutter_door"), FaceC + T * (S - 100.f) - N * 15.f, Yaw, false);
+				}
+				EnvMesh(TEXT("metal_trash_can"), FaceC + N * 150.f + T * (HalfFace - 150.f), Yaw, true);
+				EnvMesh(TEXT("trashbag"), FaceC + N * 160.f + T * (HalfFace - 300.f), Rng.FRandRange(0.f, 360.f), false);
+			}
+		}
+	}
+	// Lamps and a hydrant on the inner-ring sidewalks.
+	if (bInnerRing)
+	{
+		const FVector2D ToArena = (-Center).GetSafeNormal();
+		const FVector Edge = C3 + FVector(FMath::Sign(ToArena.X) * (Size * 0.5f - 200.f), FMath::Sign(ToArena.Y) * (Size * 0.5f - 200.f), 16.f);
+		EnvMesh(TEXT("street_lamp_01"), Edge, 0.f, true, 1.5f);
+		EnvMesh(TEXT("fire_hydrant"), Edge + FVector(-FMath::Sign(ToArena.X) * 500.f, 0, 0), 0.f, true);
 	}
 }

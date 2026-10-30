@@ -114,6 +114,7 @@ void UArenaGameUserSettings::SetToDefaults()
 	// The game defaults to borderless windowed fullscreen at desktop resolution.
 	SetFullscreenMode(EWindowMode::WindowedFullscreen);
 	SetScreenResolution(GetDesktopResolution());
+	SetFrameRateLimit(60.f); // locked 60 (VSync stays an option in Settings)
 }
 
 USoundClass* UArenaGameUserSettings::LoadSoundClassIfExists(const FSoftObjectPath& Path)
@@ -178,13 +179,13 @@ void UArenaGameUserSettings::ApplyRenderingSettings() const
 	const bool bRT = bRayTracing && IsRayTracingSupported();
 	SetInt(TEXT("r.RayTracing.Enable"), bRT ? 1 : 0);
 	SetInt(TEXT("r.Lumen.HardwareRayTracing"), bRT ? 1 : 0);
-	SetInt(TEXT("r.RayTracing.Shadows"), bRT ? 1 : 0);
-	// Motion blur: 0 disables it; otherwise leave the scalability group's quality.
-	if (!bMotionBlur) { SetInt(TEXT("r.MotionBlurQuality"), 0); }
-	else if (IConsoleVariable* MB = CM.FindConsoleVariable(TEXT("r.MotionBlurQuality")))
-	{
-		if (MB->GetInt() == 0) { MB->Set(GetPostProcessingQuality() >= 3 ? 4 : 3, ECVF_SetByGameSetting); }
-	}
+	// Never RT shadows: they take precedence over VSM and cost more (Ultron perf budget §0.2).
+	SetInt(TEXT("r.RayTracing.Shadows"), 0);
+	// Motion blur: 0 disables it; otherwise the PostProcessQuality tier's value from DefaultScalability.ini
+	// (Vison 8:57: 3 at Medium/High, 4 at Epic). Written at game-setting priority, so it is re-derived from
+	// the tier each time instead of keeping a stale value after the tier changes.
+	const int32 PPQ = GetPostProcessingQuality();
+	SetInt(TEXT("r.MotionBlurQuality"), !bMotionBlur ? 0 : (PPQ >= 3 ? 4 : (PPQ >= 1 ? 3 : 0)));
 }
 
 void UArenaGameUserSettings::ApplyGameplaySettings(const UObject* WorldContext)

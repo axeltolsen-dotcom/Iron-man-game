@@ -1,0 +1,4571 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "name": "Vison realism layer: post-process, atmosphere, clouds, fog, Lumen, TSR",
+    "author": "Vison (contrib)",
+    "engine": "Unreal Engine 5.8 (property names checked against the UE 5.8 Python API docs; cvars follow UE 5.x)",
+    "target_hardware": {
+      "gpu": "NVIDIA GeForce RTX 2070 SUPER, 8 GB GDDR6 (Turing, 1st-gen RT cores)",
+      "output_resolution": "1920x1080",
+      "target_fps": 60,
+      "frame_budget_ms": 16.67
+    },
+    "layering": [
+      "1. C++ FEnvironmentPreset (ArenaEnvironment::ApplyPreset)",
+      "2. lighting_presets.json (physical sun/moon, EV100 exposure, grading, camera)",
+      "3. THIS FILE: same block names, so ContribLighting::Apply / apply_realism.py can write it the same way",
+      "4. presets.<id>._tier_overrides[Epic|Medium] for the active scalability level (High = base)"
+    ],
+    "consistency": {
+      "preset_ids": [
+        "prologue",
+        "workshop",
+        "rooftops",
+        "city",
+        "ruins",
+        "titan_battlefield",
+        "finale",
+        "workshop_night",
+        "rooftops_storm",
+        "city_night",
+        "city_overcast"
+      ],
+      "chapter_mapping": {
+        "_source": "Content/Story/story.json (chapter id -> location) + EnvironmentPresets::ForChapter in Source/IronManArena/Private/EnvironmentPreset.cpp",
+        "story_to_preset": {
+          "prologue": "prologue",
+          "ch1_dust": "workshop",
+          "ch2_first_flight": "rooftops",
+          "ch3_static": "city",
+          "ch4_eyes": "city_night",
+          "ch5_titan": "titan_battlefield",
+          "ch6_heavy": "ruins",
+          "ch7_skyline": "rooftops_storm",
+          "ch8_legacy": "city_overcast",
+          "ch9_ghost": "workshop_night",
+          "finale": "finale",
+          "arena (free play)": null
+        },
+        "FEnvironmentPreset_Id_to_preset": {
+          "workshop": "workshop",
+          "workshop_night": "workshop_night",
+          "rooftops_dusk": "rooftops",
+          "rooftops_storm": "rooftops_storm",
+          "city_day": "city",
+          "city_night": "city_night",
+          "city_overcast": "city_overcast",
+          "ruins": "ruins",
+          "battlefield": "titan_battlefield",
+          "finale_dawn": "finale",
+          "arena": null
+        },
+        "_arena_note": "Free-play 'arena' has no story look. Reuse 'city' or keep the project defaults."
+      },
+      "rule": "Keys shared with lighting_presets.json carry the same value unless listed in presets.<id>._differs_from_lighting_presets (Lumen cost tuning only). No sun/moon, exposure, white balance or grading keys appear here.",
+      "project_perf_budget": "High-tier scalability values match the live IronManArena/Config/DefaultScalability.ini and DefaultEngine.ini [SystemSettings] written from contrib/ultron/perf_budget.md. Deliberate differences: r.Lumen.TraceMeshSDFs.Allow=1 at High (Ultron/engine 0) and per-preset Lumen post-process qualities (see postprocess_realism_notes.md, Conflicts)."
+    },
+    "frame_budget_ms_High_default": {
+      "nanite_basepass_gbuffer": 3.0,
+      "virtual_shadow_maps": 2.0,
+      "lumen_gi_scene_and_final_gather": 3.6,
+      "lumen_reflections": 1.6,
+      "sky_atmosphere_and_volumetric_clouds": 1.2,
+      "volumetric_fog": 0.5,
+      "translucency_particles_vfx": 1.0,
+      "tsr": 1.1,
+      "bloom_sog": 0.25,
+      "depth_of_field": 0.35,
+      "motion_blur": 0.3,
+      "tonemap_grain_flare_fringe_local_exposure": 0.3,
+      "misc_lights_ui_df_updates": 0.8,
+      "total": 16.0,
+      "headroom": 0.67,
+      "_label": "ESTIMATE for a typical outdoor preset at High, 1080p output, TSR ~70% internal; a fixed 75% adds ~1.0-1.3 ms. Not measured on hardware"
+    },
+    "conventions": {
+      "colors": "linear {R,G,B,A}; FColor properties (GroundAlbedo, VolumetricFogAlbedo) are written as sRGB (FLinearColor::ToFColor(true))",
+      "units": "SkyAtmosphere/VolumetricCloud distances in km; fog distances in cm (UE units)",
+      "underscore_keys": "documentation only; appliers skip keys that start with _",
+      "misspelling": "AerialPespectiveViewDistanceScale is UE's own spelling (aerial_pespective_view_distance_scale in Python)"
+    }
+  },
+  "rendering_decisions": {
+    "lumen": {
+      "choice": "software Lumen (global + mesh distance fields) for High and Medium; hardware Lumen optional at Epic only",
+      "reasoning": [
+        "Turing's 1st-gen RT cores and 8 GB: HW Lumen at 1080p/60 adds ~4-6 ms (BVH/TLAS build for Nanite fallback meshes, plus ray traversal), which doesn't fit with VSM + clouds + volumetric fog in 16.6 ms.",
+        "Software Lumen at the High scalability level is Epic's 60 fps configuration.",
+        "The project already ships SW Lumen (r.Lumen.HardwareRayTracing=False) with on-demand RT (r.RayTracing.EnableOnDemand=1); the in-game 'Hardware ray tracing' toggle (UArenaGameUserSettings::ApplyRenderingSettings) is the Epic-tier HW path, at an expected ~30-35 fps.",
+        "Every light is movable (no lightmaps), so Lumen stays ON at Medium too, against the engine default, which turns it off at Medium."
+      ]
+    },
+    "default_tier": "High (sg.*=2) at 1080p output, TSR, 75% fixed screen percentage when dynamic res is off (1440x810); dynamic res 67-100% (the live Ultron config) usually settles around 67-75% on this GPU",
+    "screen_percentage": {
+      "Epic": 75,
+      "High": 75,
+      "Medium": 67
+    },
+    "anti_aliasing": {
+      "AntiAliasingMethod": "TSR (r.AntiAliasingMethod=4, already set by the project)",
+      "tsr_cvars": "per tier in scalability.AntiAliasingQuality",
+      "dynamic_resolution": {
+        "live_project_config": {
+          "r.DynamicRes.OperationMode": 2,
+          "r.DynamicRes.MinScreenPercentage": 67,
+          "r.DynamicRes.MaxScreenPercentage": 100,
+          "r.DynamicRes.FrameTimeBudget": 16.0,
+          "_source": "IronManArena/Config/DefaultEngine.ini [SystemSettings] (Ultron perf budget); kept as-is"
+        },
+        "per_tier_min_max_proposal": {
+          "Epic": [
+            60,
+            100
+          ],
+          "High": [
+            67,
+            100
+          ],
+          "Medium": [
+            50,
+            85
+          ]
+        },
+        "note": "High's proposal equals the live config. The per-tier Epic/Medium ranges in DefaultScalability_realism.ini only take effect if the Min/Max lines are removed from [SystemSettings] (SystemSettings beats scalability). OperationMode 2 = always on (no code needed); supported on PC DX12 and Vulkan."
+      }
+    },
+    "bloom": "Standard (SOG, ~0.25 ms) for gameplay and for cutscenes at High/Medium; Convolution (FFT, ~1.5-2.5 ms at 1080p) only in Epic-tier cutscenes"
+  },
+  "scalability": {
+    "_note": "Values mirrored in DefaultScalability_realism.ini (same generator). Sections merge over BaseScalability.ini; keys not listed keep engine values.",
+    "tiers": {
+      "Epic": {
+        "level": 3,
+        "screen_percentage": 75,
+        "dynres_min": 60,
+        "dynres_max": 100,
+        "sg_level": 3,
+        "gpu_ms_estimate": 22.4,
+        "fps_estimate": 45,
+        "per_feature_ms": {
+          "nanite_basepass_gbuffer": 3.6,
+          "virtual_shadow_maps": 2.6,
+          "lumen_gi_scene_and_final_gather": 5.5,
+          "lumen_reflections": 2.4,
+          "sky_atmosphere_and_volumetric_clouds": 1.8,
+          "volumetric_fog": 1.0,
+          "translucency_particles_vfx": 1.2,
+          "tsr": 1.8,
+          "bloom_sog": 0.3,
+          "depth_of_field": 0.5,
+          "motion_blur": 0.4,
+          "tonemap_grain_flare_fringe_local_exposure": 0.3,
+          "misc_lights_ui_df_updates": 1.0
+        },
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, not measured",
+        "hardware_lumen_option": {
+          "gpu_ms_estimate": "27-29",
+          "fps_estimate": "34-37",
+          "how": "in-game 'Hardware ray tracing' toggle (sets r.RayTracing.Enable / r.Lumen.HardwareRayTracing / r.RayTracing.Shadows to 1)"
+        },
+        "note": "Epic is a 40-48 fps quality mode on this GPU (Epic designs Lumen Epic for 30 fps on consoles). FFT cutscene bloom adds ~1.5-2.5 ms."
+      },
+      "High": {
+        "level": 2,
+        "screen_percentage": 75,
+        "dynres_min": 67,
+        "dynres_max": 100,
+        "sg_level": 2,
+        "gpu_ms_estimate": 16.0,
+        "fps_estimate": 62,
+        "per_feature_ms": {
+          "nanite_basepass_gbuffer": 3.0,
+          "virtual_shadow_maps": 2.0,
+          "lumen_gi_scene_and_final_gather": 3.6,
+          "lumen_reflections": 1.6,
+          "sky_atmosphere_and_volumetric_clouds": 1.2,
+          "volumetric_fog": 0.5,
+          "translucency_particles_vfx": 1.0,
+          "tsr": 1.1,
+          "bloom_sog": 0.25,
+          "depth_of_field": 0.35,
+          "motion_blur": 0.3,
+          "tonemap_grain_flare_fringe_local_exposure": 0.3,
+          "misc_lights_ui_df_updates": 0.8
+        },
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, not measured",
+        "note": "Recommended default. Lands around 60 fps at ~70% internal; dynamic res (67-100%, live config) absorbs heavy presets (titan_battlefield, rooftops_storm). High VSM/Lumen/TSR/streaming values equal the live Ultron DefaultScalability.ini / [SystemSettings]."
+      },
+      "Medium": {
+        "level": 1,
+        "screen_percentage": 67,
+        "dynres_min": 50,
+        "dynres_max": 85,
+        "sg_level": 1,
+        "gpu_ms_estimate": 11.1,
+        "fps_estimate": 90,
+        "per_feature_ms": {
+          "nanite_basepass_gbuffer": 2.3,
+          "virtual_shadow_maps": 1.3,
+          "lumen_gi_scene_and_final_gather": 2.2,
+          "lumen_reflections": 0.9,
+          "sky_atmosphere_and_volumetric_clouds": 0.7,
+          "volumetric_fog": 0.4,
+          "translucency_particles_vfx": 0.8,
+          "tsr": 0.8,
+          "bloom_sog": 0.2,
+          "depth_of_field": 0.25,
+          "motion_blur": 0.25,
+          "tonemap_grain_flare_fringe_local_exposure": 0.25,
+          "misc_lights_ui_df_updates": 0.7
+        },
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, not measured",
+        "note": "Keeps screen-probe Lumen on (cheaper probes, half-res reflections) because nothing is baked. ~85-95 fps, or a safe 60 fps on weaker GPUs. Alternative: Ultron proposes 5.8 'Lumen Lite' (Irradiance Field Gather + SSR) for Medium (verify; not checked here)."
+      }
+    },
+    "groups": {
+      "GlobalIlluminationQuality": {
+        "Epic": {
+          "r.Lumen.DiffuseIndirect.Allow": 1,
+          "r.LumenScene.Radiosity.ProbeSpacing": 4,
+          "r.LumenScene.Radiosity.HemisphereProbeResolution": 4,
+          "r.Lumen.TraceMeshSDFs.Allow": 1,
+          "r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution": 32,
+          "r.Lumen.ScreenProbeGather.RadianceCache.NumProbesToTraceBudget": 300,
+          "r.Lumen.ScreenProbeGather.DownsampleFactor": 16,
+          "r.Lumen.ScreenProbeGather.TracingOctahedronResolution": 8,
+          "r.Lumen.ScreenProbeGather.IrradianceFormat": 0,
+          "r.Lumen.ScreenProbeGather.StochasticInterpolation": 0,
+          "r.Lumen.ScreenProbeGather.FullResolutionJitterWidth": 0,
+          "r.Lumen.ScreenProbeGather.TwoSidedFoliageBackfaceDiffuse": 1,
+          "r.Lumen.ScreenProbeGather.ScreenTraces.HZBTraversal.FullResDepth": 1,
+          "r.Lumen.TranslucencyVolume.GridPixelSize": 32,
+          "r.Lumen.TranslucencyVolume.TraceFromVolume": 1,
+          "r.Lumen.TranslucencyVolume.RadianceCache.ProbeResolution": 8,
+          "r.Lumen.TranslucencyVolume.RadianceCache.NumProbesToTraceBudget": 200,
+          "r.DistanceFieldAO": 1,
+          "r.AOQuality": 2
+        },
+        "High": {
+          "r.Lumen.DiffuseIndirect.Allow": 1,
+          "r.LumenScene.Radiosity.ProbeSpacing": 8,
+          "r.LumenScene.Radiosity.HemisphereProbeResolution": 3,
+          "r.Lumen.TraceMeshSDFs.Allow": 1,
+          "r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution": 16,
+          "r.Lumen.ScreenProbeGather.RadianceCache.NumProbesToTraceBudget": 300,
+          "r.Lumen.ScreenProbeGather.DownsampleFactor": 32,
+          "r.Lumen.ScreenProbeGather.IntegrateDownsampleFactor": 2,
+          "r.Lumen.ScreenProbeGather.TracingOctahedronResolution": 8,
+          "r.Lumen.ScreenProbeGather.IrradianceFormat": 1,
+          "r.Lumen.ScreenProbeGather.StochasticInterpolation": 1,
+          "r.Lumen.ScreenProbeGather.FullResolutionJitterWidth": 1,
+          "r.Lumen.ScreenProbeGather.TwoSidedFoliageBackfaceDiffuse": 0,
+          "r.Lumen.ScreenProbeGather.ScreenTraces.HZBTraversal.FullResDepth": 0,
+          "r.Lumen.TranslucencyVolume.GridPixelSize": 64,
+          "r.Lumen.TranslucencyVolume.TraceFromVolume": 0,
+          "r.Lumen.TranslucencyVolume.RadianceCache.ProbeResolution": 8,
+          "r.Lumen.TranslucencyVolume.RadianceCache.NumProbesToTraceBudget": 200,
+          "r.DistanceFieldAO": 1,
+          "r.AOQuality": 1
+        },
+        "Medium": {
+          "r.Lumen.DiffuseIndirect.Allow": 1,
+          "r.LumenScene.Radiosity.ProbeSpacing": 16,
+          "r.LumenScene.Radiosity.HemisphereProbeResolution": 2,
+          "r.Lumen.TraceMeshSDFs.Allow": 0,
+          "r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution": 8,
+          "r.Lumen.ScreenProbeGather.RadianceCache.NumProbesToTraceBudget": 100,
+          "r.Lumen.ScreenProbeGather.DownsampleFactor": 64,
+          "r.Lumen.ScreenProbeGather.TracingOctahedronResolution": 8,
+          "r.Lumen.ScreenProbeGather.IrradianceFormat": 1,
+          "r.Lumen.ScreenProbeGather.StochasticInterpolation": 1,
+          "r.Lumen.ScreenProbeGather.FullResolutionJitterWidth": 1,
+          "r.Lumen.ScreenProbeGather.TwoSidedFoliageBackfaceDiffuse": 0,
+          "r.Lumen.ScreenProbeGather.ScreenTraces.HZBTraversal.FullResDepth": 0,
+          "r.Lumen.TranslucencyVolume.GridPixelSize": 128,
+          "r.Lumen.TranslucencyVolume.TraceFromVolume": 0,
+          "r.Lumen.TranslucencyVolume.RadianceCache.ProbeResolution": 8,
+          "r.Lumen.TranslucencyVolume.RadianceCache.NumProbesToTraceBudget": 50,
+          "r.DistanceFieldAO": 0
+        }
+      },
+      "ReflectionQuality": {
+        "Epic": {
+          "r.Lumen.Reflections.Allow": 1,
+          "r.Lumen.Reflections.DownsampleFactor": 1,
+          "r.Lumen.Reflections.MaxRoughnessToTrace": 0.4,
+          "r.Lumen.Reflections.ScreenTraces": 1,
+          "r.Lumen.TranslucencyReflections.FrontLayer.Allow": 1,
+          "r.SSR.Quality": 3
+        },
+        "High": {
+          "r.Lumen.Reflections.Allow": 1,
+          "r.Lumen.Reflections.DownsampleFactor": 1,
+          "r.Lumen.Reflections.MaxRoughnessToTrace": 0.35,
+          "r.Lumen.Reflections.MaxRoughnessToTraceClamp": 0.4,
+          "r.Lumen.Reflections.DownsampleCheckerboard": 0,
+          "r.Lumen.Reflections.ScreenTraces": 1,
+          "r.Lumen.TranslucencyReflections.FrontLayer.Allow": 0,
+          "r.SSR.Quality": 2
+        },
+        "Medium": {
+          "r.Lumen.Reflections.Allow": 1,
+          "r.Lumen.Reflections.DownsampleFactor": 2,
+          "r.Lumen.Reflections.MaxRoughnessToTrace": 0.25,
+          "r.Lumen.Reflections.ScreenTraces": 1,
+          "r.Lumen.TranslucencyReflections.FrontLayer.Allow": 0,
+          "r.SSR.Quality": 1
+        }
+      },
+      "ShadowQuality": {
+        "Epic": {
+          "r.LightFunctionQuality": 1,
+          "r.ShadowQuality": 5,
+          "r.Shadow.RadiusThreshold": 0.01,
+          "r.DistanceFieldShadowing": 1,
+          "r.Shadow.Virtual.MaxPhysicalPages": 4096,
+          "r.Shadow.Virtual.ResolutionLodBiasDirectional": -1.5,
+          "r.Shadow.Virtual.ResolutionLodBiasLocal": 0.0,
+          "r.Shadow.Virtual.SMRT.RayCountDirectional": 8,
+          "r.Shadow.Virtual.SMRT.SamplesPerRayDirectional": 4,
+          "r.Shadow.Virtual.SMRT.RayCountLocal": 8,
+          "r.Shadow.Virtual.SMRT.SamplesPerRayLocal": 4,
+          "r.VolumetricFog": 1,
+          "r.VolumetricFog.GridPixelSize": 8,
+          "r.VolumetricFog.GridSizeZ": 128,
+          "r.VolumetricFog.HistoryMissSupersampleCount": 4
+        },
+        "High": {
+          "r.LightFunctionQuality": 1,
+          "r.ShadowQuality": 5,
+          "r.Shadow.RadiusThreshold": 0.03,
+          "r.DistanceFieldShadowing": 1,
+          "r.Shadow.Virtual.MaxPhysicalPages": 2048,
+          "r.Shadow.Virtual.ResolutionLodBiasDirectional": -0.5,
+          "r.Shadow.Virtual.ResolutionLodBiasLocal": 0.5,
+          "r.Shadow.Virtual.SMRT.RayCountDirectional": 8,
+          "r.Shadow.Virtual.SMRT.SamplesPerRayDirectional": 4,
+          "r.Shadow.Virtual.SMRT.RayCountLocal": 4,
+          "r.Shadow.Virtual.SMRT.SamplesPerRayLocal": 4,
+          "r.VolumetricFog": 1,
+          "r.VolumetricFog.GridPixelSize": 16,
+          "r.VolumetricFog.GridSizeZ": 64,
+          "r.VolumetricFog.HistoryMissSupersampleCount": 4
+        },
+        "Medium": {
+          "r.LightFunctionQuality": 1,
+          "r.ShadowQuality": 4,
+          "r.Shadow.RadiusThreshold": 0.03,
+          "r.DistanceFieldShadowing": 1,
+          "r.Shadow.Virtual.MaxPhysicalPages": 2048,
+          "r.Shadow.Virtual.ResolutionLodBiasDirectional": 0.0,
+          "r.Shadow.Virtual.ResolutionLodBiasLocal": 0.5,
+          "r.Shadow.Virtual.SMRT.RayCountDirectional": 4,
+          "r.Shadow.Virtual.SMRT.SamplesPerRayDirectional": 2,
+          "r.Shadow.Virtual.SMRT.RayCountLocal": 2,
+          "r.Shadow.Virtual.SMRT.SamplesPerRayLocal": 2,
+          "r.VolumetricFog": 1,
+          "r.VolumetricFog.GridPixelSize": 16,
+          "r.VolumetricFog.GridSizeZ": 64,
+          "r.VolumetricFog.HistoryMissSupersampleCount": 2
+        }
+      },
+      "EffectsQuality": {
+        "Epic": {
+          "r.SkyAtmosphere.FastSkyLUT": 1,
+          "r.SkyAtmosphere.FastSkyLUT.SampleCountMax": 64,
+          "r.SkyAtmosphere.SampleCountMax": 64,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.FastApplyOnOpaque": 1,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.SampleCountMaxPerSlice": 4,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.DepthResolution": 16,
+          "r.SkyAtmosphere.TransmittanceLUT.UseSmallFormat": 0,
+          "r.SkyAtmosphere.MultiScatteringLUT.HighQuality": 0,
+          "r.SkyLight.RealTimeReflectionCapture": 1,
+          "r.VolumetricCloud.ViewRaySampleMaxCount": 768,
+          "r.VolumetricCloud.ReflectionRaySampleMaxCount": 80,
+          "r.VolumetricCloud.Shadow.ViewRaySampleMaxCount": 80,
+          "r.VolumetricCloud.Shadow.ReflectionRaySampleMaxCount": 24,
+          "r.VolumetricCloud.ShadowMap.MaxResolution": 2048,
+          "r.VolumetricCloud.ShadowMap.RaySampleMaxCount": 128,
+          "r.VolumetricCloud.SkyAO": 1,
+          "r.VolumetricRenderTarget": 1
+        },
+        "High": {
+          "r.SkyAtmosphere.FastSkyLUT": 1,
+          "r.SkyAtmosphere.FastSkyLUT.SampleCountMax": 32,
+          "r.SkyAtmosphere.SampleCountMax": 32,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.FastApplyOnOpaque": 1,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.SampleCountMaxPerSlice": 2,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.DepthResolution": 16,
+          "r.SkyAtmosphere.TransmittanceLUT.UseSmallFormat": 0,
+          "r.SkyAtmosphere.MultiScatteringLUT.HighQuality": 0,
+          "r.SkyLight.RealTimeReflectionCapture": 1,
+          "r.VolumetricCloud.ViewRaySampleMaxCount": 512,
+          "r.VolumetricCloud.ReflectionRaySampleMaxCount": 48,
+          "r.VolumetricCloud.Shadow.ViewRaySampleMaxCount": 48,
+          "r.VolumetricCloud.Shadow.ReflectionRaySampleMaxCount": 16,
+          "r.VolumetricCloud.ShadowMap.MaxResolution": 1024,
+          "r.VolumetricCloud.ShadowMap.RaySampleMaxCount": 64,
+          "r.VolumetricCloud.SkyAO": 1,
+          "r.VolumetricRenderTarget": 1
+        },
+        "Medium": {
+          "r.SkyAtmosphere.FastSkyLUT": 1,
+          "r.SkyAtmosphere.FastSkyLUT.SampleCountMax": 16,
+          "r.SkyAtmosphere.SampleCountMax": 16,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.FastApplyOnOpaque": 1,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.SampleCountMaxPerSlice": 1,
+          "r.SkyAtmosphere.AerialPerspectiveLUT.DepthResolution": 8,
+          "r.SkyAtmosphere.TransmittanceLUT.UseSmallFormat": 1,
+          "r.SkyAtmosphere.MultiScatteringLUT.HighQuality": 0,
+          "r.SkyLight.RealTimeReflectionCapture": 1,
+          "r.VolumetricCloud.ViewRaySampleMaxCount": 256,
+          "r.VolumetricCloud.ReflectionRaySampleMaxCount": 32,
+          "r.VolumetricCloud.Shadow.ViewRaySampleMaxCount": 32,
+          "r.VolumetricCloud.Shadow.ReflectionRaySampleMaxCount": 12,
+          "r.VolumetricCloud.ShadowMap.MaxResolution": 512,
+          "r.VolumetricCloud.ShadowMap.RaySampleMaxCount": 32,
+          "r.VolumetricCloud.SkyAO": 0,
+          "r.VolumetricRenderTarget": 1
+        }
+      },
+      "PostProcessQuality": {
+        "Epic": {
+          "r.BloomQuality": 5,
+          "r.MotionBlurQuality": 4,
+          "r.LensFlareQuality": 2,
+          "r.SceneColorFringeQuality": 1,
+          "r.EyeAdaptationQuality": 2,
+          "r.Tonemapper.GrainQuantization": 1,
+          "r.Tonemapper.Quality": 5,
+          "r.DepthOfFieldQuality": 2,
+          "r.DOF.Gather.RingCount": 5,
+          "r.DOF.Gather.AccumulatorQuality": 1
+        },
+        "High": {
+          "r.BloomQuality": 5,
+          "r.MotionBlurQuality": 3,
+          "r.LensFlareQuality": 2,
+          "r.SceneColorFringeQuality": 1,
+          "r.EyeAdaptationQuality": 2,
+          "r.Tonemapper.GrainQuantization": 1,
+          "r.Tonemapper.Quality": 5,
+          "r.DepthOfFieldQuality": 2,
+          "r.DOF.Gather.RingCount": 4,
+          "r.DOF.Gather.AccumulatorQuality": 1
+        },
+        "Medium": {
+          "r.BloomQuality": 4,
+          "r.MotionBlurQuality": 3,
+          "r.LensFlareQuality": 2,
+          "r.SceneColorFringeQuality": 1,
+          "r.EyeAdaptationQuality": 2,
+          "r.Tonemapper.GrainQuantization": 1,
+          "r.Tonemapper.Quality": 5,
+          "r.DepthOfFieldQuality": 1,
+          "r.DOF.Gather.RingCount": 3,
+          "r.DOF.Gather.AccumulatorQuality": 0
+        }
+      },
+      "AntiAliasingQuality": {
+        "Epic": {
+          "r.TSR.History.R11G11B10": 1,
+          "r.TSR.History.ScreenPercentage": 200,
+          "r.TSR.History.UpdateQuality": 3,
+          "r.TSR.ShadingRejection.Flickering": 1,
+          "r.TSR.ShadingRejection.Flickering.Period": 3,
+          "r.TSR.ShadingRejection.Flickering.FrameRateCap": 60,
+          "r.TSR.RejectionAntiAliasingQuality": 2,
+          "r.TSR.Resurrection": 1,
+          "r.TSR.ReprojectionField": 1,
+          "r.TSR.Velocity.WeightClampingSampleCount": 4,
+          "r.DynamicRes.MinScreenPercentage": 60,
+          "r.DynamicRes.MaxScreenPercentage": 100
+        },
+        "High": {
+          "r.TSR.History.R11G11B10": 1,
+          "r.TSR.History.ScreenPercentage": 100,
+          "r.TSR.History.UpdateQuality": 2,
+          "r.TSR.ShadingRejection.Flickering": 1,
+          "r.TSR.ShadingRejection.Flickering.Period": 2,
+          "r.TSR.ShadingRejection.Flickering.FrameRateCap": 60,
+          "r.TSR.RejectionAntiAliasingQuality": 1,
+          "r.TSR.Resurrection": 1,
+          "r.TSR.ReprojectionField": 1,
+          "r.TSR.Velocity.WeightClampingSampleCount": 3,
+          "r.DynamicRes.MinScreenPercentage": 67,
+          "r.DynamicRes.MaxScreenPercentage": 100
+        },
+        "Medium": {
+          "r.TSR.History.R11G11B10": 1,
+          "r.TSR.History.ScreenPercentage": 100,
+          "r.TSR.History.UpdateQuality": 1,
+          "r.TSR.ShadingRejection.Flickering": 1,
+          "r.TSR.ShadingRejection.Flickering.Period": 2,
+          "r.TSR.ShadingRejection.Flickering.FrameRateCap": 60,
+          "r.TSR.RejectionAntiAliasingQuality": 1,
+          "r.TSR.Resurrection": 1,
+          "r.TSR.ReprojectionField": 0,
+          "r.TSR.Velocity.WeightClampingSampleCount": 3,
+          "r.DynamicRes.MinScreenPercentage": 50,
+          "r.DynamicRes.MaxScreenPercentage": 85
+        }
+      },
+      "ViewDistanceQuality": {
+        "Epic": {
+          "r.ViewDistanceScale": 1.0,
+          "r.SkeletalMeshLODBias": 0,
+          "r.Nanite.MaxPixelsPerEdge": 1
+        },
+        "High": {
+          "r.ViewDistanceScale": 1.0,
+          "r.SkeletalMeshLODBias": 0,
+          "r.Nanite.MaxPixelsPerEdge": 1
+        },
+        "Medium": {
+          "r.ViewDistanceScale": 0.8,
+          "r.SkeletalMeshLODBias": 1,
+          "r.Nanite.MaxPixelsPerEdge": 2
+        }
+      },
+      "TextureQuality": {
+        "Epic": {
+          "r.Streaming.PoolSize": 3000,
+          "r.Streaming.MipBias": 0,
+          "r.MaxAnisotropy": 16,
+          "r.VT.MaxAnisotropy": 8
+        },
+        "High": {
+          "r.Streaming.PoolSize": 2000,
+          "r.Streaming.MipBias": 0,
+          "r.MaxAnisotropy": 8,
+          "r.VT.MaxAnisotropy": 8
+        },
+        "Medium": {
+          "r.Streaming.PoolSize": 1600,
+          "r.Streaming.MipBias": 0,
+          "r.MaxAnisotropy": 8,
+          "r.VT.MaxAnisotropy": 4
+        }
+      },
+      "FoliageQuality": {
+        "Epic": {
+          "foliage.DensityScale": 1.0,
+          "grass.DensityScale": 1.0
+        },
+        "High": {
+          "foliage.DensityScale": 1.0,
+          "grass.DensityScale": 1.0
+        },
+        "Medium": {
+          "foliage.DensityScale": 0.6,
+          "grass.DensityScale": 0.6
+        }
+      },
+      "ShadingQuality": {
+        "Epic": {
+          "r.AnisotropicMaterials": 1
+        },
+        "High": {
+          "r.AnisotropicMaterials": 1
+        },
+        "Medium": {
+          "r.AnisotropicMaterials": 0
+        }
+      }
+    },
+    "verify": [
+      "r.AnisotropicMaterials",
+      "r.Lumen.TranslucencyReflections.FrontLayer.Allow",
+      "r.VolumetricCloud.SkyAO",
+      "r.VolumetricCloud.ViewRaySampleMaxCount",
+      "r.VolumetricRenderTarget"
+    ]
+  },
+  "verify": [
+    {
+      "item": "r.VolumetricCloud.ViewRaySampleMaxCount",
+      "why": "The 5.8 docs tooltip names it r.VolumetricCloud.ViewRaySampleCountMax. Check which spelling the 5.8 console accepts."
+    },
+    {
+      "item": "r.VolumetricCloud.SkyAO",
+      "why": "Cloud sky-AO toggle; existence in 5.8 not confirmed from docs."
+    },
+    {
+      "item": "r.VolumetricRenderTarget",
+      "why": "Reduced-res cloud tracing toggle (5.0+); existence in 5.8 not confirmed from docs."
+    },
+    {
+      "item": "r.Lumen.TranslucencyReflections.FrontLayer.Allow",
+      "why": "Name not confirmed from docs; the PP override LumenFrontLayerTranslucencyReflections is confirmed."
+    },
+    {
+      "item": "r.AnisotropicMaterials",
+      "why": "May be a read-only project setting rather than a runtime scalability cvar in 5.8."
+    },
+    {
+      "item": "DirectionalInscattering* with SkyAtmosphere",
+      "why": "Whether 5.8 ignores height-fog directional inscattering when a SkyAtmosphere sun is present (black is safe either way)."
+    },
+    {
+      "item": "BloomConvolutionScatterDispersion",
+      "why": "Property exists in 5.8; the value 1.0 is the assumed default."
+    },
+    {
+      "item": "Group placement",
+      "why": "Volumetric fog and VSM are in ShadowQuality and sky atmosphere in EffectsQuality, as in BaseScalability; volumetric clouds were also put in EffectsQuality (BaseScalability may not set them)."
+    }
+  ],
+  "presets": {
+    "prologue": {
+      "id": "prologue",
+      "_kind": "core",
+      "project_mapping": {
+        "story_section": "prologue",
+        "chapters": [],
+        "FEnvironmentPreset_Id": "workshop (EnvironmentPresets::Prologue() reuses Workshop(false))",
+        "ChapterSet_SetId": "workshop"
+      },
+      "display_name": "Prologue: The Garage Before Dawn",
+      "_look": "Ozone keeps the 04:50 windows blue, not grey. Volumetric fog in the lamp beams is the hero; clouds are almost invisible, so they run at half samples. FG 1.5 gives the garage soft bounce off the concrete without Epic cost.",
+      "_gpu_estimate_ms": {
+        "High_default": 15.0,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.25,
+          "G": 0.25,
+          "B": 0.25,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.006,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Lake and forest ground. Twilight colour comes from the sun 4 deg under the horizon; ozone (OtherAbsorption) is what keeps the blue hour blue rather than grey.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 1.5,
+        "LayerHeight": 4.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.25,
+          "G": 0.25,
+          "B": 0.25,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 0.5,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 10.0,
+        "StopTracingTransmittanceThreshold": 0.005,
+        "_cloud_material": {
+          "CloudCoverage": 0.3,
+          "CloudDensity": 0.6,
+          "CloudType_0stratus_1cumulonimbus": 0.3,
+          "Erosion": 0.4,
+          "DetailErosionStrength": 0.5,
+          "WindSpeed_m_s": 3,
+          "_cloud_type": "sparse stratocumulus"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.004,
+        "FogHeightFalloff": 0.4,
+        "SecondFogData": {
+          "FogDensity": 0.03,
+          "FogHeightFalloff": 2.0,
+          "FogHeightOffset": -200.0
+        },
+        "FogInscatteringLuminance": {
+          "R": 0.02,
+          "G": 0.03,
+          "B": 0.05,
+          "A": 1.0
+        },
+        "StartDistance": 0.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.6,
+        "VolumetricFogAlbedo": {
+          "R": 0.95,
+          "G": 0.9,
+          "B": 0.85,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 1.5,
+        "VolumetricFogDistance": 3000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.5,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 6000.0,
+        "LumenMaxTraceDistance": 5000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 1.0,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.02,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.88,
+        "FilmToe": 0.58,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.5,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 4.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.35,
+          "G": 0.35,
+          "B": 0.35,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.14,
+          "G": 0.14,
+          "B": 0.14,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.13,
+          "G": 0.11,
+          "B": 0.09,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.07,
+          "G": 0.06,
+          "B": 0.05,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.04,
+          "G": 0.04,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.03,
+          "G": 0.03,
+          "B": 0.03,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.3,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.85,
+          "B": 0.7,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 3.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.4,
+        "FilmGrainIntensity": 0.12,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.4,
+        "SceneFringeIntensity": 0.15,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.8,
+        "LocalExposureShadowContrastScale": 0.9,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "tungsten_practical",
+          "why": "warm halo round work lamps, moderate wide glow from dust"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.prologue.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 5.91,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 2.0,
+            "LumenSceneLightingQuality": 2.0,
+            "LumenSceneDetail": 1.5,
+            "LumenReflectionQuality": 2.0,
+            "LumenSceneViewDistance": 6000.0,
+            "LumenMaxTraceDistance": 5000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 6000.0,
+            "LumenMaxTraceDistance": 5000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 4.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "VolumetricCloud": {
+          "ViewSampleCountScale": {
+            "lighting_presets": 1.0,
+            "realism_high": 0.5,
+            "why": "clouds are only seen through windows here (lighting_presets' own note suggests 0.5)"
+          }
+        },
+        "PostProcessVolume": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.5,
+            "why": "2070 SUPER: 2.0 on top of the High baseline costs ~+1.5 ms; 1.5 keeps the interior bounce for ~+0.7 ms (Epic tier restores 2.0)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "1.0 at High on the 2070 SUPER (Epic tier restores the lighting_presets value)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 1.5,
+            "realism_high": 1.0,
+            "why": "more surface-cache cards cost memory/updates on 8 GB; 1.0 at High (Epic restores)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "1.0 at High; full-res reflections come from r.Lumen.Reflections.DownsampleFactor=1 instead (Epic restores)"
+          },
+          "LumenSceneLightingUpdateSpeed": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "fast-changing light (lightning / explosions) needs quicker surface-cache updates"
+          },
+          "LumenFinalGatherLightingUpdateSpeed": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "fast-changing light (lightning / explosions) needs quicker final-gather convergence"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          }
+        }
+      }
+    },
+    "workshop": {
+      "id": "workshop",
+      "_kind": "core",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch1_dust"
+        ],
+        "FEnvironmentPreset_Id": "workshop",
+        "ChapterSet_SetId": "workshop"
+      },
+      "display_name": "Workshop: Dust and Blueprints",
+      "_look": "Clean, glossy and hopeful. Tight 'clean_modern' bloom, so the skylights read crisp. Front-layer glass reflections are off at High (Epic restores them). FG 1.5 because interior bounce is the whole look and there's no far-field cost.",
+      "_gpu_estimate_ms": {
+        "High_default": 15.5,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.3,
+          "G": 0.3,
+          "B": 0.3,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.003996,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Clear Earth sky; only seen through skylights.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 1.2,
+        "LayerHeight": 2.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.3,
+          "G": 0.3,
+          "B": 0.3,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 0.5,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 10.0,
+        "StopTracingTransmittanceThreshold": 0.005,
+        "_cloud_material": {
+          "CloudCoverage": 0.25,
+          "CloudDensity": 0.8,
+          "CloudType_0stratus_1cumulonimbus": 0.6,
+          "Erosion": 0.5,
+          "DetailErosionStrength": 0.6,
+          "WindSpeed_m_s": 5,
+          "_cloud_type": "fair-weather cumulus"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.002,
+        "FogHeightFalloff": 0.3,
+        "FogInscatteringLuminance": {
+          "R": 0.05,
+          "G": 0.07,
+          "B": 0.1,
+          "A": 1.0
+        },
+        "StartDistance": 0.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.75,
+        "VolumetricFogAlbedo": {
+          "R": 1.0,
+          "G": 0.97,
+          "B": 0.92,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 1.2,
+        "VolumetricFogDistance": 4000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.5,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 8000.0,
+        "LumenMaxTraceDistance": 8000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 1.0,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.88,
+        "FilmToe": 0.55,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.45,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 3.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.4,
+          "G": 0.4,
+          "B": 0.4,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.16,
+          "G": 0.16,
+          "B": 0.16,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.1,
+          "G": 0.1,
+          "B": 0.1,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.04,
+          "G": 0.04,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.02,
+          "G": 0.02,
+          "B": 0.02,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.01,
+          "G": 0.01,
+          "B": 0.01,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.3,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.92,
+          "B": 0.85,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 3.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.3,
+        "FilmGrainIntensity": 0.06,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.5,
+        "SceneFringeIntensity": 0.1,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.7,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "clean_modern",
+          "why": "modern coated glass: tight core, little veiling glare"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.workshop.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 7.91,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 2.0,
+            "LumenSceneLightingQuality": 2.0,
+            "LumenSceneDetail": 2.0,
+            "LumenReflectionQuality": 2.0,
+            "LumenSceneViewDistance": 8000.0,
+            "LumenMaxTraceDistance": 8000.0,
+            "LumenFrontLayerTranslucencyReflections": true,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 8000.0,
+            "LumenMaxTraceDistance": 8000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 3.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "VolumetricCloud": {
+          "ViewSampleCountScale": {
+            "lighting_presets": 1.0,
+            "realism_high": 0.5,
+            "why": "clouds are only seen through windows here (lighting_presets' own note suggests 0.5)"
+          }
+        },
+        "PostProcessVolume": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.5,
+            "why": "2070 SUPER: 2.0 on top of the High baseline costs ~+1.5 ms; 1.5 keeps the interior bounce for ~+0.7 ms (Epic tier restores 2.0)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "1.0 at High on the 2070 SUPER (Epic tier restores the lighting_presets value)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "more surface-cache cards cost memory/updates on 8 GB; 1.0 at High (Epic restores)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "1.0 at High; full-res reflections come from r.Lumen.Reflections.DownsampleFactor=1 instead (Epic restores)"
+          },
+          "LumenFrontLayerTranslucencyReflections": {
+            "lighting_presets": true,
+            "realism_high": false,
+            "why": "front-layer translucency reflections cost ~0.5-1 ms on glass-heavy views; Epic only"
+          },
+          "SceneFringeIntensity": {
+            "lighting_presets": 0.05,
+            "realism_high": 0.1,
+            "why": "brief asks for fringe in 0.1-0.4; 0.1 is still invisible at 1080p except at frame corners"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          }
+        }
+      }
+    },
+    "rooftops": {
+      "id": "rooftops",
+      "_kind": "core",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch2_first_flight"
+        ],
+        "FEnvironmentPreset_Id": "rooftops_dusk",
+        "ChapterSet_SetId": "rooftops"
+      },
+      "display_name": "Rooftops: First Flight",
+      "_look": "Golden hour: Mie haze glow round the sun, warm wide bloom, altocumulus lit from below. Fast flight, so TSR weight clamping is 3, and Lumen view distance drops 30 km to 20 km (the sky and aerial perspective cover the far field).",
+      "_gpu_estimate_ms": {
+        "High_default": 16.3,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.25,
+          "G": 0.25,
+          "B": 0.25,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.006,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.85,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.5,
+        "HeightFogContribution": 1.0,
+        "_note": "Urban ground. Mie raised for haze (from lighting_presets) gives the glowing aureole around the low sun.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 3.0,
+        "LayerHeight": 4.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.25,
+          "G": 0.25,
+          "B": 0.25,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 1.0,
+        "ShadowReflectionViewSampleCountScaleValue": 1.0,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 15.0,
+        "StopTracingTransmittanceThreshold": 0.005,
+        "_cloud_material": {
+          "CloudCoverage": 0.35,
+          "CloudDensity": 0.5,
+          "CloudType_0stratus_1cumulonimbus": 0.35,
+          "Erosion": 0.6,
+          "DetailErosionStrength": 0.7,
+          "WindSpeed_m_s": 8,
+          "MultiScatteringContribution": 0.6,
+          "_cloud_type": "altocumulus (lit gold/pink from below)"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.006,
+        "FogHeightFalloff": 0.12,
+        "FogInscatteringLuminance": {
+          "R": 0.08,
+          "G": 0.05,
+          "B": 0.03,
+          "A": 1.0
+        },
+        "StartDistance": 2000.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.7,
+        "VolumetricFogAlbedo": {
+          "R": 1.0,
+          "G": 0.95,
+          "B": 0.9,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 0.8,
+        "VolumetricFogDistance": 12000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.88,
+        "FilmToe": 0.55,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.6,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 4.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.35,
+          "G": 0.35,
+          "B": 0.35,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.14,
+          "G": 0.14,
+          "B": 0.14,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.11,
+          "G": 0.11,
+          "B": 0.11,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.08,
+          "G": 0.06,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.06,
+          "G": 0.04,
+          "B": 0.025,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.04,
+          "G": 0.025,
+          "B": 0.015,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.8,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.75,
+          "B": 0.5,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 4.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.3,
+        "FilmGrainIntensity": 0.05,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.5,
+        "SceneFringeIntensity": 0.1,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.75,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "golden_haze",
+          "why": "anamorphic-ish warm veil round a low sun"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.rooftops.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 12.55,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0,
+          "BloomMethod": "BM_SOG",
+          "BloomIntensity": 0.6
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 1.0,
+            "LumenSceneViewDistance": 30000.0,
+            "LumenMaxTraceDistance": 30000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0,
+              "BloomMethod": "BM_FFT",
+              "BloomIntensity": 1.0,
+              "BloomConvolutionSize": 1.0,
+              "BloomConvolutionCenterUV": {
+                "X": 0.5,
+                "Y": 0.5
+              },
+              "BloomConvolutionPreFilterMin": 7.0,
+              "BloomConvolutionPreFilterMax": 15000.0,
+              "BloomConvolutionPreFilterMult": 15.0,
+              "BloomConvolutionBufferScale": 0.133,
+              "BloomConvolutionScatterDispersion": 1.0,
+              "_kernel": "engine default kernel (leave BloomConvolutionTexture unset); a measured anamorphic kernel texture is the realism upgrade"
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 4.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "PostProcessVolume": {
+          "LumenSceneViewDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "30 km Lumen scene is costly in software Lumen; beyond ~200 m the global SDF is coarse anyway and sky/aerial perspective carry the far field (Epic restores)"
+          },
+          "LumenMaxTraceDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "matches the reduced scene view distance (Epic restores)"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "BloomMethod": {
+            "lighting_presets": "BM_FFT",
+            "realism_high": "BM_SOG",
+            "why": "convolution (FFT) bloom costs ~1.5-2.5 ms at 1080p on a 2070 SUPER vs ~0.25 ms for Standard; FFT is Epic-tier only"
+          },
+          "BloomIntensity": {
+            "lighting_presets": 1.0,
+            "realism_high": 0.6,
+            "why": "Standard bloom uses the gameplay intensity; 1.0 was the FFT kernel's intensity"
+          }
+        }
+      }
+    },
+    "city": {
+      "id": "city",
+      "_kind": "core",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch3_static"
+        ],
+        "FEnvironmentPreset_Id": "city_day",
+        "ChapterSet_SetId": "city"
+      },
+      "display_name": "City by Day: Static in the Wires",
+      "_look": "Documentary daylight. Deep blue zenith (Rayleigh + ozone), hard VSM shadows, small hard-edged cumulus whose shadows sweep the streets. Minimal fringe and grain.",
+      "_gpu_estimate_ms": {
+        "High_default": 16.0,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.25,
+          "G": 0.25,
+          "B": 0.25,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.003996,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Clear Earth sky at high sun: deep blue zenith from Rayleigh + ozone.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 1.5,
+        "LayerHeight": 2.5,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.25,
+          "G": 0.25,
+          "B": 0.25,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 1.0,
+        "ShadowReflectionViewSampleCountScaleValue": 1.0,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 15.0,
+        "StopTracingTransmittanceThreshold": 0.005,
+        "_cloud_material": {
+          "CloudCoverage": 0.2,
+          "CloudDensity": 0.9,
+          "CloudType_0stratus_1cumulonimbus": 0.65,
+          "Erosion": 0.5,
+          "DetailErosionStrength": 0.6,
+          "WindSpeed_m_s": 6,
+          "_cloud_type": "cumulus humilis"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.005,
+        "FogHeightFalloff": 0.2,
+        "FogInscatteringLuminance": {
+          "R": 0.05,
+          "G": 0.07,
+          "B": 0.1,
+          "A": 1.0
+        },
+        "StartDistance": 3000.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.2,
+        "VolumetricFogAlbedo": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 0.5,
+        "VolumetricFogDistance": 10000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.88,
+        "FilmToe": 0.55,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.4,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 3.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.4,
+          "G": 0.4,
+          "B": 0.4,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.16,
+          "G": 0.16,
+          "B": 0.16,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.1,
+          "G": 0.1,
+          "B": 0.1,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.04,
+          "G": 0.04,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.02,
+          "G": 0.02,
+          "B": 0.02,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.01,
+          "G": 0.01,
+          "B": 0.01,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.4,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.97,
+          "B": 0.94,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 3.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.2,
+        "FilmGrainIntensity": 0.03,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.5,
+        "SceneFringeIntensity": 0.1,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.8,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "clean_modern",
+          "why": "modern coated glass: tight core, little veiling glare"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.city.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 15.55,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 1.0,
+            "LumenSceneViewDistance": 30000.0,
+            "LumenMaxTraceDistance": 30000.0,
+            "LumenFrontLayerTranslucencyReflections": true,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 3.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "PostProcessVolume": {
+          "LumenSceneViewDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "30 km Lumen scene is costly in software Lumen; beyond ~200 m the global SDF is coarse anyway and sky/aerial perspective carry the far field (Epic restores)"
+          },
+          "LumenMaxTraceDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "matches the reduced scene view distance (Epic restores)"
+          },
+          "LumenFrontLayerTranslucencyReflections": {
+            "lighting_presets": true,
+            "realism_high": false,
+            "why": "front-layer translucency reflections cost ~0.5-1 ms on glass-heavy views; Epic only"
+          },
+          "SceneFringeIntensity": {
+            "lighting_presets": 0.05,
+            "realism_high": 0.1,
+            "why": "brief asks for fringe in 0.1-0.4; 0.1 is still invisible at 1080p except at frame corners"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          }
+        }
+      }
+    },
+    "ruins": {
+      "id": "ruins",
+      "_kind": "core",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch6_heavy"
+        ],
+        "FEnvironmentPreset_Id": "ruins",
+        "ChapterSet_SetId": "ruins"
+      },
+      "display_name": "Ruins: Heavy Lifting",
+      "_look": "Smoke-filtered tan sun from blue-weighted Mie absorption, dense low volumetric fog, wide 'smoke_scatter' bloom. The 1/96 s staccato shutter stays in the cutscenes (from lighting_presets).",
+      "_gpu_estimate_ms": {
+        "High_default": 16.2,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.45,
+          "G": 0.58,
+          "B": 0.78,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.05,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.18,
+          "G": 0.18,
+          "B": 0.18,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.012,
+        "MieAbsorptionScale": 0.004,
+        "MieAnisotropy": 0.7,
+        "MieExponentialDistribution": 2.0,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 2.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Ash/rubble ground. Smoke Mie absorption tinted blue-heavy (soot absorbs short wavelengths more), so transmitted sunlight goes tan.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 1.0,
+        "LayerHeight": 3.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.18,
+          "G": 0.18,
+          "B": 0.18,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 15.0,
+        "StopTracingTransmittanceThreshold": 0.005,
+        "_cloud_material": {
+          "CloudCoverage": 0.5,
+          "CloudAlbedo": [
+            0.6,
+            0.55,
+            0.5
+          ],
+          "CloudType_0stratus_1cumulonimbus": 0.55,
+          "Erosion": 0.35,
+          "DetailErosionStrength": 0.4,
+          "WindSpeed_m_s": 4,
+          "_cloud_type": "smoke-darkened cumulus"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.03,
+        "FogHeightFalloff": 0.06,
+        "SecondFogData": {
+          "FogDensity": 0.05,
+          "FogHeightFalloff": 0.8,
+          "FogHeightOffset": -100.0
+        },
+        "FogInscatteringLuminance": {
+          "R": 0.18,
+          "G": 0.15,
+          "B": 0.12,
+          "A": 1.0
+        },
+        "StartDistance": 500.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.7,
+        "VolumetricFogAlbedo": {
+          "R": 0.9,
+          "G": 0.82,
+          "B": 0.72,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 1.5,
+        "VolumetricFogDistance": 8000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.9,
+        "FilmToe": 0.6,
+        "FilmShoulder": 0.28,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.5,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 5.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.3,
+          "G": 0.3,
+          "B": 0.3,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.13,
+          "G": 0.13,
+          "B": 0.13,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.11,
+          "G": 0.11,
+          "B": 0.11,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.09,
+          "G": 0.07,
+          "B": 0.05,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.09,
+          "G": 0.065,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.08,
+          "G": 0.05,
+          "B": 0.03,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.5,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.8,
+          "B": 0.6,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 3.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.45,
+        "FilmGrainIntensity": 0.15,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.5,
+        "SceneFringeIntensity": 0.1,
+        "MotionBlurAmount": 0.25,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.8,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.1,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "smoke_scatter",
+          "why": "wide kernels stand in for forward scatter in smoke"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.ruins.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 12.58,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 1.0,
+            "LumenSceneViewDistance": 20000.0,
+            "LumenMaxTraceDistance": 20000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 5.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          }
+        }
+      }
+    },
+    "titan_battlefield": {
+      "id": "titan_battlefield",
+      "_kind": "core",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch5_titan"
+        ],
+        "FEnvironmentPreset_Id": "battlefield",
+        "ChapterSet_SetId": "battlefield"
+      },
+      "display_name": "Titan's Battlefield: The Titan Wakes",
+      "_look": "The heaviest preset. A smoke pall (Mie 0.02, strong blue absorption) gives the orange sun; fire light is better as Local Fog Volumes plus point lights than fog emissive. Lumen update speed 1.5 so explosions bounce quickly. Expect dynamic res to sit near 60-65%.",
+      "_gpu_estimate_ms": {
+        "High_default": 17.2,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.4,
+          "G": 0.55,
+          "B": 0.8,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.05,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.12,
+          "G": 0.12,
+          "B": 0.12,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.02,
+        "MieAbsorptionScale": 0.008,
+        "MieAnisotropy": 0.7,
+        "MieExponentialDistribution": 2.5,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 2.5,
+        "HeightFogContribution": 1.0,
+        "_note": "Scorched ground. Strong blue-weighted absorption is what turns the sun orange through the smoke pall.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 1.0,
+        "LayerHeight": 3.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.12,
+          "G": 0.12,
+          "B": 0.12,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 15.0,
+        "StopTracingTransmittanceThreshold": 0.01,
+        "_cloud_material": {
+          "CloudCoverage": 0.8,
+          "CloudAlbedo": [
+            0.45,
+            0.4,
+            0.36
+          ],
+          "CloudType_0stratus_1cumulonimbus": 0.5,
+          "Erosion": 0.25,
+          "DetailErosionStrength": 0.3,
+          "WindSpeed_m_s": 6,
+          "BottomEmissive_linear": [
+            0.01,
+            0.004,
+            0.001
+          ],
+          "_cloud_type": "smoke pall over stratocumulus"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.045,
+        "FogHeightFalloff": 0.06,
+        "SecondFogData": {
+          "FogDensity": 0.06,
+          "FogHeightFalloff": 0.6,
+          "FogHeightOffset": 0.0
+        },
+        "FogInscatteringLuminance": {
+          "R": 0.25,
+          "G": 0.12,
+          "B": 0.05,
+          "A": 1.0
+        },
+        "StartDistance": 300.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.8,
+        "VolumetricFogAlbedo": {
+          "R": 0.85,
+          "G": 0.72,
+          "B": 0.6,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 2.0,
+        "VolumetricFogDistance": 10000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 1.5,
+        "LumenFinalGatherLightingUpdateSpeed": 1.5,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.9,
+        "FilmToe": 0.6,
+        "FilmShoulder": 0.28,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.6,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 5.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.3,
+          "G": 0.3,
+          "B": 0.3,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.13,
+          "G": 0.13,
+          "B": 0.13,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.11,
+          "G": 0.11,
+          "B": 0.11,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.09,
+          "G": 0.07,
+          "B": 0.05,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.09,
+          "G": 0.065,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.08,
+          "G": 0.05,
+          "B": 0.03,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.8,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.7,
+          "B": 0.45,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 4.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.5,
+        "FilmGrainIntensity": 0.2,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.5,
+        "SceneFringeIntensity": 0.2,
+        "MotionBlurAmount": 0.25,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.6,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.1,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "smoke_scatter",
+          "why": "wide kernels stand in for forward scatter in smoke"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.titan_battlefield.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 9.55,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0,
+          "BloomMethod": "BM_SOG",
+          "BloomIntensity": 0.6
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 1.0,
+            "LumenSceneViewDistance": 30000.0,
+            "LumenMaxTraceDistance": 30000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0,
+              "BloomMethod": "BM_FFT",
+              "BloomIntensity": 1.0,
+              "BloomConvolutionSize": 1.0,
+              "BloomConvolutionCenterUV": {
+                "X": 0.5,
+                "Y": 0.5
+              },
+              "BloomConvolutionPreFilterMin": 7.0,
+              "BloomConvolutionPreFilterMax": 15000.0,
+              "BloomConvolutionPreFilterMult": 15.0,
+              "BloomConvolutionBufferScale": 0.133,
+              "BloomConvolutionScatterDispersion": 1.0,
+              "_kernel": "engine default kernel (leave BloomConvolutionTexture unset); a measured anamorphic kernel texture is the realism upgrade"
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 5.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "PostProcessVolume": {
+          "LumenSceneViewDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "30 km Lumen scene is costly in software Lumen; beyond ~200 m the global SDF is coarse anyway and sky/aerial perspective carry the far field (Epic restores)"
+          },
+          "LumenMaxTraceDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "matches the reduced scene view distance (Epic restores)"
+          },
+          "LumenSceneLightingUpdateSpeed": {
+            "lighting_presets": 3.0,
+            "realism_high": 1.5,
+            "why": "fast-changing light (lightning / explosions) needs quicker surface-cache updates"
+          },
+          "LumenFinalGatherLightingUpdateSpeed": {
+            "lighting_presets": 3.0,
+            "realism_high": 1.5,
+            "why": "fast-changing light (lightning / explosions) needs quicker final-gather convergence"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "BloomMethod": {
+            "lighting_presets": "BM_FFT",
+            "realism_high": "BM_SOG",
+            "why": "convolution (FFT) bloom costs ~1.5-2.5 ms at 1080p on a 2070 SUPER vs ~0.25 ms for Standard; FFT is Epic-tier only"
+          },
+          "BloomIntensity": {
+            "lighting_presets": 1.0,
+            "realism_high": 0.6,
+            "why": "Standard bloom uses the gameplay intensity; 1.0 was the FFT kernel's intensity"
+          }
+        }
+      }
+    },
+    "finale": {
+      "id": "finale",
+      "_kind": "core",
+      "project_mapping": {
+        "story_section": "finale",
+        "chapters": [],
+        "FEnvironmentPreset_Id": "finale_dawn",
+        "ChapterSet_SetId": "battlefield"
+      },
+      "display_name": "Finale: Dawn over the Battlefield",
+      "_look": "Sunrise through clearing smoke: lavender shadows from sky multiple scattering, pink-gold cloud undersides (raise MultiScatteringContribution in the material), and a warm veil bloom.",
+      "_gpu_estimate_ms": {
+        "High_default": 16.2,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.5,
+          "G": 0.58,
+          "B": 0.7,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.2,
+          "G": 0.2,
+          "B": 0.2,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.008,
+        "MieAbsorptionScale": 0.002,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.5,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.5,
+        "HeightFogContribution": 1.0,
+        "_note": "Clearing smoke: mild residual absorption; sunrise reds come from the atmosphere path length.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 2.5,
+        "LayerHeight": 3.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.2,
+          "G": 0.2,
+          "B": 0.2,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 1.0,
+        "ShadowReflectionViewSampleCountScaleValue": 1.0,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 15.0,
+        "StopTracingTransmittanceThreshold": 0.005,
+        "_cloud_material": {
+          "CloudCoverage": 0.45,
+          "CloudDensity": 0.6,
+          "CloudType_0stratus_1cumulonimbus": 0.35,
+          "Erosion": 0.55,
+          "DetailErosionStrength": 0.6,
+          "WindSpeed_m_s": 3,
+          "MultiScatteringContribution": 0.6,
+          "_cloud_type": "altocumulus lit from below by the rising sun"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.02,
+        "FogHeightFalloff": 0.1,
+        "SecondFogData": {
+          "FogDensity": 0.04,
+          "FogHeightFalloff": 1.5,
+          "FogHeightOffset": -50.0
+        },
+        "FogInscatteringLuminance": {
+          "R": 0.2,
+          "G": 0.12,
+          "B": 0.07,
+          "A": 1.0
+        },
+        "StartDistance": 1000.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.8,
+        "VolumetricFogAlbedo": {
+          "R": 0.95,
+          "G": 0.9,
+          "B": 0.85,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 1.0,
+        "VolumetricFogDistance": 12000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.88,
+        "FilmToe": 0.55,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.6,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 4.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.35,
+          "G": 0.35,
+          "B": 0.35,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.14,
+          "G": 0.14,
+          "B": 0.14,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.11,
+          "G": 0.11,
+          "B": 0.11,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.08,
+          "G": 0.06,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.06,
+          "G": 0.04,
+          "B": 0.025,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.04,
+          "G": 0.025,
+          "B": 0.015,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 1.0,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.8,
+          "B": 0.55,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 4.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.35,
+        "FilmGrainIntensity": 0.08,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.5,
+        "SceneFringeIntensity": 0.1,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.7,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "golden_haze",
+          "why": "anamorphic-ish warm veil round a low sun"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.finale.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 10.58,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0,
+          "BloomMethod": "BM_SOG",
+          "BloomIntensity": 0.6
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 1.0,
+            "LumenSceneViewDistance": 30000.0,
+            "LumenMaxTraceDistance": 30000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0,
+              "BloomMethod": "BM_FFT",
+              "BloomIntensity": 1.0,
+              "BloomConvolutionSize": 1.0,
+              "BloomConvolutionCenterUV": {
+                "X": 0.5,
+                "Y": 0.5
+              },
+              "BloomConvolutionPreFilterMin": 7.0,
+              "BloomConvolutionPreFilterMax": 15000.0,
+              "BloomConvolutionPreFilterMult": 15.0,
+              "BloomConvolutionBufferScale": 0.133,
+              "BloomConvolutionScatterDispersion": 1.0,
+              "_kernel": "engine default kernel (leave BloomConvolutionTexture unset); a measured anamorphic kernel texture is the realism upgrade"
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 4.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "PostProcessVolume": {
+          "LumenSceneViewDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "30 km Lumen scene is costly in software Lumen; beyond ~200 m the global SDF is coarse anyway and sky/aerial perspective carry the far field (Epic restores)"
+          },
+          "LumenMaxTraceDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "matches the reduced scene view distance (Epic restores)"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "BloomMethod": {
+            "lighting_presets": "BM_FFT",
+            "realism_high": "BM_SOG",
+            "why": "convolution (FFT) bloom costs ~1.5-2.5 ms at 1080p on a 2070 SUPER vs ~0.25 ms for Standard; FFT is Epic-tier only"
+          },
+          "BloomIntensity": {
+            "lighting_presets": 1.0,
+            "realism_high": 0.6,
+            "why": "Standard bloom uses the gameplay intensity; 1.0 was the FFT kernel's intensity"
+          }
+        }
+      }
+    },
+    "workshop_night": {
+      "id": "workshop_night",
+      "_kind": "chapter variant (the project already defines this look)",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch9_ghost"
+        ],
+        "FEnvironmentPreset_Id": "workshop_night",
+        "ChapterSet_SetId": "workshop"
+      },
+      "display_name": "Workshop at Night: Ghost in the Machine",
+      "_look": "Monitor and hologram light. Lumen does all the bounce at FG 1.5. Red halation bloom on the screens, heavier grain. Clouds are barely visible, so they run at half samples.",
+      "_gpu_estimate_ms": {
+        "High_default": 14.8,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.3,
+          "G": 0.3,
+          "B": 0.3,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.003996,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Moonlit sky (moon is atmosphere light 1). Physically near-black at EV 4.9.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 2.0,
+        "LayerHeight": 3.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.3,
+          "G": 0.3,
+          "B": 0.3,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 0.5,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 10.0,
+        "StopTracingTransmittanceThreshold": 0.01,
+        "_cloud_material": {
+          "CloudCoverage": 0.2,
+          "CloudType_0stratus_1cumulonimbus": 0.3,
+          "Erosion": 0.6,
+          "DetailErosionStrength": 0.6,
+          "WindSpeed_m_s": 4,
+          "_cloud_type": "thin altocumulus"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.002,
+        "FogHeightFalloff": 0.3,
+        "FogInscatteringLuminance": {
+          "R": 0.004,
+          "G": 0.006,
+          "B": 0.01,
+          "A": 1.0
+        },
+        "StartDistance": 0.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.5,
+        "VolumetricFogAlbedo": {
+          "R": 0.9,
+          "G": 0.95,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 0.8,
+        "VolumetricFogDistance": 3000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.5,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 6000.0,
+        "LumenMaxTraceDistance": 6000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 1.0,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.9,
+        "FilmToe": 0.6,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.6,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 4.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.35,
+          "G": 0.35,
+          "B": 0.35,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.16,
+          "G": 0.12,
+          "B": 0.11,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.14,
+          "G": 0.1,
+          "B": 0.09,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.08,
+          "G": 0.07,
+          "B": 0.07,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.07,
+          "G": 0.07,
+          "B": 0.07,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.06,
+          "G": 0.06,
+          "B": 0.06,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.4,
+        "LensFlareTint": {
+          "R": 0.6,
+          "G": 0.9,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 3.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.45,
+        "FilmGrainIntensity": 0.15,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.3,
+        "SceneFringeIntensity": 0.2,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.7,
+        "LocalExposureShadowContrastScale": 0.9,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "night_halation",
+          "why": "film-like red halation round practicals; strong wide glow on wet nights"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.workshop_night.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 4.91,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 2.0,
+            "LumenSceneLightingQuality": 2.0,
+            "LumenSceneDetail": 2.0,
+            "LumenReflectionQuality": 2.0,
+            "LumenSceneViewDistance": 6000.0,
+            "LumenMaxTraceDistance": 6000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 6000.0,
+            "LumenMaxTraceDistance": 6000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 4.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "VolumetricCloud": {
+          "ViewSampleCountScale": {
+            "lighting_presets": 1.0,
+            "realism_high": 0.5,
+            "why": "clouds are only seen through windows here (lighting_presets' own note suggests 0.5)"
+          }
+        },
+        "PostProcessVolume": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.5,
+            "why": "2070 SUPER: 2.0 on top of the High baseline costs ~+1.5 ms; 1.5 keeps the interior bounce for ~+0.7 ms (Epic tier restores 2.0)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "1.0 at High on the 2070 SUPER (Epic tier restores the lighting_presets value)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "more surface-cache cards cost memory/updates on 8 GB; 1.0 at High (Epic restores)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "1.0 at High; full-res reflections come from r.Lumen.Reflections.DownsampleFactor=1 instead (Epic restores)"
+          },
+          "LumenSceneLightingUpdateSpeed": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "fast-changing light (lightning / explosions) needs quicker surface-cache updates"
+          },
+          "LumenFinalGatherLightingUpdateSpeed": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "fast-changing light (lightning / explosions) needs quicker final-gather convergence"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          }
+        }
+      }
+    },
+    "rooftops_storm": {
+      "id": "rooftops_storm",
+      "_kind": "chapter variant (the project already defines this look)",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch7_skyline"
+        ],
+        "FEnvironmentPreset_Id": "rooftops_storm",
+        "ChapterSet_SetId": "rooftops"
+      },
+      "display_name": "Rooftops in a Storm: Siege of the Skyline",
+      "_look": "Thick cumulonimbus (base 0.9 km) with a faint warm bottom emissive standing in for city glow. Lumen update speed 2.0 so lightning flashes light the scene within a few frames. Rain streaks need TSR-friendly translucency.",
+      "_gpu_estimate_ms": {
+        "High_default": 16.9,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.15,
+          "G": 0.15,
+          "B": 0.15,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.003996,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Wet ground. The cloud deck hides the sky; the atmosphere still drives aerial perspective.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 0.9,
+        "LayerHeight": 5.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.15,
+          "G": 0.15,
+          "B": 0.15,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 8.0,
+        "StopTracingTransmittanceThreshold": 0.01,
+        "_cloud_material": {
+          "CloudCoverage": 0.95,
+          "CloudDensity": 1.2,
+          "CloudType_0stratus_1cumulonimbus": 1.0,
+          "Erosion": 0.2,
+          "DetailErosionStrength": 0.3,
+          "WindSpeed_m_s": 15,
+          "BottomEmissive_linear": [
+            0.02,
+            0.012,
+            0.006
+          ],
+          "_cloud_type": "cumulonimbus / nimbostratus"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.03,
+        "FogHeightFalloff": 0.08,
+        "FogInscatteringLuminance": {
+          "R": 0.035,
+          "G": 0.03,
+          "B": 0.025,
+          "A": 1.0
+        },
+        "StartDistance": 300.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.4,
+        "VolumetricFogAlbedo": {
+          "R": 0.9,
+          "G": 0.92,
+          "B": 0.95,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 2.0,
+        "VolumetricFogDistance": 8000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 2.0,
+        "LumenFinalGatherLightingUpdateSpeed": 2.0,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.9,
+        "FilmToe": 0.6,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.7,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 4.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.35,
+          "G": 0.35,
+          "B": 0.35,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.16,
+          "G": 0.12,
+          "B": 0.11,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.14,
+          "G": 0.1,
+          "B": 0.09,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.08,
+          "G": 0.07,
+          "B": 0.07,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.07,
+          "G": 0.07,
+          "B": 0.07,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.06,
+          "G": 0.06,
+          "B": 0.06,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.9,
+        "LensFlareTint": {
+          "R": 0.7,
+          "G": 0.85,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 4.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.45,
+        "FilmGrainIntensity": 0.14,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.4,
+        "SceneFringeIntensity": 0.3,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.65,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "night_halation",
+          "why": "film-like red halation round practicals; strong wide glow on wet nights"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.rooftops_storm.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 3.58,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0,
+          "BloomMethod": "BM_SOG",
+          "BloomIntensity": 0.7
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 1.0,
+            "LumenSceneViewDistance": 20000.0,
+            "LumenMaxTraceDistance": 20000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0,
+              "BloomMethod": "BM_FFT",
+              "BloomIntensity": 1.0,
+              "BloomConvolutionSize": 1.0,
+              "BloomConvolutionCenterUV": {
+                "X": 0.5,
+                "Y": 0.5
+              },
+              "BloomConvolutionPreFilterMin": 7.0,
+              "BloomConvolutionPreFilterMax": 15000.0,
+              "BloomConvolutionPreFilterMult": 15.0,
+              "BloomConvolutionBufferScale": 0.133,
+              "BloomConvolutionScatterDispersion": 1.0,
+              "_kernel": "engine default kernel (leave BloomConvolutionTexture unset); a measured anamorphic kernel texture is the realism upgrade"
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 4.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "PostProcessVolume": {
+          "LumenSceneLightingUpdateSpeed": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "fast-changing light (lightning / explosions) needs quicker surface-cache updates"
+          },
+          "LumenFinalGatherLightingUpdateSpeed": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "fast-changing light (lightning / explosions) needs quicker final-gather convergence"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "BloomMethod": {
+            "lighting_presets": "BM_FFT",
+            "realism_high": "BM_SOG",
+            "why": "convolution (FFT) bloom costs ~1.5-2.5 ms at 1080p on a 2070 SUPER vs ~0.25 ms for Standard; FFT is Epic-tier only"
+          },
+          "BloomIntensity": {
+            "lighting_presets": 1.0,
+            "realism_high": 0.7,
+            "why": "Standard bloom uses the gameplay intensity; 1.0 was the FFT kernel's intensity"
+          }
+        }
+      }
+    },
+    "city_night": {
+      "id": "city_night",
+      "_kind": "chapter variant (the project already defines this look)",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch4_eyes"
+        ],
+        "FEnvironmentPreset_Id": "city_night",
+        "ChapterSet_SetId": "city"
+      },
+      "display_name": "City at Night: Eyes in the Dark",
+      "_look": "Wet asphalt: Lumen reflections at full res (MaxRoughnessToTrace 0.35) are the key cost and the key look. Halation bloom on the streetlamps. Moonlit sky is physically near-black.",
+      "_gpu_estimate_ms": {
+        "High_default": 15.4,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.15,
+          "G": 0.15,
+          "B": 0.15,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.003996,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Wet asphalt. Skyglow is not a sky-luminance multiplier; fake it with a warm cloud-base term, not SkyLuminanceFactor.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 1.5,
+        "LayerHeight": 3.0,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.15,
+          "G": 0.15,
+          "B": 0.15,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 10.0,
+        "StopTracingTransmittanceThreshold": 0.01,
+        "_cloud_material": {
+          "CloudCoverage": 0.4,
+          "CloudType_0stratus_1cumulonimbus": 0.4,
+          "Erosion": 0.5,
+          "DetailErosionStrength": 0.5,
+          "WindSpeed_m_s": 6,
+          "BottomEmissive_linear": [
+            0.01,
+            0.006,
+            0.003
+          ],
+          "_cloud_type": "broken stratocumulus (clearing after rain)"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.02,
+        "FogHeightFalloff": 0.15,
+        "FogInscatteringLuminance": {
+          "R": 0.02,
+          "G": 0.025,
+          "B": 0.035,
+          "A": 1.0
+        },
+        "StartDistance": 500.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.6,
+        "VolumetricFogAlbedo": {
+          "R": 0.9,
+          "G": 0.92,
+          "B": 0.95,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 1.3,
+        "VolumetricFogDistance": 6000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.9,
+        "FilmToe": 0.6,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.8,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 4.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.35,
+          "G": 0.35,
+          "B": 0.35,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.16,
+          "G": 0.12,
+          "B": 0.11,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.14,
+          "G": 0.1,
+          "B": 0.09,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.08,
+          "G": 0.07,
+          "B": 0.07,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.07,
+          "G": 0.07,
+          "B": 0.07,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.06,
+          "G": 0.06,
+          "B": 0.06,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 1.0,
+        "LensFlareTint": {
+          "R": 1.0,
+          "G": 0.85,
+          "B": 0.7,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 4.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.45,
+        "FilmGrainIntensity": 0.18,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.4,
+        "SceneFringeIntensity": 0.25,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.6,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.6,
+        "_bloom_profile": {
+          "name": "night_halation",
+          "why": "film-like red halation round practicals; strong wide glow on wet nights"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.city_night.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 3.93,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 2.0,
+            "LumenSceneViewDistance": 20000.0,
+            "LumenMaxTraceDistance": 20000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 4.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "PostProcessVolume": {
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "1.0 at High; full-res reflections come from r.Lumen.Reflections.DownsampleFactor=1 instead (Epic restores)"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          }
+        }
+      }
+    },
+    "city_overcast": {
+      "id": "city_overcast",
+      "_kind": "chapter variant (the project already defines this look)",
+      "project_mapping": {
+        "story_section": "chapters",
+        "chapters": [
+          "ch8_legacy"
+        ],
+        "FEnvironmentPreset_Id": "city_overcast",
+        "ChapterSet_SetId": "city"
+      },
+      "display_name": "City, Overcast: Legacy Protocol",
+      "_look": "Flat stratus deck: shadowless light, so local exposure blends toward the detail layer (BlurredLuminanceBlend 0.4) to keep facade texture. Clean bloom, low flare, early cloud ray termination.",
+      "_gpu_estimate_ms": {
+        "High_default": 15.8,
+        "_label": "ESTIMATE, RTX 2070 SUPER, 1080p output, TSR ~70% internal (where 67-100% dynamic res is expected to settle), not measured"
+      },
+      "SkyAtmosphere": {
+        "BottomRadius": 6360.0,
+        "AtmosphereHeight": 60.0,
+        "RayleighScattering": {
+          "R": 0.175287,
+          "G": 0.409607,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "MieScattering": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "MieAbsorption": {
+          "R": 0.57735,
+          "G": 0.57735,
+          "B": 0.57735,
+          "A": 1.0
+        },
+        "OtherAbsorptionScale": 0.001881,
+        "OtherAbsorption": {
+          "R": 0.345561,
+          "G": 1.0,
+          "B": 0.045188,
+          "A": 1.0
+        },
+        "OtherTentDistribution": {
+          "TipAltitude": 25.0,
+          "TipValue": 1.0,
+          "Width": 15.0
+        },
+        "SkyLuminanceFactor": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "TransmittanceMinLightElevationAngle": -90.0,
+        "AerialPerspectiveStartDepth": 0.1,
+        "TraceSampleCountScale": 1.0,
+        "GroundAlbedo": {
+          "R": 0.15,
+          "G": 0.15,
+          "B": 0.15,
+          "A": 1.0
+        },
+        "RayleighScatteringScale": 0.0331,
+        "RayleighExponentialDistribution": 8.0,
+        "MieScatteringScale": 0.005,
+        "MieAbsorptionScale": 0.000444,
+        "MieAnisotropy": 0.8,
+        "MieExponentialDistribution": 1.2,
+        "MultiScatteringFactor": 1.0,
+        "AerialPespectiveViewDistanceScale": 1.0,
+        "HeightFogContribution": 1.0,
+        "_note": "Damp ground under a stratus deck.",
+        "_units": "km for radius/height/distributions/start depth; GroundAlbedo is linear (written to an FColor as sRGB, like lighting_presets)."
+      },
+      "VolumetricCloud": {
+        "Visible": true,
+        "LayerBottomAltitude": 0.6,
+        "LayerHeight": 1.5,
+        "TracingStartMaxDistance": 350.0,
+        "TracingMaxDistance": 50.0,
+        "PlanetRadius": 6360.0,
+        "GroundAlbedo": {
+          "R": 0.15,
+          "G": 0.15,
+          "B": 0.15,
+          "A": 1.0
+        },
+        "bUsePerSampleAtmosphericLightTransmittance": true,
+        "SkyLightCloudBottomOcclusion": 0.5,
+        "ViewSampleCountScale": 1.0,
+        "ReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowReflectionViewSampleCountScaleValue": 0.5,
+        "ShadowViewSampleCountScale": 1.0,
+        "ShadowTracingDistance": 8.0,
+        "StopTracingTransmittanceThreshold": 0.01,
+        "_cloud_material": {
+          "CloudCoverage": 0.95,
+          "CloudDensity": 1.0,
+          "CloudType_0stratus_1cumulonimbus": 0.0,
+          "Erosion": 0.1,
+          "DetailErosionStrength": 0.15,
+          "WindSpeed_m_s": 4,
+          "_cloud_type": "stratus"
+        },
+        "_note": "PlanetRadius matches SkyAtmosphere.BottomRadius (6360 km); UE uses the atmosphere's radius when one is present. ReflectionViewSampleCountScaleValue / ShadowReflectionViewSampleCountScaleValue are the 5.x names of the old Reflection(Shadow)SampleCountScale. Shadow* scales only matter with ray-marched shadows on the Volumetric Advanced output. _cloud_material names are suggestions for the cloud material's parameters, not engine properties."
+      },
+      "ExponentialHeightFog": {
+        "FogDensity": 0.02,
+        "FogHeightFalloff": 0.1,
+        "SecondFogData": {
+          "FogDensity": 0.03,
+          "FogHeightFalloff": 1.5,
+          "FogHeightOffset": 0.0
+        },
+        "FogInscatteringLuminance": {
+          "R": 0.12,
+          "G": 0.13,
+          "B": 0.15,
+          "A": 1.0
+        },
+        "StartDistance": 1000.0,
+        "FogCutoffDistance": 0.0,
+        "FogMaxOpacity": 1.0,
+        "DirectionalInscatteringExponent": 4.0,
+        "DirectionalInscatteringStartDistance": 10000.0,
+        "DirectionalInscatteringLuminance": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "bEnableVolumetricFog": true,
+        "VolumetricFogScatteringDistribution": 0.3,
+        "VolumetricFogAlbedo": {
+          "R": 0.95,
+          "G": 0.95,
+          "B": 0.97,
+          "A": 1.0
+        },
+        "VolumetricFogEmissive": {
+          "R": 0.0,
+          "G": 0.0,
+          "B": 0.0,
+          "A": 1.0
+        },
+        "VolumetricFogExtinctionScale": 1.0,
+        "VolumetricFogDistance": 10000.0,
+        "VolumetricFogStartDistance": 0.0,
+        "VolumetricFogNearFadeInDistance": 0.0,
+        "VolumetricFogStaticLightingScatteringIntensity": 1.0,
+        "_note": "Density, falloff, colour and volumetric values are copied unchanged from lighting_presets.json. DirectionalInscattering is black because the SkyAtmosphere (HeightFogContribution) and the volumetric fog already put the sun's glow into the fog; a non-black value double-counts it (verify the 5.8 behaviour). Emissive is 0: fire glow is better as Local Fog Volumes (project has SupportLocalFogVolumes) plus real lights. There is no static lighting, so StaticLightingScatteringIntensity is inert. Volumetric grid resolution comes from scalability (ShadowQuality group)."
+      },
+      "PostProcessVolume": {
+        "DynamicGlobalIlluminationMethod": "Lumen",
+        "ReflectionMethod": "Lumen",
+        "LumenFinalGatherQuality": 1.0,
+        "LumenSceneLightingQuality": 1.0,
+        "LumenSceneDetail": 1.0,
+        "LumenReflectionQuality": 1.0,
+        "LumenSceneViewDistance": 20000.0,
+        "LumenMaxTraceDistance": 20000.0,
+        "LumenSceneLightingUpdateSpeed": 1.0,
+        "LumenFinalGatherLightingUpdateSpeed": 1.0,
+        "LumenSurfaceCacheResolution": 0.75,
+        "LumenFrontLayerTranslucencyReflections": false,
+        "LumenMaxReflectionBounces": 1,
+        "LumenRayLightingMode": "Default",
+        "LumenFullSkylightLeakingDistance": 1000.0,
+        "LumenSkylightLeaking": 0.0,
+        "LumenFinalGatherScreenTraces": true,
+        "LumenReflectionsScreenTraces": true,
+        "FilmSlope": 0.88,
+        "FilmToe": 0.55,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04,
+        "ToneCurveAmount": 1.0,
+        "BloomMethod": "BM_SOG",
+        "BloomIntensity": 0.3,
+        "BloomThreshold": -1.0,
+        "BloomSizeScale": 3.0,
+        "Bloom1Size": 0.3,
+        "Bloom1Tint": {
+          "R": 0.4,
+          "G": 0.4,
+          "B": 0.4,
+          "A": 1.0
+        },
+        "Bloom2Size": 1.0,
+        "Bloom2Tint": {
+          "R": 0.16,
+          "G": 0.16,
+          "B": 0.16,
+          "A": 1.0
+        },
+        "Bloom3Size": 2.0,
+        "Bloom3Tint": {
+          "R": 0.1,
+          "G": 0.1,
+          "B": 0.1,
+          "A": 1.0
+        },
+        "Bloom4Size": 10.0,
+        "Bloom4Tint": {
+          "R": 0.04,
+          "G": 0.04,
+          "B": 0.04,
+          "A": 1.0
+        },
+        "Bloom5Size": 30.0,
+        "Bloom5Tint": {
+          "R": 0.02,
+          "G": 0.02,
+          "B": 0.02,
+          "A": 1.0
+        },
+        "Bloom6Size": 64.0,
+        "Bloom6Tint": {
+          "R": 0.01,
+          "G": 0.01,
+          "B": 0.01,
+          "A": 1.0
+        },
+        "LensFlareIntensity": 0.2,
+        "LensFlareTint": {
+          "R": 0.95,
+          "G": 0.97,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 3.0,
+        "LensFlareThreshold": 8.0,
+        "VignetteIntensity": 0.25,
+        "FilmGrainIntensity": 0.06,
+        "FilmGrainIntensityShadows": 1.0,
+        "FilmGrainIntensityMidtones": 1.0,
+        "FilmGrainIntensityHighlights": 0.5,
+        "SceneFringeIntensity": 0.1,
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "LocalExposureHighlightContrastScale": 0.9,
+        "LocalExposureShadowContrastScale": 1.0,
+        "LocalExposureDetailStrength": 1.0,
+        "LocalExposureBlurredLuminanceBlend": 0.4,
+        "_bloom_profile": {
+          "name": "clean_modern",
+          "why": "modern coated glass: tight core, little veiling glare"
+        },
+        "_exposure": {
+          "source": "lighting_presets.json presets.city_overcast.PostProcessVolume (AutoExposure*) and CineCamera",
+          "scene_ev100": 12.58,
+          "note": "No exposure, white-balance or grading keys are set here, so nothing conflicts with lighting_presets."
+        },
+        "_note": "Lumen qualities multiply the scalability baseline (sg.GlobalIlluminationQuality / ReflectionQuality); these are the High-tier (default) values for an RTX 2070 SUPER. MotionBlurTargetFPS 60 makes gameplay blur frame-rate independent (180 deg at 60 fps = 1/120 s); cutscenes keep 24 from lighting_presets' CineCamera. FilmGrainTexelSize (in lighting_presets) has no 5.8 property and is skipped by both appliers."
+      },
+      "CineCamera": {
+        "PostProcessOverrides": {
+          "LumenFinalGatherQuality": 2.0,
+          "LumenSceneLightingQuality": 1.0,
+          "LumenSceneDetail": 1.0,
+          "LumenReflectionQuality": 1.0
+        },
+        "_note": "Merged over lighting_presets' CineCamera.PostProcessOverrides (camera, exposure and 24 fps shutter unchanged)."
+      },
+      "_tier_overrides": {
+        "_how": "Apply the preset's blocks, then merge the block for the active sg level (Epic=3, Medium=1). High (2) is the base.",
+        "Epic": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneLightingQuality": 1.0,
+            "LumenSceneDetail": 1.0,
+            "LumenReflectionQuality": 1.0,
+            "LumenSceneViewDistance": 30000.0,
+            "LumenMaxTraceDistance": 30000.0,
+            "LumenFrontLayerTranslucencyReflections": false,
+            "LumenSurfaceCacheResolution": 1.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 4.0,
+              "LumenSceneLightingQuality": 2.0,
+              "LumenSceneDetail": 2.0,
+              "LumenReflectionQuality": 2.0
+            }
+          }
+        },
+        "Medium": {
+          "PostProcessVolume": {
+            "LumenFinalGatherQuality": 1.0,
+            "LumenSceneViewDistance": 15000.0,
+            "LumenMaxTraceDistance": 15000.0,
+            "LumenSurfaceCacheResolution": 0.5,
+            "BloomSizeScale": 3.0
+          },
+          "CineCamera": {
+            "PostProcessOverrides": {
+              "LumenFinalGatherQuality": 1.0
+            }
+          }
+        }
+      },
+      "_differs_from_lighting_presets": {
+        "PostProcessVolume": {
+          "LumenSceneViewDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "30 km Lumen scene is costly in software Lumen; beyond ~200 m the global SDF is coarse anyway and sky/aerial perspective carry the far field (Epic restores)"
+          },
+          "LumenMaxTraceDistance": {
+            "lighting_presets": 30000.0,
+            "realism_high": 20000.0,
+            "why": "matches the reduced scene view distance (Epic restores)"
+          },
+          "SceneFringeIntensity": {
+            "lighting_presets": 0.05,
+            "realism_high": 0.1,
+            "why": "brief asks for fringe in 0.1-0.4; 0.1 is still invisible at 1080p except at frame corners"
+          }
+        },
+        "CineCamera.PostProcessOverrides": {
+          "LumenFinalGatherQuality": {
+            "lighting_presets": 4.0,
+            "realism_high": 2.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneLightingQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenSceneDetail": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          },
+          "LumenReflectionQuality": {
+            "lighting_presets": 2.0,
+            "realism_high": 1.0,
+            "why": "cutscenes run in real time on the 2070 SUPER; FG 4 / scene 2 / detail 2 / reflection 2 is ~+4-6 ms. High uses 2/1/1/1 (Epic restores lighting_presets)"
+          }
+        }
+      }
+    }
+  }
+}

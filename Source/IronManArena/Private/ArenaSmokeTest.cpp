@@ -19,7 +19,8 @@
 AArenaSmokeTest::AArenaSmokeTest()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bTickEvenWhenPaused = false;
+	// The title menu pauses the game: tick anyway so Begin() can drive the menu (Drive waits for unpause).
+	PrimaryActorTick.bTickEvenWhenPaused = true;
 	SetActorHiddenInGame(true);
 }
 
@@ -64,10 +65,11 @@ void AArenaSmokeTest::Tick(float DeltaSeconds)
 	if (bFinished) { return; }
 	if (!bStarted)
 	{
-		StartDelay -= DeltaSeconds;
+		StartDelay -= FMath::Max(DeltaSeconds, float(FApp::GetDeltaTime()));
 		if (StartDelay <= 0.f) { Begin(); }
 		return;
 	}
+	if (GetWorld() && GetWorld()->IsPaused()) { return; }
 	Clock += DeltaSeconds;
 	if (Clock > Timeout) { Fail(FString::Printf(TEXT("timeout after %.0f s"), Clock)); Finish(TEXT("timeout")); return; }
 	Drive(DeltaSeconds);
