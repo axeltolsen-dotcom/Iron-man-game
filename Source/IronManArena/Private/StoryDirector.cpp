@@ -84,6 +84,9 @@ AStoryDirector::AStoryDirector()
 	PrimaryActorTick.bTickEvenWhenPaused = false;
 
 	CastList.Add(MakeCast(TEXT("TONY"), EStoryBody::Human, AStoryCharacterNPC::DefaultMannyPath, 1.f, FLinearColor(0.18f, 0.18f, 0.22f)));
+	// Drop-in MetaHuman: used automatically once /Game/MetaHumans/Tony/BP_Tony exists, else the placeholder.
+	CastList.Last().MetaHumanClass = TSoftClassPtr<AActor>(FSoftObjectPath(TEXT("/Game/MetaHumans/Tony/BP_Tony.BP_Tony_C")));
+	FlashbackScore = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Music/S_FlashbackSwell.S_FlashbackSwell")));
 	CastList.Add(MakeCast(TEXT("PEPPER"), EStoryBody::Human, AStoryCharacterNPC::DefaultQuinnPath, 0.97f, FLinearColor(0.75f, 0.7f, 0.62f)));
 	CastList.Add(MakeCast(TEXT("MORGAN"), EStoryBody::Human, AStoryCharacterNPC::DefaultQuinnPath, 0.88f, FLinearColor(0.25f, 0.4f, 0.7f)));
 	CastList.Add(MakeCast(TEXT("PLAYER"), EStoryBody::Human, AStoryCharacterNPC::DefaultMannyPath, 0.93f, FLinearColor(0.42f, 0.3f, 0.2f)));
@@ -296,7 +299,9 @@ void AStoryDirector::StartRun(int32 InChapterIndex, bool bPlayPrologue, bool bSk
 	{
 		ChapterIndex = Chapter;
 		bInPrologue = true;
-		ApplyEnvironment(TEXT("workshop"), EnvironmentPresets::Prologue());
+		// Flashback: the battlefield at dusk, years before Harley's story; chapter 1 cuts to the garage.
+		ApplyEnvironment(TEXT("battlefield"), EnvironmentPresets::Flashback());
+		FlashbackReactor = 1.f;
 		PlayCutscene(Story.Prologue, FText::FromString(Story.Title), LOCTEXT("Prologue", "PROLOGUE"),
 			[this, Chapter]() { BeginChapter(Chapter, false); });
 	}
@@ -1202,6 +1207,12 @@ AStoryCharacterNPC* AStoryDirector::GetOrSpawnNpc(FName Speaker, bool bSuitedOve
 		M.Scale = 0.92f;
 		Key = FName(*(Speaker.ToString() + TEXT("_SUIT")));
 	}
+	else if (Speaker == NAME_Tony && bProloguePhase && !M.MetaHumanClass.IsNull()
+		&& FPackageName::DoesPackageExist(M.MetaHumanClass.GetLongPackageName()))
+	{
+		// A real Tony MetaHuman is installed: use it as-is (Human body spawns the Blueprint).
+		Key = TEXT("TONY_MH");
+	}
 	else if (Speaker == NAME_Tony && bProloguePhase)
 	{
 		// Prologue: Tony is in the Mark 85 for the snap.
@@ -1273,6 +1284,12 @@ void AStoryDirector::PlayCutscene(const TArray<FStoryShot>& InShots, const FText
 			const UArenaGameUserSettings* GUS = UArenaGameUserSettings::GetArenaSettings();
 			const bool bDOF = !GUS || GUS->bCinematicDOF;
 			if (!LightingKey.IsNone()) { ContribLighting::ApplyCamera(CC, LightingKey, bDOF); }
+			if (bInPrologue && bDOF)
+			{
+				// Flashback: long lens feel, very shallow depth of field (UpdateCamera keeps focus on the subject).
+				CC->FocusSettings.FocusMethod = ECameraFocusMethod::Manual;
+				CC->CurrentAperture = 1.4f;
+			}
 		}
 		PC->SetViewTargetWithBlend(Cam, 0.6f);
 	}
@@ -1287,6 +1304,16 @@ void AStoryDirector::PlayCutscene(const TArray<FStoryShot>& InShots, const FText
 		Overlay->SetInfo(Title, Subtitle, FText::GetEmpty(), StoryGold, true);
 		Overlay->SetState(1.f, 1.f, 0.f);
 		Overlay->SetCaption(FText::GetEmpty(), FText::GetEmpty(), FLinearColor::White);
+	}
+
+	if (ScoreAudio) { ScoreAudio->Stop(); ScoreAudio = nullptr; }
+	if (bInPrologue && !FlashbackScore.IsNull() && FPackageName::DoesPackageExist(FlashbackScore.GetLongPackageName()))
+	{
+		if (USoundBase* ScoreSound = FlashbackScore.LoadSynchronous())
+		{
+			ScoreAudio = UGameplayStatics::SpawnSound2D(this, ScoreSound, 0.45f, 1.f, 0.f, nullptr, false, true);
+			if (ScoreAudio) { ScoreAudio->FadeIn(4.f, 0.45f); }
+		}
 	}
 
 	BeginShot(0);
@@ -1363,6 +1390,8 @@ void AStoryDirector::BeginShot(int32 Index)
 		Color = FLinearColor(0.7f, 0.7f, 0.75f);
 	}
 	ShotLength = FMath::Clamp(Len, MinShotSeconds, MaxShotSeconds);
+	// The flashback breathes: every shot holds a little past its line.
+	if (bInPrologue) { ShotLength = FMath::Clamp(Len + 1.5f, 4.5f, MaxShotSeconds + 2.f); }
 	if (Overlay) { Overlay->SetCaption(Speaker, Text, Color); }
 	UpdateCamera(0.f);
 }
@@ -1529,7 +1558,45 @@ void AStoryDirector::TickCutscene(float DeltaSeconds)
 		const float TitleAlpha = ShotIndex == 0 ? FMath::Clamp(FMath::Min(ShotTime / 0.4f, (3.5f - ShotTime) / 0.6f), 0.f, 1.f) : 0.f;
 		Overlay->SetState(1.f, TitleAlpha, 0.f);
 	}
+	if (bInPrologue) { TickFlashback(DeltaSeconds); }
 	if (ShotTime >= ShotLength) { BeginShot(ShotIndex + 1); }
+}
+
+void AStoryDirector::TickFlashback(float DeltaSeconds)
+{
+	const float A = ShotLength > 0.f ? FMath::Clamp(ShotTime / ShotLength, 0.f, 1.f) : 1.f;
+	const FString& C = ShotCamera;
+	// Target reactor level from the director's note; it never comes back once it has started to die.
+	float Target = FlashbackReactor;
+	if (Has(C, TEXT("single blue point")) || Has(C, TEXT("shrinking"))) { Target = FMath::Lerp(0.35f, 0.f, A); }
+	else if (Has(C, TEXT("reactor light fading")) || Has(C, TEXT("fading"))) { Target = FMath::Lerp(0.7f, 0.35f, A); }
+	else if (Has(C, TEXT("slumped"))) { Target = 0.75f; }
+	else if (ShotIndex > 0 && FlashbackReactor <= 0.01f) { Target = 0.f; }
+	FlashbackReactor = FMath::Min(FlashbackReactor, Target);
+
+	// Flicker: a heartbeat stutter that worsens as the core dies, with short dropouts.
+	const float T = GetWorld() ? GetWorld()->GetTimeSeconds() : ShotTime;
+	const bool bStutter = Has(C, TEXT("stutter")) || Has(C, TEXT("flicker")) || FlashbackReactor < 0.99f;
+	float Flicker = 1.f;
+	if (bStutter && FlashbackReactor > 0.f)
+	{
+		Flicker = 0.78f + 0.22f * FMath::Sin(T * 29.f) * FMath::Sin(T * 6.3f);
+		if (FMath::Frac(T * 1.7f) < 0.07f + 0.25f * (1.f - FlashbackReactor)) { Flicker *= 0.15f; }
+	}
+	const float Damage = ShotIndex == 0 ? 0.6f : 0.85f; // already battered; worse after the snap
+	for (auto& Pair : Npcs)
+	{
+		if (Pair.Value && Pair.Key == FName(TEXT("TONY_SUIT"))) { Pair.Value->SetWounded(Damage, FlashbackReactor * Flicker); }
+	}
+
+	// "Years later" title card on the closing shot; the score swells, then fades with the picture.
+	if (Overlay && Has(C, TEXT("years later")))
+	{
+		Overlay->SetInfo(LOCTEXT("YearsLater", "YEARS LATER"), LOCTEXT("YearsLaterSub", "Rural Tennessee"), FText::GetEmpty(), StoryGold, true);
+		Overlay->SetState(1.f, FMath::Clamp(FMath::Min(ShotTime / 0.8f, (ShotLength - ShotTime) / 0.8f), 0.f, 1.f), 0.f);
+		if (ScoreAudio && ShotLength - ShotTime < 2.5f) { ScoreAudio->FadeOut(2.5f, 0.f); ScoreAudio = nullptr; }
+	}
+	(void)DeltaSeconds;
 }
 
 void AStoryDirector::SkipCutscene(bool bAll)
@@ -1579,6 +1646,7 @@ void AStoryDirector::ShowHeroPrompt()
 void AStoryDirector::EndCutscene()
 {
 	if (VoiceAudio) { VoiceAudio->Stop(); VoiceAudio = nullptr; }
+	if (ScoreAudio) { ScoreAudio->FadeOut(1.5f, 0.f); ScoreAudio = nullptr; }
 	for (auto& Pair : Npcs) { if (Pair.Value) { Pair.Value->Destroy(); } }
 	Npcs.Reset();
 	SpeakingNpc = nullptr;

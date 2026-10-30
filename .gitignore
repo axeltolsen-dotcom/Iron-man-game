@@ -5,3 +5,4 @@ DerivedDataCache/
 __pycache__/
 *.pyc
 SourceAudio/
+SourceMusic/

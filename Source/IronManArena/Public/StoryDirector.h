@@ -355,6 +355,17 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UAudioComponent> VoiceAudio;
 
+	/** Quiet score swell under the prologue flashback (optional asset; silent when not imported). */
+	UPROPERTY(EditAnywhere, Category = "Story|Prologue")
+	TSoftObjectPtr<USoundBase> FlashbackScore;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> ScoreAudio;
+
+	/** Tony's arc reactor in the flashback (1 = steady, 0 = dark); only ever falls once it starts fading. */
+	float FlashbackReactor = 1.f;
+	void TickFlashback(float DeltaSeconds);
+
 	UPROPERTY(Transient)
 	TObjectPtr<UStoryNamePromptWidget> Prompt;
 

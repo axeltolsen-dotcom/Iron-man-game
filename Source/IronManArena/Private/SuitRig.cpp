@@ -282,9 +282,9 @@ namespace SuitRig
 
 		// --- Arms: pivots at the shoulders, arm hangs along -Z. Pitching the pivot +90 points it forward.
 		Rig.ShoulderL = MakeRoot(Owner, Root, TEXT("ShoulderL"));
-		Rig.ShoulderL->SetRelativeLocation(FVector(0, -28, 150));
+		Rig.ShoulderL->SetRelativeLocation(FVector(0, -18, 150)) /* U armor_kit: upperarm_l y=-18 */;
 		Rig.ShoulderR = MakeRoot(Owner, Root, TEXT("ShoulderR"));
-		Rig.ShoulderR->SetRelativeLocation(FVector(0, 28, 150));
+		Rig.ShoulderR->SetRelativeLocation(FVector(0, 18, 150));
 		for (int32 Side = 0; Side < 2; ++Side)
 		{
 			USceneComponent* S = Side == 0 ? Rig.ShoulderL.Get() : Rig.ShoulderR.Get();
@@ -316,9 +316,9 @@ namespace SuitRig
 
 		// --- Legs ---
 		Rig.HipL = MakeRoot(Owner, Root, TEXT("HipL"));
-		Rig.HipL->SetRelativeLocation(FVector(0, -13, 95));
+		Rig.HipL->SetRelativeLocation(FVector(0, -9.5, 95)) /* U armor_kit: thigh_l y=-9.5 */;
 		Rig.HipR = MakeRoot(Owner, Root, TEXT("HipR"));
-		Rig.HipR->SetRelativeLocation(FVector(0, 13, 95));
+		Rig.HipR->SetRelativeLocation(FVector(0, 9.5, 95));
 		for (int32 Side = 0; Side < 2; ++Side)
 		{
 			USceneComponent* H = Side == 0 ? Rig.HipL.Get() : Rig.HipR.Get();
@@ -557,7 +557,7 @@ namespace SuitRig
 					P.MID->SetScalarParameterValue(TEXT("EdgeWear"), Def->EdgeWear);
 					P.MID->SetScalarParameterValue(TEXT("Scorch"), Def->Scorch);
 					P.MID->SetScalarParameterValue(TEXT("Dirt"), Def->Dirt);
-					P.MID->SetScalarParameterValue(TEXT("PanelNormalStrength"), Def->PanelLineDepth * 4.f);
+					// PanelNormalStrength: M_CarPaint has no such parameter (U fix #1); panel lines are geometry now.
 					P.MID->SetVectorParameterValue(TEXT("WearColor"), Def->WearColor);
 				}
 				RepaintPart(P);

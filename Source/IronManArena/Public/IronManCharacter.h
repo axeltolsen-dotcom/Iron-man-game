@@ -72,6 +72,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "IronMan")
 	void ResetForNewGame();
 
+	/** Larger play area (FRIDAY's city): start transform, boundary centre/radius and absolute ceiling Z. */
+	void SetPlayArea(const FTransform& StartTransform, const FVector& AreaCenter, float AreaRadius, float AreaCeilingZ);
+	/** Back to the default arena bounds around the level spawn point. */
+	void ClearPlayArea();
+
 	// ------------------------------------------------------------------ suits
 	/** Instantly switch to suit Index (colours, parts, stats, weapons). No cinematic, no voice. */
 	UFUNCTION(BlueprintCallable, Category = "IronMan|Suits")
@@ -638,6 +643,11 @@ protected:
 	float BaseCapsuleRadius = 42.f;
 	float BaseCapsuleHalfHeight = 96.f;
 	FTransform SpawnTransform;
+	bool bPlayAreaOverride = false;
+	FTransform PlayAreaStart;
+	FVector PlayAreaCenter = FVector::ZeroVector;
+	float PlayAreaRadius = 0.f;
+	float PlayAreaCeilingZ = 0.f;
 	TMap<TWeakObjectPtr<AActor>, float> BeamDamageAccum;
 
 	// suits / view

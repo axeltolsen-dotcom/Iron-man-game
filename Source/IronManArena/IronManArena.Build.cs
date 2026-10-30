@@ -12,6 +12,11 @@ public class IronManArena : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"GeometryCore",
+			"MeshDescription",
+			"StaticMeshDescription",
+			"ProceduralMeshComponent",
+			"GeometryFramework",
 			"InputCore",
 			"EnhancedInput",   // UInputAction / UInputMappingContext created at runtime
 			"UMG",             // UUserWidget, UProgressBar, UTextBlock, UButton ...

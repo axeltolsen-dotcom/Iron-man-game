@@ -1,4 +1,5 @@
 #include "ArenaEnvironment.h"
+#include "CityLayout.h"
 #include "ContribLighting.h"
 #include "ChapterSet.h"
 
@@ -150,8 +151,16 @@ void AArenaEnvironment::SetArenaDressingVisible(bool bVisible)
 		City->SetActorHiddenInGame(!bVisible);
 		City->SetActorEnableCollision(bVisible);
 	}
+	ACityLayout* Layout = CityLayout.Get();
+	if (Layout) { Layout->SetCityVisible(bVisible); }
+	// The full city has its own ground (and a waterfront below z=0): the 180 m floor slab would poke through it.
+	if (Layout && Floor)
+	{
+		Floor->SetVisibility(!bVisible);
+		Floor->SetCollisionEnabled(bVisible ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryAndPhysics);
+	}
 	// The old placeholder dressing only shows when there is no city (fallback).
-	const bool bShowOld = bVisible && !City;
+	const bool bShowOld = bVisible && !City && !Layout;
 	for (const int32 Index : DressingParts)
 	{
 		if (!Parts.IsValidIndex(Index)) { continue; }
@@ -293,7 +302,16 @@ void AArenaEnvironment::BeginPlay()
 
 void AArenaEnvironment::SpawnArenaCity()
 {
-	if (ArenaCity.IsValid() || !Floor || !GetWorld()) { return; }
+	if (ArenaCity.IsValid() || CityLayout.IsValid() || !Floor || !GetWorld()) { return; }
+	if (ACityLayout::IsAvailable())
+	{
+		CityLayout = ACityLayout::SpawnCity(GetWorld(), GetActorLocation());
+		if (CityLayout.IsValid())
+		{
+			SetArenaDressingVisible(bArenaDressingShown);
+			return;
+		}
+	}
 	ArenaCity = AChapterSet::SpawnSet(GetWorld(), GetActorLocation(), TEXT("arena_city"), Preset);
 	SetArenaDressingVisible(bArenaDressingShown);
 	// The city's plazas and roads cover the floor; keep it as plain asphalt underneath.

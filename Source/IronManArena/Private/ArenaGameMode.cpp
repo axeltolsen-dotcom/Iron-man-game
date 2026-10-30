@@ -1,4 +1,5 @@
 #include "ArenaGameMode.h"
+#include "CityLayout.h"
 #include "ArenaSmokeTest.h"
 #include "StoryLibrary.h"
 #include "StoryAutopilot.h"
@@ -205,6 +206,38 @@ void AArenaGameMode::ResetRunState()
 	bSwarmAnnouncedThisWave = false;
 	bHighScoreAnnounced = false;
 	ArenaState = EArenaGameState::Playing;
+	bCityPlay = false;
+	if (AIronManCharacter* Player = GetPlayer()) { Player->ClearPlayArea(); }
+}
+
+void AArenaGameMode::SetupCityPlay()
+{
+	const AArenaEnvironment* Env = AArenaEnvironment::Find(this);
+	ACityLayout* City = Env ? Env->GetCityLayout() : nullptr;
+	AIronManCharacter* Player = GetPlayer();
+	FVector Center;
+	float Radius = 0.f;
+	FTransform Start;
+	if (!City || !Player || !City->GetStoryLocation(TEXT("city"), Center, Radius) || !City->GetPlayerStart(TEXT("ps_plaza"), Start)) { return; }
+	bCityPlay = true;
+	CityPlayCenter = Center;
+	CityPlayRadius = Radius;
+	// A little slack past the spawn ring; the ceiling clears the Legacy tower crown.
+	Player->SetPlayArea(Start, Center, Radius + 2000.f, Center.Z + 40000.f);
+
+	TArray<TPair<FVector, FString>> Spots;
+	City->GetPickups(Center, Radius, Spots);
+	int32 Spawned = 0;
+	for (const TPair<FVector, FString>& Spot : Spots)
+	{
+		EPickupType Type;
+		if (Spot.Value == TEXT("Health")) { Type = EPickupType::Health; }
+		else if (Spot.Value == TEXT("Energy")) { Type = EPickupType::Energy; }
+		else if (Spot.Value == TEXT("Hulkbuster")) { Type = EPickupType::Hulkbuster; }
+		else { continue; } // Gems belong to the story chapters.
+		if (APickup::SpawnPickup(GetWorld(), Type, Spot.Key)) { ++Spawned; }
+	}
+	UE_LOG(LogIronManArena, Log, TEXT("City free play: radius %.0f m, %d pickups."), Radius / 100.f, Spawned);
 }
 
 void AArenaGameMode::StartNewGame(int32 SuitIndex)
@@ -216,6 +249,7 @@ void AArenaGameMode::StartNewGame(int32 SuitIndex)
 
 	AIronManCharacter* Player = GetPlayer();
 	if (!Player) { return; }
+	SetupCityPlay(); // before ResetForNewGame so the player starts on the plaza
 	Player->ResetForNewGame();
 	Player->SetAllowedSuits(TArray<FName>()); // every suit
 	if (UReactorComponent* R = Player->GetReactor()) { R->ClearStage(); R->SetCoreDark(false); }
@@ -571,22 +605,24 @@ void AArenaGameMode::TickWaves(float DeltaSeconds)
 FVector AArenaGameMode::PickSpawnLocation(float MinDist, float MaxDist, float HeightAboveFloor) const
 {
 	const AIronManCharacter* Player = GetPlayer();
-	const FVector Around = Player ? Player->GetActorLocation() : ArenaCenter;
+	const FVector PlayCenter = bCityPlay ? CityPlayCenter : ArenaCenter;
+	const float PlayRadius = bCityPlay ? CityPlayRadius : ArenaRadius;
+	const FVector Around = Player ? Player->GetActorLocation() : PlayCenter;
 
-	FVector Best = ArenaCenter;
+	FVector Best = PlayCenter;
 	for (int32 Try = 0; Try < 12; ++Try)
 	{
 		const float Angle = FMath::FRandRange(0.f, 2.f * PI);
 		const float Dist = FMath::FRandRange(MinDist, MaxDist);
 		FVector P(Around.X + FMath::Cos(Angle) * Dist, Around.Y + FMath::Sin(Angle) * Dist, ArenaFloorZ);
-		FVector2D Flat(P.X - ArenaCenter.X, P.Y - ArenaCenter.Y);
-		const bool bInside = Flat.Size() <= ArenaRadius;
+		FVector2D Flat(P.X - PlayCenter.X, P.Y - PlayCenter.Y);
+		const bool bInside = Flat.Size() <= PlayRadius;
 		if (!bInside)
 		{
 			// Pull back inside the arena; accept it on the last try.
-			Flat = Flat.GetSafeNormal() * ArenaRadius;
-			P.X = ArenaCenter.X + Flat.X;
-			P.Y = ArenaCenter.Y + Flat.Y;
+			Flat = Flat.GetSafeNormal() * PlayRadius;
+			P.X = PlayCenter.X + Flat.X;
+			P.Y = PlayCenter.Y + Flat.Y;
 		}
 		Best = P;
 		if (bInside) { break; }
@@ -608,6 +644,38 @@ FVector AArenaGameMode::PickSpawnLocation(float MinDist, float MaxDist, float He
 
 void AArenaGameMode::SpawnFromQueue(EEnemyKind Kind)
 {
+	// In the city, FRIDAY's authored spawn points (absolute, z final) replace the random ring.
+	const AArenaEnvironment* Env = bCityPlay ? AArenaEnvironment::Find(this) : nullptr;
+	if (ACityLayout* City = Env ? Env->GetCityLayout() : nullptr)
+	{
+		const AIronManCharacter* Player = GetPlayer();
+		const FVector Near = Player ? Player->GetActorLocation() : CityPlayCenter;
+		FVector Loc;
+		bool bFound = false;
+		switch (Kind)
+		{
+		case EEnemyKind::Drone:
+			bFound = City->PickSpawn(ECitySpawnType::Drone, Near, SpawnDistance.X, FMath::Max(SpawnDistance.Y, 20000.f), CityPlayCenter, CityPlayRadius, Loc);
+			break;
+		case EEnemyKind::Tank:
+			bFound = City->PickSpawn(ECitySpawnType::Tank, Near, SpawnDistance.X, FMath::Max(SpawnDistance.Y, 20000.f), CityPlayCenter, CityPlayRadius, Loc);
+			break;
+		case EEnemyKind::Boss:
+			bFound = City->PickSpawn(ECitySpawnType::Boss, Near, 2000.f, 25000.f, CityPlayCenter, CityPlayRadius, Loc);
+			if (bFound && FVector::Dist2D(Loc, Near) > 25000.f) { bFound = false; }
+			break;
+		}
+		if (bFound)
+		{
+			SpawnEnemyAt(Kind == EEnemyKind::Drone ? DroneClass : (Kind == EEnemyKind::Tank ? TankClass : BossClass), Loc);
+			if (Kind == EEnemyKind::Tank && !bTankAnnouncedThisWave)
+			{
+				bTankAnnouncedThisWave = true;
+				UJarvisComponent::Notify(this, EAIEvent::TankSpotted);
+			}
+			return;
+		}
+	}
 	switch (Kind)
 	{
 	case EEnemyKind::Drone:

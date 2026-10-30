@@ -186,6 +186,26 @@ void UArenaGameUserSettings::ApplyRenderingSettings() const
 	// the tier each time instead of keeping a stale value after the tier changes.
 	const int32 PPQ = GetPostProcessingQuality();
 	SetInt(TEXT("r.MotionBlurQuality"), !bMotionBlur ? 0 : (PPQ >= 3 ? 4 : (PPQ >= 1 ? 3 : 0)));
+
+	// Vison's per-tier values for cvars that 5.8 does not flag ECVF_Scalability (so DefaultScalability.ini
+	// cannot set them). Index: 0 = Medium and below, 1 = High, 2 = Epic and above.
+	auto SetFloat = [&CM](const TCHAR* Name, float Value)
+	{
+		if (IConsoleVariable* V = CM.FindConsoleVariable(Name)) { V->Set(Value, ECVF_SetByGameSetting); }
+	};
+	auto TierOf = [](int32 Level) { return Level >= 3 ? 2 : (Level == 2 ? 1 : 0); };
+	const int32 AA = TierOf(GetAntiAliasingQuality());
+	static const float DynResMin[3] = { 50.f, 67.f, 60.f };
+	static const float DynResMax[3] = { 85.f, 100.f, 100.f };
+	static const float FlickerPeriod[3] = { 2.f, 2.f, 3.f };
+	static const float WeightClamp[3] = { 3.f, 3.f, 4.f };
+	SetFloat(TEXT("r.DynamicRes.MinScreenPercentage"), DynResMin[AA]);
+	SetFloat(TEXT("r.DynamicRes.MaxScreenPercentage"), DynResMax[AA]);
+	SetFloat(TEXT("r.TSR.ShadingRejection.Flickering.Period"), FlickerPeriod[AA]);
+	SetFloat(TEXT("r.TSR.Velocity.WeightClampingSampleCount"), WeightClamp[AA]);
+	static const float MaxRoughness[3] = { 0.25f, 0.35f, 0.4f };
+	SetFloat(TEXT("r.Lumen.Reflections.MaxRoughnessToTrace"), MaxRoughness[TierOf(GetReflectionQuality())]);
+	SetFloat(TEXT("r.Nanite.MaxPixelsPerEdge"), TierOf(GetViewDistanceQuality()) == 0 ? 2.f : 1.f);
 }
 
 void UArenaGameUserSettings::ApplyGameplaySettings(const UObject* WorldContext)

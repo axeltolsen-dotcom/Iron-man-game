@@ -22,6 +22,9 @@ public:
 	/** Orbit centre (the arena / city origin). */
 	FVector Focus = FVector::ZeroVector;
 
+	/** Orbit FRIDAY's full city (Legacy tower) instead of the small arena: wider radius, higher crane. */
+	bool bCityScale = false;
+
 	/** While true the camera re-claims the view if possession switched it to the pawn. */
 	TWeakObjectPtr<AArenaPlayerController> HoldFor;
 

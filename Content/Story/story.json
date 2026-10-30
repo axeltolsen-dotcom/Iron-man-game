@@ -151,6 +151,13 @@
         "sfx": "final faint chime, distant wind chime"
       },
       {
+        "camera": "memory insert, soft focus: a young {playerName} in a snowy Tennessee garage, grinning up from a cluttered workbench",
+        "characters": [
+          "PLAYER"
+        ],
+        "sfx": "muffled wind, a kid's laugh, the reactor hum fading under it"
+      },
+      {
         "camera": "high wide pull-away over the quiet field as the sun breaks through",
         "characters": [
           "PEPPER"

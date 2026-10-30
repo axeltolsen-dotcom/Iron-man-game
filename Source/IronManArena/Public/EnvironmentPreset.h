@@ -79,5 +79,7 @@ namespace EnvironmentPresets
 
 	/** Prologue (Tony's workshop) and finale (the battlefield, dawn). */
 	IRONMANARENA_API FEnvironmentPreset Prologue();
+	/** Prologue flashback: the battlefield at dusk, smoke and embers, muted grading. */
+	IRONMANARENA_API FEnvironmentPreset Flashback();
 	IRONMANARENA_API FEnvironmentPreset Finale();
 }

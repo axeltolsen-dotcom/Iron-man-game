@@ -10,6 +10,7 @@
 #include "SuitUpCinematic.h"
 #include "ReactorComponent.h"
 #include "ArenaSaveGame.h"
+#include "SuitArmorKit.h"
 #include "SuitRig.h"
 #include "Components/DecalComponent.h"
 #include "Materials/MaterialInterface.h"
@@ -266,6 +267,20 @@ void AIronManCharacter::ApplyRewards()
 	ApplySuit(GetSuitIndex());
 }
 
+void AIronManCharacter::SetPlayArea(const FTransform& StartTransform, const FVector& AreaCenter, float AreaRadius, float AreaCeilingZ)
+{
+	bPlayAreaOverride = true;
+	PlayAreaStart = StartTransform;
+	PlayAreaCenter = AreaCenter;
+	PlayAreaRadius = FMath::Max(AreaRadius, ArenaBoundaryRadius);
+	PlayAreaCeilingZ = AreaCeilingZ;
+}
+
+void AIronManCharacter::ClearPlayArea()
+{
+	bPlayAreaOverride = false;
+}
+
 void AIronManCharacter::ResetForNewGame()
 {
 	CloseSuitWheel(false);
@@ -292,7 +307,8 @@ void AIronManCharacter::ResetForNewGame()
 	BeamDamageAccum.Empty();
 	for (UStaticMeshComponent* Orb : ShieldOrbs) { Orb->SetVisibility(false); }
 
-	SetActorTransform(SpawnTransform, false, nullptr, ETeleportType::TeleportPhysics);
+	const FTransform& StartAt = bPlayAreaOverride ? PlayAreaStart : SpawnTransform;
+	SetActorTransform(StartAt, false, nullptr, ETeleportType::TeleportPhysics);
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 	SetActorEnableCollision(true);
@@ -304,7 +320,7 @@ void AIronManCharacter::ResetForNewGame()
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		PC->SetControlRotation(SpawnTransform.Rotator());
+		PC->SetControlRotation(StartAt.Rotator());
 	}
 }
 
@@ -318,6 +334,11 @@ void AIronManCharacter::ApplySuit(int32 Index)
 	SuitIndex = Num > 0 ? FMath::Clamp(Index, 0, Num - 1) : 0;
 	const FSuitDef& S = GetSuit();
 
+	// U's armour kit: real plates replace the placeholder shapes (runtime meshes, cached per suit).
+	if (GetWorld() && GetWorld()->IsGameWorld() && SuitArmorKit::IsLoaded())
+	{
+		SuitArmorKit::Build(this, S, Rig, Parts, GetMesh());
+	}
 	SuitRig::ApplyColors(S, Parts);
 	SuitRig::ApplyColors(S, FPParts);
 	if (CloakLeft > 0.f) { ArenaVisuals::FlashAll(Parts, CloakColor, false); }
@@ -1077,19 +1098,20 @@ void AIronManCharacter::TickBoundary()
 	const FVector Loc = GetActorLocation();
 
 	// Ceiling.
-	const float Ceiling = FloorZAtSpawn + MaxFlightAltitude;
+	const float Ceiling = bPlayAreaOverride ? PlayAreaCeilingZ : FloorZAtSpawn + MaxFlightAltitude;
 	if (Loc.Z > Ceiling && Move->Velocity.Z > 0.f) { Move->Velocity.Z = 0.f; }
 
 	// Soft circular wall around the spawn point.
-	const FVector Center = SpawnTransform.GetLocation();
+	const FVector Center = bPlayAreaOverride ? PlayAreaCenter : SpawnTransform.GetLocation();
+	const float Limit = bPlayAreaOverride ? PlayAreaRadius : ArenaBoundaryRadius;
 	FVector Flat(Loc.X - Center.X, Loc.Y - Center.Y, 0.f);
 	const float Dist = Flat.Size();
-	if (Dist > ArenaBoundaryRadius)
+	if (Dist > Limit)
 	{
 		const FVector Out = Flat / Dist;
 		const float Outward = FVector::DotProduct(Move->Velocity, Out);
 		if (Outward > 0.f) { Move->Velocity -= Out * Outward; }
-		SetActorLocation(FVector(Center.X, Center.Y, Loc.Z) + Out * ArenaBoundaryRadius, true);
+		SetActorLocation(FVector(Center.X, Center.Y, Loc.Z) + Out * Limit, true);
 	}
 }
 

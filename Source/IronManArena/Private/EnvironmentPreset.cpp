@@ -183,6 +183,24 @@ namespace EnvironmentPresets
 		return P;
 	}
 
+	FEnvironmentPreset Flashback()
+	{
+		// Dusk over the battlefield, years ago: a low sun through the smoke pall, ash and embers in the air.
+		FEnvironmentPreset P = Ruins(true);
+		P.Id = TEXT("flashback_dusk");
+		P.SunPitch = -3.f; P.SunYaw = 255.f;   // 3 deg above the western horizon
+		Physical(P, true, 7.6f, 10.1f, -0.4f);
+		P.FogDensity = 0.06f; P.VolumetricFogExtinction = 2.4f;
+		P.FogColor = FLinearColor(0.62f, 0.4f, 0.28f);
+		// Muted, memory-like grade: low saturation, lifted contrast, warm gain, heavier grain and vignette.
+		P.Saturation = 0.62f; P.Contrast = 1.06f;
+		P.Gain = FLinearColor(1.05f, 0.97f, 0.9f);
+		P.Vignette = 0.65f; P.FilmGrain = 0.22f; P.ChromaticAberration = 0.15f;
+		P.BloomIntensity = 1.1f;
+		P.bEmbers = true;
+		return P;
+	}
+
 	FEnvironmentPreset Finale()
 	{
 		// Dawn over the battlefield: the fight is over, warm light breaks through.

@@ -83,6 +83,9 @@ public:
 	/** Speaking: head bob / glow pulse on the placeholder. */
 	void SetSpeaking(bool bInSpeaking) { bSpeaking = bInSpeaking; }
 
+	/** Prologue flashback: Damage 0..1 scorches the suit plating, ReactorLevel 0..1 scales every suit glow (1 = normal). */
+	void SetWounded(float Damage, float ReactorLevel);
+
 	/** Eye-height point for camera framing. */
 	FVector GetFocusPoint() const;
 
@@ -142,6 +145,11 @@ protected:
 	/** Indices into Parts that take the cast tint (clothes) vs. skin. */
 	TArray<int32> TintParts;
 	int32 GemPart = INDEX_NONE;
+
+	/** Suit colours / glows as painted by SetupCast (SetWounded scales from these). */
+	TArray<FLinearColor> SuitBaseColors;
+	TArray<float> SuitBaseGlow;
+	float AppliedDamage = 0.f;
 
 	FStoryCastMember CastInfo;
 	bool bSpeaking = false;

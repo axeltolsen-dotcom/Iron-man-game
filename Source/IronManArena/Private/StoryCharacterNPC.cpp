@@ -1,4 +1,5 @@
 #include "StoryCharacterNPC.h"
+#include "SuitArmorKit.h"
 
 #include "IronManArena.h"
 #include "SuitTypes.h"
@@ -257,8 +258,14 @@ void AStoryCharacterNPC::SetupCast(const FStoryCastMember& Member)
 	{
 		const int32 Idx = USuitLibrary::FindSuitIndex(Member.SuitId);
 		const FSuitDef& S = USuitLibrary::GetSuit(Idx == INDEX_NONE ? 0 : Idx);
+		// U's armour plates over the placeholder rig (game worlds only; meshes are built at runtime).
+		if (GetWorld() && GetWorld()->IsGameWorld() && SuitArmorKit::IsLoaded()) { SuitArmorKit::Build(this, S, Rig, SuitParts); }
 		SuitRig::ApplyColors(S, SuitParts);
 		for (FArenaPaintedPart& P : SuitParts) { RepaintPart(P); }
+		SuitBaseColors.Reset();
+		SuitBaseGlow.Reset();
+		for (const FArenaPaintedPart& P : SuitParts) { SuitBaseColors.Add(P.Color); SuitBaseGlow.Add(P.Emissive); }
+		AppliedDamage = 0.f;
 		SuitRig::ApplyVisibility(S, Rig, true, false);
 		if (Rig.FPRoot) { Rig.FPRoot->SetVisibility(false, true); }
 		const float P = SuitRig::PlatingScale(S.Plating);
@@ -280,6 +287,33 @@ void AStoryCharacterNPC::SetupCast(const FStoryCastMember& Member)
 	{
 		GlowLight->SetIntensity(0.f);
 	}
+}
+
+void AStoryCharacterNPC::SetWounded(float Damage, float ReactorLevel)
+{
+	if (CastInfo.Body != EStoryBody::Suit || SuitBaseColors.Num() != SuitParts.Num()) { return; }
+	const float D = FMath::Clamp(Damage, 0.f, 1.f);
+	const float R = FMath::Clamp(ReactorLevel, 0.f, 1.f);
+	const bool bRepaint = !FMath::IsNearlyEqual(D, AppliedDamage, 0.01f);
+	// Soot and heat-blued scoring: darker, less saturated plating.
+	const FLinearColor Soot(0.045f, 0.042f, 0.04f);
+	for (int32 i = 0; i < SuitParts.Num(); ++i)
+	{
+		FArenaPaintedPart& P = SuitParts[i];
+		if (SuitBaseGlow[i] > 0.f)
+		{
+			SetPartGlow(P, SuitBaseGlow[i] * R);
+		}
+		else if (bRepaint)
+		{
+			// Every third plate takes the worst of it so the damage reads as patches, not a uniform tint.
+			const float Patch = (i % 3 == 0) ? 0.85f : 0.45f;
+			P.Color = FMath::Lerp(SuitBaseColors[i], Soot, D * Patch);
+			RepaintPart(P);
+		}
+	}
+	if (bRepaint) { AppliedDamage = D; }
+	if (GlowLight) { GlowLight->SetIntensity(1500.f * R * R); }
 }
 
 FVector AStoryCharacterNPC::GetFocusPoint() const

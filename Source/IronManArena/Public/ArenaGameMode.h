@@ -278,6 +278,13 @@ protected:
 	FVector ArenaCenter = FVector::ZeroVector;
 	float ArenaFloorZ = 0.f;
 
+	/** Free play inside FRIDAY's city (set by StartNewGame, cleared by ResetRunState). ArenaCenter stays the story origin. */
+	bool bCityPlay = false;
+	FVector CityPlayCenter = FVector::ZeroVector;
+	float CityPlayRadius = 0.f;
+	/** Sets up the city play area, player start and pickups when the city layout is present. */
+	void SetupCityPlay();
+
 	FTimerHandle GameOverTimer;
 
 	int32 SelectedSuitIndex = INDEX_NONE;

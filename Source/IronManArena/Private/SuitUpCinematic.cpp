@@ -173,7 +173,7 @@ void ASuitUpCinematic::SpawnFlyers()
 	TArray<const FArenaPaintedPart*> Candidates;
 	for (const FArenaPaintedPart& Part : Parts)
 	{
-		if (Part.Component && Part.Role != ESuitPaintRole::Fixed && Part.Component->IsVisible() && Part.Component->GetStaticMesh())
+		if (Part.Component && Part.Role != ESuitPaintRole::Fixed && Part.Component->IsVisible() && !Part.Component->bHiddenInGame && Part.Component->GetStaticMesh())
 		{
 			Candidates.Add(&Part);
 		}

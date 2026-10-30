@@ -18,6 +18,9 @@
 #include "Engine/World.h"
 #include "ContribLighting.h"
 #include "ArenaSaveGame.h"
+#include "SuitArmorKit.h"
+#include "CityLayout.h"
+#include "SuitTypes.h"
 
 namespace StoryTests
 {
@@ -237,6 +240,51 @@ bool FLightingPresetsTest::RunTest(const FString& Parameters)
 		TestTrue(FString::Printf(TEXT("%s maps to a preset (%s)"), Id, *Key.ToString()), !Key.IsNone() && ContribLighting::HasPreset(Key));
 	}
 	TestTrue(TEXT("free-play arena keeps the project look"), ContribLighting::PresetKeyFor(FName(TEXT("arena"))).IsNone());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCityLayoutTest, "IronManArena.Story.CityLayout",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter)
+
+bool FCityLayoutTest::RunTest(const FString& Parameters)
+{
+	int32 Buildings = 0, Roads = 0, Blocks = 0, Spawns = 0;
+	ACityLayout::GetLayoutStats(Buildings, Roads, Blocks, Spawns);
+	AddInfo(FString::Printf(TEXT("city_layout.json: %d buildings, %d roads, %d blocks, %d spawns"), Buildings, Roads, Blocks, Spawns));
+	TestEqual(TEXT("buildings"), Buildings, 2738);
+	TestEqual(TEXT("roads"), Roads, 404);
+	TestEqual(TEXT("blocks"), Blocks, 196);
+	TestTrue(TEXT("spawn points"), Spawns > 0);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArmorKitTest, "IronManArena.Story.ArmorKit",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FArmorKitTest::RunTest(const FString& Parameters)
+{
+	TestTrue(TEXT("armor_kit.json loaded"), SuitArmorKit::IsLoaded());
+	TestEqual(TEXT("armor_kit base plates"), SuitArmorKit::GetNumBasePlates(), 73);
+	int32 MinPlates = MAX_int32, MaxPlates = 0;
+	for (int32 i = 0; i < USuitLibrary::GetNumSuits(); ++i)
+	{
+		const int32 N = SuitArmorKit::CountPlates(USuitLibrary::GetSuit(i));
+		MinPlates = FMath::Min(MinPlates, N);
+		MaxPlates = FMath::Max(MaxPlates, N);
+	}
+	AddInfo(FString::Printf(TEXT("Resolved plates per suit: %d..%d over %d suits"), MinPlates, MaxPlates, USuitLibrary::GetNumSuits()));
+	TestTrue(TEXT("every suit resolves to a full plate set (mirrored)"), MinPlates >= 80);
+	const int32 Mk3 = USuitLibrary::FindSuitIndex(FName(TEXT("mark-iii")));
+	if (TestTrue(TEXT("mark-iii exists"), Mk3 != INDEX_NONE))
+	{
+		const FSuitDef& S = USuitLibrary::GetSuit(Mk3);
+		const TCHAR* Ids[] = { TEXT("chest.pec_l"), TEXT("chest.pec_r"), TEXT("helmet.faceplate"), TEXT("helmet.shell"), TEXT("neck.lame_lower"), TEXT("chest.reactor_housing") };
+		for (const TCHAR* Id : Ids)
+		{
+			const int32 Tris = SuitArmorKit::CountPlateTriangles(S, Id);
+			AddInfo(FString::Printf(TEXT("%s: %d triangles"), Id, Tris));
+			TestTrue(FString::Printf(TEXT("%s builds a mesh"), Id), Tris > 8);
+		}
+	}
 	return true;
 }
 

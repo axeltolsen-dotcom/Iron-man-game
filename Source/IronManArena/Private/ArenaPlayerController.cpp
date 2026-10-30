@@ -1,4 +1,5 @@
 #include "ArenaPlayerController.h"
+#include "CityLayout.h"
 #include "ArenaEnvironment.h"
 #include "MenuCameraActor.h"
 #include "ArenaFeel.h"
@@ -172,7 +173,17 @@ void AArenaPlayerController::StartMenuCamera()
 		MenuCamera = World->SpawnActor<AMenuCameraActor>(AMenuCameraActor::StaticClass(), FTransform::Identity, Params);
 	}
 	if (!MenuCamera) { return; }
-	if (const AArenaEnvironment* Env = AArenaEnvironment::Find(this)) { MenuCamera->Focus = Env->GetActorLocation(); }
+	if (const AArenaEnvironment* Env = AArenaEnvironment::Find(this))
+	{
+		MenuCamera->Focus = Env->GetActorLocation();
+		MenuCamera->bCityScale = false;
+		if (const ACityLayout* City = Env->GetCityLayout())
+		{
+			// Slow crane around the Legacy tower, looking across the skyline.
+			MenuCamera->Focus = City->GetLandmarkLocation() + FVector(0.f, 0.f, 15000.f);
+			MenuCamera->bCityScale = true;
+		}
+	}
 	MenuCamera->UpdatePose();
 	MenuCamera->HoldFor = this;
 	SetViewTarget(MenuCamera);

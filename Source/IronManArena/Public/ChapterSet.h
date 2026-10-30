@@ -117,8 +117,10 @@ private:
 	UStaticMeshComponent* EnvMesh(const TCHAR* Id, const FVector& Loc, float Yaw, bool bSolid, float Scale = 1.f);
 	/** One shared dynamic instance per key (Ultron perf budget: fewer unique MIDs, so parts can batch). */
 	UMaterialInstanceDynamic* SharedMID(const FString& Key, UMaterialInterface* Parent, const FLinearColor& Color, float Emissive = 0.f);
-	/** /Game/Env/Materials/<Name>, or nullptr when the import has not been run. */
+public:
+	/** /Game/Env/Materials/<Name>, or nullptr when the import has not been run (also used by ACityLayout). */
 	static UMaterialInterface* EnvMaterial(const TCHAR* Name);
+private:
 	/** Box with a shared material (EnvMI if it exists, else the Fallback surface). */
 	UStaticMeshComponent* CityBox(const FVector& Center, const FVector& Size, float Yaw, const TCHAR* EnvMI, EArenaSurface Fallback,
 		const FLinearColor& Color, bool bSolid, float Emissive = 0.f);

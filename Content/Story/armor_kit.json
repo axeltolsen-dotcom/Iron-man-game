@@ -1,0 +1,8831 @@
+{
+ "schemaVersion": "1.0",
+ "kitId": "ironman-arena.armor-kit.base",
+ "generatedFor": {
+  "project": "IronManArena (UE5)",
+  "loaderHint": "C++ generator: UProceduralMeshComponent or GeometryScript DynamicMesh per plate, attached to SKM_Manny sockets; deploy path Content/Story/armor_kit.json",
+  "bodyHeightCm": 180,
+  "date": "2026-10-30"
+ },
+ "units": "cm",
+ "angleUnits": "deg",
+ "coordinateSystem": {
+  "engine": "Unreal Engine 5",
+  "handedness": "left-handed",
+  "axes": {
+   "X": "forward",
+   "Y": "right",
+   "Z": "up"
+  },
+  "units": "cm",
+  "rotation": "FRotator degrees (pitch about Y, yaw about Z, roll about X), applied Roll->Pitch->Yaw as UE does",
+  "frames": {
+   "component": "Origin at the bone's ref-pose position; axes = character component space (X fwd, Y right, Z up). Used for head, neck, spine, pelvis, clavicle, foot, ball.",
+   "limb": "Origin at the bone. Z_seg = unit(bonePos - limbChildPos) (points back UP the limb, so plate z is negative toward the child), X_seg = component +X made orthogonal to Z_seg (Gram-Schmidt), Y_seg = Z_seg x X_seg. For a hanging left arm / standing left leg this equals component axes, i.e. the SuitRig pivot frame. Used for upperarm, lowerarm, hand, fingers, thigh, calf (and their twist bones via frameBone).",
+   "frameBone": "If present, the plate is authored in frameBone's frame but attached (socketed) to 'bone'. RelativeTransform = PlateCS * Inverse(RefPoseCS(bone))."
+  },
+  "plateLocalAxes": "extrudeShell: profile in (u,v) where u = +Y, v = +Z of the plate frame; extrusion/thickness goes inward along -X (outer surface faces +X). wrapU/wrapV = radius of cylindrical wrap about the plate's local Z / Y axis, centre at -wrap along X (null = flat). loftShell: stations along plate Z, theta measured from +X toward +Y (theta 0 = front, -90 = left/lateral for left limbs, +90 = medial).",
+  "mannyBoneLocalAxes": {
+   "note": "For reference only; this kit never uses raw bone-local axes. Typical UE5 Manny: limb bones' local +X points to the child on the LEFT side and -X on the RIGHT (mirrored); spine bones +X points up the spine. Verify in the Skeleton editor before relying on it.",
+   "reason": "Segment frames avoid dependence on per-bone roll differences between Manny, Quinn and retargeted skeletons."
+  }
+ },
+ "sources": {
+  "suits": "ironman-3d/contrib/suits.json (32 ids)",
+  "materials": "ironman-unreal/contrib/u/suit_materials.json -> Content/Story/suit_materials.json",
+  "rig": "IronManArena/Source/IronManArena/Private/SuitRig.cpp (ApplyColors, ClassifyGlow, PlatingScale)",
+  "materialsBuilder": "Content/Python/build_realism_materials.py (M_CarPaint, M_ArcGlow)"
+ },
+ "defaults": {
+  "thickness": 0.8,
+  "bevel": {
+   "radius": 0.3,
+   "segments": 3
+  },
+  "panelLineWidth": 0.18,
+  "loftSegmentsPerStation": 24,
+  "wrapNull": "flat",
+  "shade": 1.0,
+  "layer": 1,
+  "mirror": true
+ },
+ "geometryTypes": {
+  "extrudeShell": "profile [[u,v]] (+holes, circleCuts, polyCuts, cornerRadius, studs), optionally wrapped on cylinders wrapU/wrapV, extruded inward by thickness, bevelled on outer edges",
+  "loftShell": "stations [{z,rx,ry,n}] superellipse sections |x/rx|^n+|y/ry|^n=1, arc {start,end} deg; shell thickness inward",
+  "revolve": "profile [[r,h]] revolved about 'axis' (default X); thickness 0 = solid",
+  "superellipsoidShell": "center, radii [x,y,z], exponents [e1,e2], clip planes {n,d} (keep n.p <= d)",
+  "box": "size [x,y,z] centred",
+  "cylinder": "radius, length, axis",
+  "cone": "radius0, radius1, length, axis",
+  "pyramid": "base [x,y], height along local +Z",
+  "barrelCluster": "count, ringRadius|grid, radius, length, axis"
+ },
+ "panelLineTypes": {
+  "pts": "polyline in profile (u,v)",
+  "ring": "loft circumferential groove at z",
+  "seam": "loft longitudinal groove at theta between z[0..1]",
+  "plane": "intersection of shell with plane {n,d}",
+  "ringR": "revolve groove at radius",
+  "ringH": "revolve groove at height",
+  "ringX": "cylinder/sell rings at local x positions",
+  "grid": "box face grid [cols,rows]",
+  "box": "rect on a box face"
+ },
+ "panelLineRules": {
+  "depthFormula": "depth_cm = depthScale * suit.panelLineDepth",
+  "widthFormula": "width_cm = max(line.width * style.panelLineWidthScale (or style.panelLineWidth), 1.5 * depth_cm)",
+  "defaultWidth": 0.18,
+  "profile": "V-groove with 0.03 cm flat bottom; cut into the outer shell surface only",
+  "minDepthCut": 0.02,
+  "belowMin": "skip geometry, leave for normal map"
+ },
+ "layering": {
+  "rule": "Explicit 'overlaps' are authoritative. 'layer' is a coarse sort key within a segment (higher = further out); the generator pushes an 'over' plate outward by layerGap where its footprint covers the other plate.",
+  "layerGap": 0.15,
+  "overlapModes": {
+   "over": "this plate's edge sits on top of the named plate by cm along 'edge'",
+   "under": "this plate tucks under the named plate",
+   "onTop": "bolted on the face of the named plate (no edge overlap)",
+   "cut": "this plate's footprint is boolean-subtracted from the named plate with cm clearance"
+  },
+  "defaultOverlapCm": 1.0,
+  "zFightEpsilon": 0.05
+ },
+ "jointRules": {
+  "shoulder": {
+   "bones": [
+    "clavicle",
+    "upperarm",
+    "upperarm_twist_01"
+   ],
+   "strategy": "Pauldron on clavicle (no arm swing); deltoid caps on upperarm_twist_01 overlap pauldron underside 2.5 cm; at >70 deg abduction pauldron slides up (see slidingPlates).",
+   "clearanceCm": 0.6
+  },
+  "elbow": {
+   "strategy": "Elbow cap on lowerarm_l; upper-arm lower shell overlaps cap 1.5 cm; inner side open 5 deg (forearm arc stops at 175) for flexion to 140 deg."
+  },
+  "wrist": {
+   "strategy": "Cuff on lowerarm_twist_01 follows pronation; hand back tucks under cuff 0.8 cm."
+  },
+  "spine": {
+   "strategy": "Abs rows each on their own spine bone overlapping the row below 0.8 cm, so flexion telescopes the lames instead of intersecting."
+  },
+  "hip": {
+   "strategy": "Pelvis hip/rear plates overlap thigh outer/rear 1.5 cm; thigh_twist_01 carries the outer shell; undersuit shows at deep flexion."
+  },
+  "knee": {
+   "strategy": "Knee cap on calf_l, thigh front tucks under it 2 cm; shin front under it 1.5 cm."
+  },
+  "ankle": {
+   "strategy": "Shin front overlaps boot cuff 2 cm; ankle ring on calf_twist_01; vamp under toe cap 1 cm; sole split at ball_l."
+  }
+ },
+ "slidingPlates": [
+  {
+   "plate": "back.flap_l",
+   "axis": "local Y",
+   "pivot": "top edge",
+   "range": [
+    0,
+    35
+   ],
+   "drive": "flight state"
+  },
+  {
+   "plate": "helmet.faceplate",
+   "axis": "local Y",
+   "pivot": [
+    10.8,
+    0,
+    14.5
+   ],
+   "range": [
+    0,
+    -95
+   ],
+   "drive": "visor open"
+  },
+  {
+   "plate": "shoulder.pauldron_l",
+   "translate": "plate Z",
+   "range": [
+    0,
+    4
+   ],
+   "drive": "upperarm abduction 70->120 deg, linear"
+  },
+  {
+   "plate": "neck.lame_upper",
+   "translate": "plate Z",
+   "range": [
+    -1,
+    1
+   ],
+   "drive": "neck pitch"
+  }
+ ],
+ "mirror": {
+  "authorSide": "L (-Y)",
+  "rule": "For every plate with side 'L' and mirror != false: copy, id/name suffix _l->_r and L->R (e.g. ChestPecL->ChestPecR), bones _l->_r (incl. fallbackBone/frameBone/overlap refs), location.y -> -y, vertices/profile u -> -u, reverse triangle winding, yaw -> -yaw, roll -> -roll, loft theta -> -theta (arc start/end swap and negate). side 'C' plates are symmetric and authored once; side 'R' or mirror:false are one-sided.",
+  "nameRule": "Mirrored names keep the ClassifyGlow keyword (Eye/Palm/Reactor...)."
+ },
+ "materialSlots": {
+  "primary": {
+   "material": "M_CarPaint",
+   "source": "suit_materials.suits[id].layers.primary",
+   "note": "main hull colour"
+  },
+  "secondary": {
+   "material": "M_CarPaint",
+   "source": "suit_materials.suits[id].layers.secondary"
+  },
+  "accent": {
+   "material": "M_CarPaint",
+   "source": "suit_materials.suits[id].layers.accent",
+   "note": "trim, rings, collars"
+  },
+  "glow.eyes": {
+   "material": "M_ArcGlow",
+   "source": "suit_materials.suits[id].emissive.eyes",
+   "nameMustContain": [
+    "Eye",
+    "Visor"
+   ],
+   "defaultIntensity": 20
+  },
+  "glow.reactor": {
+   "material": "M_ArcGlow",
+   "source": "suit_materials.suits[id].emissive.reactor",
+   "nameMustContain": [
+    "Reactor",
+    "Core",
+    "Arc",
+    "Tri"
+   ],
+   "alsoOther": "Names matching no rule (e.g. 'Jet') classify as Other and follow the reactor colour (eyes if reactor is null).",
+   "defaultIntensity": 25
+  },
+  "glow.repulsors": {
+   "material": "M_ArcGlow",
+   "source": "suit_materials.suits[id].emissive.repulsors",
+   "nameMustContain": [
+    "Palm",
+    "Muzzle",
+    "Repulsor",
+    "Unibeam"
+   ],
+   "note": "intensity driven by firing state at runtime",
+   "defaultIntensity": 15
+  },
+  "fixed.undersuit": {
+   "material": "M_CarPaint",
+   "color": [
+    0.03,
+    0.03,
+    0.035
+   ],
+   "roughness": 0.7,
+   "metallic": 0.0
+  },
+  "fixed.sole": {
+   "material": "M_CarPaint",
+   "color": [
+    0.05,
+    0.05,
+    0.055
+   ],
+   "roughness": 0.6,
+   "metallic": 0.2
+  },
+  "fixed.baresteel": {
+   "material": "M_CarPaint",
+   "color": [
+    0.3,
+    0.3,
+    0.32
+   ],
+   "roughness": 0.35,
+   "metallic": 1.0
+  },
+  "nullChannelRule": "If the bound emissive channel is null in suit_materials, set EmissiveStrength 0 and don't spawn a light (mark-i repulsors, arachnid reactor)."
+ },
+ "skeleton": {
+  "mesh": "/Game/Characters/Mannequins/Meshes/SKM_Manny",
+  "skeleton": "/Game/Characters/Mannequins/Meshes/SK_Mannequin",
+  "verification": "Bone names verified against the UE5 Manny/Quinn hierarchy (UE 5.x Mannequin, 89 bones incl. ik_*, interaction, center_of_mass) as listed in Epic's IK Retargeter docs/templates. Loader MUST still check FReferenceSkeleton::FindBoneIndex at runtime and fall back to fallbackBone, then to the rig proxy.",
+  "bones": [
+   "root",
+   "pelvis",
+   "spine_01",
+   "spine_02",
+   "spine_03",
+   "spine_04",
+   "spine_05",
+   "neck_01",
+   "neck_02",
+   "head",
+   "clavicle_l",
+   "clavicle_r",
+   "upperarm_l",
+   "upperarm_r",
+   "upperarm_twist_01_l",
+   "upperarm_twist_01_r",
+   "upperarm_twist_02_l",
+   "upperarm_twist_02_r",
+   "lowerarm_l",
+   "lowerarm_r",
+   "lowerarm_twist_01_l",
+   "lowerarm_twist_01_r",
+   "lowerarm_twist_02_l",
+   "lowerarm_twist_02_r",
+   "hand_l",
+   "hand_r",
+   "thumb_01_l",
+   "thumb_01_r",
+   "thumb_02_l",
+   "thumb_02_r",
+   "thumb_03_l",
+   "thumb_03_r",
+   "index_metacarpal_l",
+   "index_metacarpal_r",
+   "index_01_l",
+   "index_01_r",
+   "index_02_l",
+   "index_02_r",
+   "index_03_l",
+   "index_03_r",
+   "middle_metacarpal_l",
+   "middle_metacarpal_r",
+   "middle_01_l",
+   "middle_01_r",
+   "middle_02_l",
+   "middle_02_r",
+   "middle_03_l",
+   "middle_03_r",
+   "ring_metacarpal_l",
+   "ring_metacarpal_r",
+   "ring_01_l",
+   "ring_01_r",
+   "ring_02_l",
+   "ring_02_r",
+   "ring_03_l",
+   "ring_03_r",
+   "pinky_metacarpal_l",
+   "pinky_metacarpal_r",
+   "pinky_01_l",
+   "pinky_01_r",
+   "pinky_02_l",
+   "pinky_02_r",
+   "pinky_03_l",
+   "pinky_03_r",
+   "thigh_l",
+   "thigh_r",
+   "thigh_twist_01_l",
+   "thigh_twist_01_r",
+   "thigh_twist_02_l",
+   "thigh_twist_02_r",
+   "calf_l",
+   "calf_r",
+   "calf_twist_01_l",
+   "calf_twist_01_r",
+   "calf_twist_02_l",
+   "calf_twist_02_r",
+   "foot_l",
+   "foot_r",
+   "ball_l",
+   "ball_r",
+   "ik_foot_root",
+   "ik_foot_l",
+   "ik_foot_r",
+   "ik_hand_root",
+   "ik_hand_gun",
+   "ik_hand_l",
+   "ik_hand_r",
+   "interaction",
+   "center_of_mass"
+  ],
+  "twistBones": {
+   "note": "Driven by ABP_Manny_PostProcess / Control Rig (not by animation). Plates bound to twist_01 follow forearm pronation / upper-arm roll without candy-wrapping.",
+   "list": [
+    "upperarm_twist_01_l",
+    "upperarm_twist_01_r",
+    "upperarm_twist_02_l",
+    "upperarm_twist_02_r",
+    "lowerarm_twist_01_l",
+    "lowerarm_twist_01_r",
+    "lowerarm_twist_02_l",
+    "lowerarm_twist_02_r",
+    "thigh_twist_01_l",
+    "thigh_twist_01_r",
+    "thigh_twist_02_l",
+    "thigh_twist_02_r",
+    "calf_twist_01_l",
+    "calf_twist_01_r",
+    "calf_twist_02_l",
+    "calf_twist_02_r"
+   ]
+  },
+  "nominalPoseCm": {
+   "note": "Approximate component-space joint positions for a 180 cm Manny in the ref pose, LEFT side only (mirror Y for _r). Arms shown hanging (A/I-pose is irrelevant: plates are authored in segment frames, see coordinateSystem). Use only for previews or when the skeleton is unavailable; real positions come from RefSkeleton.",
+   "joints": {
+    "root": [
+     0,
+     0,
+     0
+    ],
+    "pelvis": [
+     0,
+     0,
+     97
+    ],
+    "spine_01": [
+     0,
+     0,
+     103
+    ],
+    "spine_02": [
+     0,
+     0,
+     111
+    ],
+    "spine_03": [
+     0,
+     0,
+     119
+    ],
+    "spine_04": [
+     0,
+     0,
+     128
+    ],
+    "spine_05": [
+     0,
+     0,
+     136
+    ],
+    "neck_01": [
+     0,
+     0,
+     147
+    ],
+    "neck_02": [
+     0.5,
+     0,
+     152
+    ],
+    "head": [
+     1,
+     0,
+     158
+    ],
+    "clavicle_l": [
+     2,
+     -3,
+     144
+    ],
+    "upperarm_l": [
+     -1,
+     -18,
+     145
+    ],
+    "upperarm_twist_01_l": [
+     -1,
+     -18,
+     138
+    ],
+    "upperarm_twist_02_l": [
+     -1.5,
+     -18.5,
+     128
+    ],
+    "lowerarm_l": [
+     -2,
+     -19,
+     115
+    ],
+    "lowerarm_twist_01_l": [
+     -1,
+     -19,
+     95
+    ],
+    "lowerarm_twist_02_l": [
+     -1.5,
+     -19,
+     104
+    ],
+    "hand_l": [
+     0,
+     -19,
+     89
+    ],
+    "thumb_01_l": [
+     3,
+     -17.5,
+     87
+    ],
+    "thumb_02_l": [
+     5,
+     -17,
+     83.5
+    ],
+    "thumb_03_l": [
+     6.5,
+     -17,
+     80.5
+    ],
+    "index_metacarpal_l": [
+     1.5,
+     -19,
+     87
+    ],
+    "index_01_l": [
+     2.5,
+     -19.5,
+     79.5
+    ],
+    "index_02_l": [
+     2.8,
+     -19.6,
+     75.3
+    ],
+    "index_03_l": [
+     3,
+     -19.7,
+     72.7
+    ],
+    "middle_metacarpal_l": [
+     0,
+     -19.3,
+     87
+    ],
+    "middle_01_l": [
+     0.2,
+     -19.8,
+     79
+    ],
+    "middle_02_l": [
+     0.3,
+     -19.9,
+     74.5
+    ],
+    "middle_03_l": [
+     0.4,
+     -20,
+     71.6
+    ],
+    "ring_metacarpal_l": [
+     -1.4,
+     -19.1,
+     87
+    ],
+    "ring_01_l": [
+     -1.9,
+     -19.6,
+     79.5
+    ],
+    "ring_02_l": [
+     -2.1,
+     -19.7,
+     75.3
+    ],
+    "ring_03_l": [
+     -2.2,
+     -19.8,
+     72.6
+    ],
+    "pinky_metacarpal_l": [
+     -2.8,
+     -18.9,
+     87
+    ],
+    "pinky_01_l": [
+     -3.5,
+     -19.2,
+     80.5
+    ],
+    "pinky_02_l": [
+     -3.8,
+     -19.3,
+     77.1
+    ],
+    "pinky_03_l": [
+     -4,
+     -19.4,
+     75
+    ],
+    "thigh_l": [
+     0,
+     -9.5,
+     94
+    ],
+    "thigh_twist_01_l": [
+     0.3,
+     -9.8,
+     84
+    ],
+    "thigh_twist_02_l": [
+     0.6,
+     -10.1,
+     72
+    ],
+    "calf_l": [
+     1,
+     -10.5,
+     50
+    ],
+    "calf_twist_01_l": [
+     -0.5,
+     -10.8,
+     18
+    ],
+    "calf_twist_02_l": [
+     0,
+     -10.6,
+     34
+    ],
+    "foot_l": [
+     -2,
+     -11,
+     8
+    ],
+    "ball_l": [
+     12,
+     -11.5,
+     1.5
+    ]
+   }
+  },
+  "limbChild": {
+   "upperarm_l": "lowerarm_l",
+   "upperarm_twist_01_l": "lowerarm_l",
+   "lowerarm_l": "hand_l",
+   "lowerarm_twist_01_l": "hand_l",
+   "hand_l": "middle_01_l",
+   "thigh_l": "calf_l",
+   "thigh_twist_01_l": "calf_l",
+   "calf_l": "foot_l",
+   "calf_twist_01_l": "foot_l",
+   "thumb_01_l": "thumb_02_l",
+   "thumb_02_l": "thumb_03_l",
+   "thumb_03_l": null,
+   "index_01_l": "index_02_l",
+   "index_02_l": "index_03_l",
+   "index_03_l": null,
+   "middle_01_l": "middle_02_l",
+   "middle_02_l": "middle_03_l",
+   "middle_03_l": null,
+   "ring_01_l": "ring_02_l",
+   "ring_02_l": "ring_03_l",
+   "ring_03_l": null,
+   "pinky_01_l": "pinky_02_l",
+   "pinky_02_l": "pinky_03_l",
+   "pinky_03_l": null
+  },
+  "scaling": {
+   "rule": "per segment s = refBoneLength / nominalBoneLength, clamp 0.8..1.25; scale along segment Z only, radii scale by sqrt(s)",
+   "nominalBoneLengths": {
+    "upperarm": 30,
+    "lowerarm": 26,
+    "thigh": 44,
+    "calf": 42,
+    "spine_05-head": 22,
+    "foot-ball": 15
+   }
+  }
+ },
+ "rigFallback": {
+  "note": "When no SKM_Manny is present, attach to SuitRig scene components: head/neck/spine/pelvis -> Body root with component positions from skeleton.nominalPoseCm; *_l arm bones -> ShoulderL, *_r -> ShoulderR, leg -> HipL/HipR, using limb frames (identical to rig pivot axes for hanging limbs).",
+  "pivotMismatch": "SuitRig ShoulderL/R at (0,-/+28,150) and HipL/R at (0,-/+13,95) are wider than Manny (upperarm (-1,-/+18,145), thigh (0,-/+9.5,94)). Recommend moving rig pivots to Manny positions or offsetting fallback plates by the difference.",
+  "fallbackOnlyTag": "fallbackOnly plates (undersuit tubes) are only spawned in rig-fallback mode."
+ },
+ "segments": [
+  {
+   "id": "helmet",
+   "bones": "head",
+   "contents": "Faceplate (hinged), back shell, jaw/cheek frames, ear discs, nape guard, eyes",
+   "plates": [
+    "helmet.faceplate",
+    "helmet.eye_l",
+    "helmet.shell",
+    "helmet.jaw_l",
+    "helmet.ear_l",
+    "helmet.chin_rear"
+   ]
+  },
+  {
+   "id": "neck",
+   "bones": "neck_01/neck_02",
+   "contents": "Two sliding neck lames",
+   "plates": [
+    "neck.lame_lower",
+    "neck.lame_upper"
+   ]
+  },
+  {
+   "id": "chest",
+   "bones": "spine_05",
+   "contents": "Pecs w/ reactor cut, collar, side plates, arc reactor housing + core (or triangle/none variant)",
+   "plates": [
+    "chest.pec_l",
+    "chest.collar",
+    "chest.side_l",
+    "chest.reactor_housing",
+    "chest.reactor_core",
+    "under.torso"
+   ]
+  },
+  {
+   "id": "back",
+   "bones": "spine_05/spine_03/spine_04",
+   "contents": "Back plate (upper/lower), stabiliser flaps; backpack variants mount here",
+   "plates": [
+    "back.upper",
+    "back.flap_l",
+    "back.lower"
+   ]
+  },
+  {
+   "id": "abs",
+   "bones": "spine_03/02/01",
+   "contents": "Three overlapping ab lames + obliques",
+   "plates": [
+    "abs.row1_l",
+    "abs.row2_l",
+    "abs.row3_l",
+    "abs.oblique_l"
+   ]
+  },
+  {
+   "id": "pelvis",
+   "bones": "pelvis",
+   "contents": "Belt ring, codpiece, hip and glute plates",
+   "plates": [
+    "pelvis.belt",
+    "pelvis.codpiece",
+    "pelvis.hip_l",
+    "pelvis.rear_l"
+   ]
+  },
+  {
+   "id": "shoulder",
+   "bones": "clavicle/upperarm_twist_01/upperarm",
+   "contents": "Deltoid caps, clavicle/trapezius plate; pauldron (pads/spiked/cannon) on clavicle",
+   "plates": [
+    "shoulder.deltoid_upper_l",
+    "shoulder.deltoid_lower_l",
+    "shoulder.clavicle_l"
+   ]
+  },
+  {
+   "id": "upperarm",
+   "bones": "upperarm_twist_01/upperarm",
+   "contents": "Upper + lower bicep shells, medial strip",
+   "plates": [
+    "upperarm.upper_l",
+    "upperarm.lower_l",
+    "upperarm.inner_l",
+    "under.upperarm_l"
+   ]
+  },
+  {
+   "id": "forearm",
+   "bones": "lowerarm/lowerarm_twist_01",
+   "contents": "Elbow cap, upper/lower forearm shells, wrist cuff",
+   "plates": [
+    "elbow.cap_l",
+    "forearm.upper_l",
+    "forearm.lower_l",
+    "forearm.cuff_l",
+    "under.forearm_l"
+   ]
+  },
+  {
+   "id": "gauntlet",
+   "bones": "hand + finger bones",
+   "contents": "Hand back, knuckle bar, palm plate + repulsor, 15 phalanx shells",
+   "plates": [
+    "hand.back_l",
+    "hand.knuckle_l",
+    "hand.palm_l",
+    "hand.repulsor_l",
+    "hand.thumb_1_l",
+    "hand.thumb_2_l",
+    "hand.thumb_3_l",
+    "hand.index_1_l",
+    "hand.index_2_l",
+    "hand.index_3_l",
+    "hand.middle_1_l",
+    "hand.middle_2_l",
+    "hand.middle_3_l",
+    "hand.ring_1_l",
+    "hand.ring_2_l",
+    "hand.ring_3_l",
+    "hand.pinky_1_l",
+    "hand.pinky_2_l",
+    "hand.pinky_3_l"
+   ]
+  },
+  {
+   "id": "thigh",
+   "bones": "thigh/thigh_twist_01/calf",
+   "contents": "Front/outer/rear/inner shells, knee cap",
+   "plates": [
+    "thigh.front_l",
+    "thigh.outer_l",
+    "thigh.rear_l",
+    "thigh.inner_l",
+    "knee.cap_l",
+    "under.thigh_l"
+   ]
+  },
+  {
+   "id": "shin",
+   "bones": "calf/calf_twist_01",
+   "contents": "Shin front, calf shell, ankle ring",
+   "plates": [
+    "shin.front_l",
+    "shin.calf_l",
+    "shin.ankle_l",
+    "under.shin_l"
+   ]
+  },
+  {
+   "id": "boot",
+   "bones": "foot/ball",
+   "contents": "Cuff, instep, heel, toe cap, split sole, boot jet",
+   "plates": [
+    "boot.cuff_l",
+    "boot.vamp_l",
+    "boot.heel_l",
+    "boot.toe_l",
+    "boot.sole_rear_l",
+    "boot.sole_front_l",
+    "boot.jet_l"
+   ]
+  }
+ ],
+ "plates": [
+  {
+   "id": "helmet.faceplate",
+   "name": "HelmetFaceplate",
+   "segment": "helmet",
+   "side": "C",
+   "bone": "head",
+   "offset": {
+    "location": [
+     11.5,
+     0,
+     2
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      0,
+      12.5
+     ],
+     [
+      5,
+      12.2
+     ],
+     [
+      7,
+      9.5
+     ],
+     [
+      7.6,
+      3
+     ],
+     [
+      7.1,
+      -2
+     ],
+     [
+      5.6,
+      -5.8
+     ],
+     [
+      3.2,
+      -8.6
+     ],
+     [
+      0,
+      -9.4
+     ],
+     [
+      -3.2,
+      -8.6
+     ],
+     [
+      -5.6,
+      -5.8
+     ],
+     [
+      -7.1,
+      -2
+     ],
+     [
+      -7.6,
+      3
+     ],
+     [
+      -7,
+      9.5
+     ],
+     [
+      -5,
+      12.2
+     ]
+    ],
+    "wrapU": 9.5,
+    "wrapV": 22,
+    "holes": [
+     [
+      [
+       -1.4,
+       8.6
+      ],
+      [
+       -5.6,
+       8.9
+      ],
+      [
+       -6.0,
+       7.8
+      ],
+      [
+       -2.0,
+       7.2
+      ]
+     ],
+     [
+      [
+       1.4,
+       8.6
+      ],
+      [
+       5.6,
+       8.9
+      ],
+      [
+       6.0,
+       7.8
+      ],
+      [
+       2.0,
+       7.2
+      ]
+     ]
+    ]
+   },
+   "thickness": 0.7,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       -3.2,
+       -3.0
+      ],
+      [
+       0,
+       -3.4
+      ],
+      [
+       3.2,
+       -3.0
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "pts": [
+      [
+       -6.8,
+       2.5
+      ],
+      [
+       -5.6,
+       -1.5
+      ],
+      [
+       -4.2,
+       -6.2
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "pts": [
+      [
+       6.8,
+       2.5
+      ],
+      [
+       5.6,
+       -1.5
+      ],
+      [
+       4.2,
+       -6.2
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "pts": [
+      [
+       0,
+       12.5
+      ],
+      [
+       0,
+       5.5
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.6
+    }
+   ],
+   "slot": "secondary",
+   "layer": 3,
+   "overlaps": [
+    {
+     "plate": "helmet.shell",
+     "cm": 0.8,
+     "edge": "perimeter",
+     "mode": "over"
+    },
+    {
+     "plate": "helmet.jaw_l",
+     "cm": 0.8,
+     "edge": "side",
+     "mode": "over"
+    },
+    {
+     "plate": "helmet.jaw_r",
+     "cm": 0.8,
+     "edge": "side",
+     "mode": "over"
+    }
+   ],
+   "notes": "Faceplate hinges up about local Y at v=+12.5 (pivot head-local [10.8,0,14.5]) for the visor-open animation. Lines: mouth, two cheek tear-lines, short brow seam.",
+   "mirror": false
+  },
+  {
+   "id": "helmet.eye_l",
+   "name": "HelmetEyeL",
+   "segment": "helmet",
+   "side": "L",
+   "bone": "head",
+   "offset": {
+    "location": [
+     11.05,
+     0,
+     2
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -1.5,
+      8.5
+     ],
+     [
+      -5.5,
+      8.8
+     ],
+     [
+      -5.9,
+      7.9
+     ],
+     [
+      -2.1,
+      7.3
+     ]
+    ],
+    "wrapU": 9.5,
+    "wrapV": 22
+   },
+   "thickness": 0.15,
+   "bevel": {
+    "radius": 0.05,
+    "segments": 1
+   },
+   "panelLines": [],
+   "slot": "glow.eyes",
+   "glow": {
+    "channel": "eyes",
+    "intensity": 20
+   },
+   "layer": 2,
+   "overlaps": [],
+   "notes": "0.45 cm behind the faceplate surface inside the eye hole; ClassifyGlow keys on 'Eye'.",
+   "mirror": true
+  },
+  {
+   "id": "helmet.shell",
+   "name": "HelmetShell",
+   "segment": "helmet",
+   "side": "C",
+   "bone": "head",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "superellipsoidShell",
+    "center": [
+     1.0,
+     0,
+     8.5
+    ],
+    "radii": [
+     13.0,
+     10.2,
+     14.8
+    ],
+    "exponents": [
+     2.4,
+     2.4
+    ],
+    "clip": [
+     {
+      "n": [
+       1,
+       0,
+       0
+      ],
+      "d": 8.2
+     },
+     {
+      "n": [
+       0,
+       0,
+       -1
+      ],
+      "d": 15.5
+     }
+    ]
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.4,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "plane": {
+      "n": [
+       0,
+       1,
+       0
+      ],
+      "d": 0
+     },
+     "width": 0.18,
+     "depthScale": 1.0,
+     "note": "sagittal crown seam"
+    },
+    {
+     "plane": {
+      "n": [
+       1,
+       0,
+       0
+      ],
+      "d": -2.0
+     },
+     "width": 0.18,
+     "depthScale": 0.8,
+     "note": "coronal seam behind the ears"
+    }
+   ],
+   "slot": "primary",
+   "layer": 1,
+   "overlaps": [],
+   "notes": "Helmet back/shell: 26 x 20.4 x 29.6 cm outer. Front clipped 8.2 cm ahead of the centre for the faceplate, bottom at the jaw line.",
+   "mirror": false
+  },
+  {
+   "id": "helmet.jaw_l",
+   "name": "HelmetJawL",
+   "segment": "helmet",
+   "side": "L",
+   "bone": "head",
+   "offset": {
+    "location": [
+     1.0,
+     -9.4,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": -90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -3,
+      2
+     ],
+     [
+      4,
+      2.5
+     ],
+     [
+      9.5,
+      0
+     ],
+     [
+      10,
+      -6
+     ],
+     [
+      6,
+      -9.5
+     ],
+     [
+      -1,
+      -6.5
+     ]
+    ],
+    "wrapU": 11,
+    "wrapV": null
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       0,
+       0.5
+      ],
+      [
+       7,
+       -1
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    }
+   ],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "helmet.shell",
+     "cm": 1.0,
+     "edge": "top",
+     "mode": "over"
+    }
+   ],
+   "notes": "Cheek/jaw frame from ear to chin; u+ = forward after yaw -90.",
+   "mirror": true
+  },
+  {
+   "id": "helmet.ear_l",
+   "name": "HelmetEarL",
+   "segment": "helmet",
+   "side": "L",
+   "bone": "head",
+   "offset": {
+    "location": [
+     0.5,
+     -10.6,
+     7
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": -90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "revolve",
+    "axis": "X",
+    "profile": [
+     [
+      0,
+      0.6
+     ],
+     [
+      3.6,
+      0.6
+     ],
+     [
+      3.8,
+      0.2
+     ],
+     [
+      3.8,
+      0
+     ]
+    ],
+    "sweep": 360,
+    "radialSegments": 32
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 3,
+   "overlaps": [
+    {
+     "plate": "helmet.shell",
+     "cm": 0,
+     "edge": "face",
+     "mode": "onTop"
+    }
+   ],
+   "notes": "7.6 cm ear disc.",
+   "mirror": true
+  },
+  {
+   "id": "helmet.chin_rear",
+   "name": "HelmetNapeGuard",
+   "segment": "helmet",
+   "side": "C",
+   "bone": "head",
+   "offset": {
+    "location": [
+     -9.5,
+     0,
+     -3.5
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 180,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -7,
+      0
+     ],
+     [
+      7,
+      0
+     ],
+     [
+      6,
+      -4.5
+     ],
+     [
+      -6,
+      -4.5
+     ]
+    ],
+    "wrapU": 8,
+    "wrapV": null
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "neck.lame_upper",
+     "cm": 1.2,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": false
+  },
+  {
+   "id": "neck.lame_lower",
+   "name": "NeckLameLower",
+   "segment": "neck",
+   "side": "C",
+   "bone": "neck_01",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 0,
+      "rx": 7.2,
+      "ry": 6.8,
+      "n": 2.2
+     },
+     {
+      "z": 4,
+      "rx": 6.6,
+      "ry": 6.2,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0.6,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "ring": 2,
+     "width": 0.18,
+     "depthScale": 0.6
+    }
+   ],
+   "slot": "accent",
+   "layer": 1,
+   "overlaps": [],
+   "mirror": false
+  },
+  {
+   "id": "neck.lame_upper",
+   "name": "NeckLameUpper",
+   "segment": "neck",
+   "side": "C",
+   "bone": "neck_02",
+   "offset": {
+    "location": [
+     0,
+     0,
+     -1.0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 0,
+      "rx": 6.8,
+      "ry": 6.4,
+      "n": 2.2
+     },
+     {
+      "z": 4.5,
+      "rx": 6.2,
+      "ry": 5.8,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0.6,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "accent",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "neck.lame_lower",
+     "cm": 1.0,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": false
+  },
+  {
+   "id": "chest.pec_l",
+   "name": "ChestPecL",
+   "segment": "chest",
+   "side": "L",
+   "bone": "spine_05",
+   "offset": {
+    "location": [
+     12.5,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -1.2,
+      9
+     ],
+     [
+      -9,
+      10.5
+     ],
+     [
+      -15,
+      8
+     ],
+     [
+      -17,
+      2
+     ],
+     [
+      -15.5,
+      -5
+     ],
+     [
+      -9,
+      -9.5
+     ],
+     [
+      -3,
+      -8.5
+     ],
+     [
+      -1.2,
+      -4
+     ]
+    ],
+    "wrapU": 17,
+    "wrapV": 40,
+    "circleCuts": [
+     {
+      "center": [
+       0,
+       1
+      ],
+      "radius": 6.6
+     }
+    ]
+   },
+   "thickness": 1.0,
+   "bevel": {
+    "radius": 0.4,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       -6.5,
+       -4
+      ],
+      [
+       -14,
+       -4
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "pts": [
+      [
+       -9,
+       10.5
+      ],
+      [
+       -12.5,
+       3
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "pts": [
+      [
+       -15.5,
+       -5
+      ],
+      [
+       -11,
+       -9.2
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.8
+    }
+   ],
+   "slot": "primary",
+   "layer": 5,
+   "overlaps": [
+    {
+     "plate": "chest.side_l",
+     "cm": 1.2,
+     "edge": "outer",
+     "mode": "over"
+    },
+    {
+     "plate": "abs.row1_l",
+     "cm": 1.0,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "16 x 20 cm pec; inner edge cut by the 6.6 cm reactor circle.",
+   "mirror": true
+  },
+  {
+   "id": "chest.collar",
+   "name": "ChestCollar",
+   "segment": "chest",
+   "side": "C",
+   "bone": "spine_05",
+   "offset": {
+    "location": [
+     11.8,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -7,
+      15
+     ],
+     [
+      7,
+      15
+     ],
+     [
+      9.5,
+      12
+     ],
+     [
+      5.5,
+      8.2
+     ],
+     [
+      -5.5,
+      8.2
+     ],
+     [
+      -9.5,
+      12
+     ]
+    ],
+    "wrapU": 16,
+    "wrapV": 30
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       0,
+       15
+      ],
+      [
+       0,
+       8.2
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.7
+    }
+   ],
+   "slot": "accent",
+   "layer": 6,
+   "overlaps": [
+    {
+     "plate": "chest.pec_l",
+     "cm": 0.8,
+     "edge": "bottom",
+     "mode": "over"
+    },
+    {
+     "plate": "chest.pec_r",
+     "cm": 0.8,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": false
+  },
+  {
+   "id": "chest.side_l",
+   "name": "ChestSideL",
+   "segment": "chest",
+   "side": "L",
+   "bone": "spine_05",
+   "offset": {
+    "location": [
+     0,
+     -16.0,
+     -1
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": -90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -7,
+      4
+     ],
+     [
+      8,
+      5
+     ],
+     [
+      10,
+      -6
+     ],
+     [
+      6,
+      -15
+     ],
+     [
+      -6,
+      -14
+     ]
+    ],
+    "wrapU": 16,
+    "wrapV": null
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       -5,
+       -5
+      ],
+      [
+       8,
+       -5
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    }
+   ],
+   "slot": "primary",
+   "shade": 0.9,
+   "layer": 1,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "chest.reactor_housing",
+   "name": "ChestReactorRing",
+   "segment": "chest",
+   "side": "C",
+   "bone": "spine_05",
+   "offset": {
+    "location": [
+     13.6,
+     0,
+     1
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "revolve",
+    "axis": "X",
+    "profile": [
+     [
+      4.2,
+      0
+     ],
+     [
+      4.2,
+      1.4
+     ],
+     [
+      5.0,
+      1.7
+     ],
+     [
+      6.4,
+      1.2
+     ],
+     [
+      6.6,
+      0
+     ]
+    ],
+    "sweep": 360,
+    "radialSegments": 32
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.2,
+    "segments": 2
+   },
+   "panelLines": [
+    {
+     "ringR": 5.2,
+     "width": 0.15,
+     "depthScale": 1.0
+    }
+   ],
+   "slot": "accent",
+   "layer": 6,
+   "overlaps": [
+    {
+     "plate": "chest.pec_l",
+     "cm": 0.2,
+     "edge": "cut",
+     "mode": "over"
+    },
+    {
+     "plate": "chest.pec_r",
+     "cm": 0.2,
+     "edge": "cut",
+     "mode": "over"
+    }
+   ],
+   "variantGroup": "reactor.round",
+   "notes": "Revolve [r,h] about local +X (forward); thickness 0 = solid of revolution; 13.2 cm across, 1.7 cm proud.",
+   "mirror": false
+  },
+  {
+   "id": "chest.reactor_core",
+   "name": "ArcReactorCore",
+   "segment": "chest",
+   "side": "C",
+   "bone": "spine_05",
+   "offset": {
+    "location": [
+     13.9,
+     0,
+     1
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "revolve",
+    "axis": "X",
+    "profile": [
+     [
+      0,
+      0.9
+     ],
+     [
+      1.5,
+      0.85
+     ],
+     [
+      4.2,
+      0.4
+     ],
+     [
+      4.2,
+      0
+     ]
+    ],
+    "sweep": 360,
+    "radialSegments": 32
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.1,
+    "segments": 1
+   },
+   "panelLines": [],
+   "slot": "glow.reactor",
+   "glow": {
+    "channel": "reactor",
+    "intensity": 25
+   },
+   "layer": 7,
+   "overlaps": [],
+   "variantGroup": "reactor.round",
+   "mirror": false
+  },
+  {
+   "id": "back.upper",
+   "name": "BackUpper",
+   "segment": "back",
+   "side": "C",
+   "bone": "spine_05",
+   "offset": {
+    "location": [
+     -11.0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 180,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -6,
+      14
+     ],
+     [
+      -15,
+      11
+     ],
+     [
+      -17,
+      2
+     ],
+     [
+      -14,
+      -8
+     ],
+     [
+      0,
+      -10
+     ],
+     [
+      14,
+      -8
+     ],
+     [
+      17,
+      2
+     ],
+     [
+      15,
+      11
+     ],
+     [
+      6,
+      14
+     ]
+    ],
+    "wrapU": 17,
+    "wrapV": 45
+   },
+   "thickness": 1.0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       0,
+       14
+      ],
+      [
+       0,
+       -10
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.8
+    },
+    {
+     "pts": [
+      [
+       -12,
+       -2
+      ],
+      [
+       -5,
+       -2
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "pts": [
+      [
+       5,
+       -2
+      ],
+      [
+       12,
+       -2
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    }
+   ],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "back.lower",
+     "cm": 1.5,
+     "edge": "bottom",
+     "mode": "over"
+    },
+    {
+     "plate": "chest.side_l",
+     "cm": 1.0,
+     "edge": "side",
+     "mode": "over"
+    },
+    {
+     "plate": "chest.side_r",
+     "cm": 1.0,
+     "edge": "side",
+     "mode": "over"
+    }
+   ],
+   "notes": "34 x 24 cm. Authored in rear view: after yaw 180, +u points to the character's LEFT (-Y).",
+   "mirror": false
+  },
+  {
+   "id": "back.flap_l",
+   "name": "BackFlapL",
+   "segment": "back",
+   "side": "L",
+   "bone": "spine_05",
+   "offset": {
+    "location": [
+     -11.9,
+     0,
+     -3.5
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 180,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      1.5,
+      1.5
+     ],
+     [
+      6.5,
+      1.5
+     ],
+     [
+      6.5,
+      -2.0
+     ],
+     [
+      1.5,
+      -2.5
+     ]
+    ],
+    "wrapU": 17,
+    "wrapV": null
+   },
+   "thickness": 0.5,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 3,
+   "overlaps": [
+    {
+     "plate": "back.upper",
+     "cm": 0,
+     "edge": "face",
+     "mode": "onTop"
+    }
+   ],
+   "notes": "Flight-stabiliser flap over the shoulder blade; u>0 = left in rear view. Hinge on its top edge, opens 0-35 deg in flight.",
+   "mirror": true
+  },
+  {
+   "id": "back.lower",
+   "name": "BackLower",
+   "segment": "back",
+   "side": "C",
+   "bone": "spine_03",
+   "offset": {
+    "location": [
+     -10.5,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 180,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -14,
+      6
+     ],
+     [
+      14,
+      6
+     ],
+     [
+      13,
+      -6
+     ],
+     [
+      0,
+      -7
+     ],
+     [
+      -13,
+      -6
+     ]
+    ],
+    "wrapU": 15,
+    "wrapV": null
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       0,
+       6
+      ],
+      [
+       0,
+       -7
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.8
+    }
+   ],
+   "slot": "secondary",
+   "layer": 1,
+   "overlaps": [
+    {
+     "plate": "pelvis.rear_l",
+     "cm": 1.0,
+     "edge": "bottom",
+     "mode": "over"
+    },
+    {
+     "plate": "pelvis.rear_r",
+     "cm": 1.0,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": false
+  },
+  {
+   "id": "abs.row1_l",
+   "name": "AbsRow1L",
+   "segment": "abs",
+   "side": "L",
+   "bone": "spine_03",
+   "offset": {
+    "location": [
+     11.6,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -0.6,
+      2.6
+     ],
+     [
+      -9.5,
+      2.6
+     ],
+     [
+      -9.9,
+      -2.4
+     ],
+     [
+      -0.6,
+      -2.6
+     ]
+    ],
+    "wrapU": 15,
+    "wrapV": null,
+    "cornerRadius": 0.4
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       -4.75,
+       2.6
+      ],
+      [
+       -4.75,
+       -2.6
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.5
+    }
+   ],
+   "slot": "secondary",
+   "layer": 4,
+   "overlaps": [
+    {
+     "plate": "abs.row2_l",
+     "cm": 0.8,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "5.2 cm tall lame; overlaps the one below. 1.2 cm linea-alba gap at u=0.",
+   "mirror": true
+  },
+  {
+   "id": "abs.row2_l",
+   "name": "AbsRow2L",
+   "segment": "abs",
+   "side": "L",
+   "bone": "spine_02",
+   "offset": {
+    "location": [
+     11.2,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -0.6,
+      2.6
+     ],
+     [
+      -9.0,
+      2.6
+     ],
+     [
+      -9.4,
+      -2.4
+     ],
+     [
+      -0.6,
+      -2.6
+     ]
+    ],
+    "wrapU": 15,
+    "wrapV": null,
+    "cornerRadius": 0.4
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       -4.5,
+       2.6
+      ],
+      [
+       -4.5,
+       -2.6
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.5
+    }
+   ],
+   "slot": "secondary",
+   "layer": 3,
+   "overlaps": [
+    {
+     "plate": "abs.row3_l",
+     "cm": 0.8,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "5.2 cm tall lame; overlaps the one below. 1.2 cm linea-alba gap at u=0.",
+   "mirror": true
+  },
+  {
+   "id": "abs.row3_l",
+   "name": "AbsRow3L",
+   "segment": "abs",
+   "side": "L",
+   "bone": "spine_01",
+   "offset": {
+    "location": [
+     10.8,
+     0,
+     1.0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -0.6,
+      2.6
+     ],
+     [
+      -8.6,
+      2.6
+     ],
+     [
+      -9.0,
+      -2.4
+     ],
+     [
+      -0.6,
+      -2.6
+     ]
+    ],
+    "wrapU": 15,
+    "wrapV": null,
+    "cornerRadius": 0.4
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       -4.3,
+       2.6
+      ],
+      [
+       -4.3,
+       -2.6
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.5
+    }
+   ],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "pelvis.belt",
+     "cm": 1.0,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "5.2 cm tall lame; overlaps the one below. 1.2 cm linea-alba gap at u=0.",
+   "mirror": true
+  },
+  {
+   "id": "abs.oblique_l",
+   "name": "AbsObliqueL",
+   "segment": "abs",
+   "side": "L",
+   "bone": "spine_02",
+   "offset": {
+    "location": [
+     0,
+     -14.2,
+     2
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": -90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -5,
+      6
+     ],
+     [
+      6,
+      7
+     ],
+     [
+      7,
+      -7
+     ],
+     [
+      -4,
+      -8
+     ]
+    ],
+    "wrapU": 14,
+    "wrapV": null
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "shade": 0.9,
+   "layer": 1,
+   "overlaps": [
+    {
+     "plate": "pelvis.belt",
+     "cm": 1.2,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": true
+  },
+  {
+   "id": "pelvis.belt",
+   "name": "PelvisBelt",
+   "segment": "pelvis",
+   "side": "C",
+   "bone": "pelvis",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -2,
+      "rx": 13.2,
+      "ry": 17.4,
+      "n": 2.8
+     },
+     {
+      "z": 4,
+      "rx": 13.8,
+      "ry": 17.0,
+      "n": 2.8
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "ring": 1,
+     "width": 0.18,
+     "depthScale": 0.7
+    }
+   ],
+   "slot": "accent",
+   "layer": 1,
+   "overlaps": [],
+   "notes": "Full ring 27 x 35 cm, 6 cm tall.",
+   "mirror": false
+  },
+  {
+   "id": "pelvis.codpiece",
+   "name": "PelvisCodpiece",
+   "segment": "pelvis",
+   "side": "C",
+   "bone": "pelvis",
+   "offset": {
+    "location": [
+     13.0,
+     0,
+     -1.5
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -7,
+      0
+     ],
+     [
+      7,
+      0
+     ],
+     [
+      6,
+      -6
+     ],
+     [
+      2.5,
+      -12.5
+     ],
+     [
+      -2.5,
+      -12.5
+     ],
+     [
+      -6,
+      -6
+     ]
+    ],
+    "wrapU": 13,
+    "wrapV": 25
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       -12.5
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.6
+    }
+   ],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "pelvis.belt",
+     "cm": 1.5,
+     "edge": "top",
+     "mode": "under"
+    }
+   ],
+   "mirror": false
+  },
+  {
+   "id": "pelvis.hip_l",
+   "name": "PelvisHipL",
+   "segment": "pelvis",
+   "side": "L",
+   "bone": "pelvis",
+   "offset": {
+    "location": [
+     0,
+     -17.0,
+     -3.5
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": -90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -6,
+      3
+     ],
+     [
+      6,
+      3
+     ],
+     [
+      5,
+      -8
+     ],
+     [
+      -5,
+      -9
+     ]
+    ],
+    "wrapU": 16,
+    "wrapV": null
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "thigh.outer_l",
+     "cm": 1.5,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": true
+  },
+  {
+   "id": "pelvis.rear_l",
+   "name": "PelvisRearL",
+   "segment": "pelvis",
+   "side": "L",
+   "bone": "pelvis",
+   "offset": {
+    "location": [
+     -11.5,
+     0,
+     -3
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 180,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      0.8,
+      3
+     ],
+     [
+      12,
+      3
+     ],
+     [
+      12.5,
+      -7
+     ],
+     [
+      6,
+      -11
+     ],
+     [
+      0.8,
+      -9
+     ]
+    ],
+    "wrapU": 14,
+    "wrapV": 20
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "thigh.rear_l",
+     "cm": 1.5,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "Glute plate (rear view, u>0 = left). Thigh rear shell tucks under it by 1.5 cm; deep hip flexion opens a gap filled by undersuit.",
+   "mirror": true
+  },
+  {
+   "id": "shoulder.deltoid_upper_l",
+   "name": "DeltoidUpperL",
+   "segment": "shoulder",
+   "side": "L",
+   "bone": "upperarm_twist_01_l",
+   "fallbackBone": "upperarm_l",
+   "frameBone": "upperarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 1.5,
+      "rx": 7.2,
+      "ry": 7.6,
+      "n": 2.2
+     },
+     {
+      "z": -6,
+      "rx": 7.4,
+      "ry": 7.6,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "ring": -2.5,
+     "width": 0.18,
+     "depthScale": 0.8
+    }
+   ],
+   "slot": "primary",
+   "layer": 3,
+   "overlaps": [
+    {
+     "plate": "shoulder.deltoid_lower_l",
+     "cm": 1.8,
+     "edge": "bottom",
+     "mode": "over"
+    },
+    {
+     "plate": "chest.side_l",
+     "cm": 1.0,
+     "edge": "inner",
+     "mode": "over"
+    }
+   ],
+   "notes": "Arc -200..20 deg covers front-lateral-rear (theta 0 = front, -90 = lateral on the left arm). 7.5 cm tall cap.",
+   "mirror": true
+  },
+  {
+   "id": "shoulder.deltoid_lower_l",
+   "name": "DeltoidLowerL",
+   "segment": "shoulder",
+   "side": "L",
+   "bone": "upperarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -4.5,
+      "rx": 7.0,
+      "ry": 7.2,
+      "n": 2.2
+     },
+     {
+      "z": -10,
+      "rx": 6.8,
+      "ry": 6.9,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -190,
+     "end": 10
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "upperarm.upper_l",
+     "cm": 1.5,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": true
+  },
+  {
+   "id": "shoulder.clavicle_l",
+   "name": "ClavicleTopL",
+   "segment": "shoulder",
+   "side": "L",
+   "bone": "clavicle_l",
+   "offset": {
+    "location": [
+     0,
+     -1.0,
+     4.5
+    ],
+    "rotation": {
+     "pitch": 90,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -2,
+      3
+     ],
+     [
+      -13,
+      3.5
+     ],
+     [
+      -14,
+      -2
+     ],
+     [
+      -2,
+      -3
+     ]
+    ],
+    "wrapU": 14,
+    "wrapV": null
+   },
+   "thickness": 0.7,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "accent",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "chest.pec_l",
+     "cm": 1.0,
+     "edge": "front",
+     "mode": "over"
+    },
+    {
+     "plate": "back.upper",
+     "cm": 1.0,
+     "edge": "rear",
+     "mode": "over"
+    }
+   ],
+   "notes": "Lies on the trapezius (pitch +90 = local +X up); u = lateral (-Y), v = front/back.",
+   "mirror": true
+  },
+  {
+   "id": "upperarm.upper_l",
+   "name": "UpperArmUpperL",
+   "segment": "upperarm",
+   "side": "L",
+   "bone": "upperarm_twist_01_l",
+   "fallbackBone": "upperarm_l",
+   "frameBone": "upperarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -8,
+      "rx": 6.7,
+      "ry": 6.9,
+      "n": 2.3
+     },
+     {
+      "z": -17,
+      "rx": 6.5,
+      "ry": 6.4,
+      "n": 2.3
+     }
+    ],
+    "arc": {
+     "start": -220,
+     "end": 40
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "seam": -90,
+     "z": [
+      -8,
+      -17
+     ],
+     "width": 0.18,
+     "depthScale": 0.8
+    }
+   ],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "upperarm.lower_l",
+     "cm": 2.0,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": true
+  },
+  {
+   "id": "upperarm.lower_l",
+   "name": "UpperArmLowerL",
+   "segment": "upperarm",
+   "side": "L",
+   "bone": "upperarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -15,
+      "rx": 6.4,
+      "ry": 6.3,
+      "n": 2.3
+     },
+     {
+      "z": -27,
+      "rx": 5.7,
+      "ry": 5.5,
+      "n": 2.3
+     }
+    ],
+    "arc": {
+     "start": -220,
+     "end": 40
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "ring": -21,
+     "width": 0.18,
+     "depthScale": 1.0
+    }
+   ],
+   "slot": "primary",
+   "shade": 0.95,
+   "layer": 1,
+   "overlaps": [
+    {
+     "plate": "elbow.cap_l",
+     "cm": 1.5,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": true
+  },
+  {
+   "id": "upperarm.inner_l",
+   "name": "UpperArmInnerL",
+   "segment": "upperarm",
+   "side": "L",
+   "bone": "upperarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -9,
+      "rx": 6.0,
+      "ry": 6.0,
+      "n": 2.0
+     },
+     {
+      "z": -26,
+      "rx": 5.3,
+      "ry": 5.2,
+      "n": 2.0
+     }
+    ],
+    "arc": {
+     "start": 30,
+     "end": 150
+    }
+   },
+   "thickness": 0.6,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 0,
+   "overlaps": [],
+   "notes": "Medial strip; 10 deg under each outer shell edge.",
+   "mirror": true
+  },
+  {
+   "id": "elbow.cap_l",
+   "name": "ElbowCapL",
+   "segment": "forearm",
+   "side": "L",
+   "bone": "lowerarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "superellipsoidShell",
+    "center": [
+     -4.2,
+     0,
+     0
+    ],
+    "radii": [
+     3.0,
+     4.2,
+     4.6
+    ],
+    "exponents": [
+     2.2,
+     2.2
+    ],
+    "clip": [
+     {
+      "n": [
+       1,
+       0,
+       0
+      ],
+      "d": 0.6
+     }
+    ]
+   },
+   "thickness": 0.7,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "accent",
+   "layer": 3,
+   "overlaps": [],
+   "notes": "Olecranon cup behind the elbow; slides under UpperArmLower on extension.",
+   "mirror": true
+  },
+  {
+   "id": "forearm.upper_l",
+   "name": "ForearmUpperL",
+   "segment": "forearm",
+   "side": "L",
+   "bone": "lowerarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -1,
+      "rx": 6.0,
+      "ry": 6.2,
+      "n": 2.4
+     },
+     {
+      "z": -13,
+      "rx": 5.3,
+      "ry": 5.4,
+      "n": 2.4
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 175
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "seam": -90,
+     "z": [
+      -2,
+      -12
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "ring": -7,
+     "width": 0.18,
+     "depthScale": 0.6
+    }
+   ],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "forearm.lower_l",
+     "cm": 2.0,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "Near-full ring; 5 deg open on the inner side (theta 175..180) for flexion clearance.",
+   "mirror": true
+  },
+  {
+   "id": "forearm.lower_l",
+   "name": "ForearmLowerL",
+   "segment": "forearm",
+   "side": "L",
+   "bone": "lowerarm_twist_01_l",
+   "fallbackBone": "lowerarm_l",
+   "frameBone": "lowerarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -11,
+      "rx": 5.3,
+      "ry": 5.4,
+      "n": 2.4
+     },
+     {
+      "z": -24,
+      "rx": 4.4,
+      "ry": 4.6,
+      "n": 2.4
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "seam": -60,
+     "z": [
+      -12,
+      -23
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    },
+    {
+     "seam": 60,
+     "z": [
+      -12,
+      -23
+     ],
+     "width": 0.18,
+     "depthScale": 1.0
+    }
+   ],
+   "slot": "secondary",
+   "layer": 1,
+   "overlaps": [
+    {
+     "plate": "forearm.cuff_l",
+     "cm": 0.8,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "On the wrist twist bone so the distal forearm follows pronation.",
+   "mirror": true
+  },
+  {
+   "id": "forearm.cuff_l",
+   "name": "WristCuffL",
+   "segment": "forearm",
+   "side": "L",
+   "bone": "lowerarm_twist_01_l",
+   "fallbackBone": "lowerarm_l",
+   "frameBone": "lowerarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -23.5,
+      "rx": 4.7,
+      "ry": 4.9,
+      "n": 2.6
+     },
+     {
+      "z": -26.5,
+      "rx": 4.5,
+      "ry": 4.7,
+      "n": 2.6
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0.7,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "accent",
+   "layer": 2,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "hand.back_l",
+   "name": "HandBackL",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "hand_l",
+   "offset": {
+    "location": [
+     0,
+     -2.4,
+     -0.5
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": -90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -4.2,
+      0
+     ],
+     [
+      4.2,
+      0
+     ],
+     [
+      4.6,
+      -9.5
+     ],
+     [
+      -4.0,
+      -10
+     ]
+    ],
+    "wrapU": 6,
+    "wrapV": null,
+    "cornerRadius": 0.6
+   },
+   "thickness": 0.7,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "pts": [
+      [
+       -3,
+       -4
+      ],
+      [
+       3,
+       -4
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.7
+    },
+    {
+     "pts": [
+      [
+       0,
+       0
+      ],
+      [
+       0,
+       -9.6
+      ]
+     ],
+     "width": 0.18,
+     "depthScale": 0.5
+    }
+   ],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "forearm.cuff_l",
+     "cm": 0.8,
+     "edge": "top",
+     "mode": "under"
+    }
+   ],
+   "notes": "Dorsal plate 8.6 x 10 cm; u = across the knuckles (u+ = thumb side), v down the hand.",
+   "mirror": true
+  },
+  {
+   "id": "hand.knuckle_l",
+   "name": "HandKnuckleL",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "hand_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -8.8,
+      "rx": 2.2,
+      "ry": 4.4,
+      "n": 3.0
+     },
+     {
+      "z": -11,
+      "rx": 2.0,
+      "ry": 4.4,
+      "n": 3.0
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 0
+    }
+   },
+   "thickness": 0.6,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "accent",
+   "layer": 3,
+   "overlaps": [],
+   "notes": "Knuckle bar over the MCP joints (dorsal half ring).",
+   "mirror": true
+  },
+  {
+   "id": "hand.palm_l",
+   "name": "PalmPlateL",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "hand_l",
+   "offset": {
+    "location": [
+     0,
+     2.1,
+     -0.5
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -4,
+      0
+     ],
+     [
+      4,
+      0
+     ],
+     [
+      4,
+      -8.5
+     ],
+     [
+      -4,
+      -8.5
+     ]
+    ],
+    "wrapU": 10,
+    "wrapV": null,
+    "circleCuts": [
+     {
+      "center": [
+       0,
+       -4.8
+      ],
+      "radius": 1.7
+     }
+    ]
+   },
+   "thickness": 0.5,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 1,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "hand.repulsor_l",
+   "name": "PalmRepulsorL",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "hand_l",
+   "offset": {
+    "location": [
+     0,
+     2.3,
+     -5.3
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 90,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "revolve",
+    "axis": "X",
+    "profile": [
+     [
+      0,
+      0.35
+     ],
+     [
+      1.6,
+      0.2
+     ],
+     [
+      1.6,
+      0
+     ]
+    ],
+    "sweep": 360,
+    "radialSegments": 32
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.05,
+    "segments": 1
+   },
+   "panelLines": [],
+   "slot": "glow.repulsors",
+   "glow": {
+    "channel": "repulsors",
+    "intensity": 15
+   },
+   "layer": 4,
+   "overlaps": [],
+   "notes": "3.2 cm disc on the palm normal; 'Palm'/'Repulsor' -> repulsor channel, brightness driven by firing.",
+   "mirror": true
+  },
+  {
+   "id": "hand.thumb_1_l",
+   "name": "FingerThumb1L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "thumb_01_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.24,
+      "ry": 1.1,
+      "n": 2.2
+     },
+     {
+      "z": -3.4,
+      "rx": 1.1,
+      "ry": 1.0,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.thumb_2_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 1: length 3.4 cm, width 2.0 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.thumb_2_l",
+   "name": "FingerThumb2L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "thumb_02_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.18,
+      "ry": 1.04,
+      "n": 2.2
+     },
+     {
+      "z": -3.0,
+      "rx": 1.04,
+      "ry": 0.95,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.thumb_3_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 2: length 3.0 cm, width 1.9 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.thumb_3_l",
+   "name": "FingerThumb3L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "thumb_03_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.12,
+      "ry": 0.99,
+      "n": 2.2
+     },
+     {
+      "z": -2.4,
+      "rx": 0.99,
+      "ry": 0.9,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 3: length 2.4 cm, width 1.8 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.index_1_l",
+   "name": "FingerIndex1L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "index_01_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.18,
+      "ry": 1.04,
+      "n": 2.2
+     },
+     {
+      "z": -4.2,
+      "rx": 1.04,
+      "ry": 0.95,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.index_2_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 1: length 4.2 cm, width 1.9 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.index_2_l",
+   "name": "FingerIndex2L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "index_02_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.12,
+      "ry": 0.99,
+      "n": 2.2
+     },
+     {
+      "z": -2.6,
+      "rx": 0.99,
+      "ry": 0.9,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.index_3_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 2: length 2.6 cm, width 1.8 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.index_3_l",
+   "name": "FingerIndex3L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "index_03_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 0.99,
+      "ry": 0.88,
+      "n": 2.2
+     },
+     {
+      "z": -2.1,
+      "rx": 0.88,
+      "ry": 0.8,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 3: length 2.1 cm, width 1.6 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.middle_1_l",
+   "name": "FingerMiddle1L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "middle_01_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.18,
+      "ry": 1.04,
+      "n": 2.2
+     },
+     {
+      "z": -4.5,
+      "rx": 1.04,
+      "ry": 0.95,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.middle_2_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 1: length 4.5 cm, width 1.9 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.middle_2_l",
+   "name": "FingerMiddle2L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "middle_02_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.12,
+      "ry": 0.99,
+      "n": 2.2
+     },
+     {
+      "z": -2.9,
+      "rx": 0.99,
+      "ry": 0.9,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.middle_3_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 2: length 2.9 cm, width 1.8 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.middle_3_l",
+   "name": "FingerMiddle3L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "middle_03_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 0.99,
+      "ry": 0.88,
+      "n": 2.2
+     },
+     {
+      "z": -2.2,
+      "rx": 0.88,
+      "ry": 0.8,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 3: length 2.2 cm, width 1.6 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.ring_1_l",
+   "name": "FingerRing1L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "ring_01_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.12,
+      "ry": 0.99,
+      "n": 2.2
+     },
+     {
+      "z": -4.2,
+      "rx": 0.99,
+      "ry": 0.9,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.ring_2_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 1: length 4.2 cm, width 1.8 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.ring_2_l",
+   "name": "FingerRing2L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "ring_02_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 1.05,
+      "ry": 0.94,
+      "n": 2.2
+     },
+     {
+      "z": -2.7,
+      "rx": 0.94,
+      "ry": 0.85,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.ring_3_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 2: length 2.7 cm, width 1.7 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.ring_3_l",
+   "name": "FingerRing3L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "ring_03_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 0.93,
+      "ry": 0.83,
+      "n": 2.2
+     },
+     {
+      "z": -2.1,
+      "rx": 0.83,
+      "ry": 0.75,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 3: length 2.1 cm, width 1.5 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.pinky_1_l",
+   "name": "FingerPinky1L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "pinky_01_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 0.99,
+      "ry": 0.88,
+      "n": 2.2
+     },
+     {
+      "z": -3.4,
+      "rx": 0.88,
+      "ry": 0.8,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.pinky_2_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 1: length 3.4 cm, width 1.6 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.pinky_2_l",
+   "name": "FingerPinky2L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "pinky_02_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 0.93,
+      "ry": 0.83,
+      "n": 2.2
+     },
+     {
+      "z": -2.1,
+      "rx": 0.83,
+      "ry": 0.75,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "hand.pinky_3_l",
+     "cm": 0.3,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 2: length 2.1 cm, width 1.5 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "hand.pinky_3_l",
+   "name": "FingerPinky3L",
+   "segment": "gauntlet",
+   "side": "L",
+   "bone": "pinky_03_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -0.2,
+      "rx": 0.87,
+      "ry": 0.77,
+      "n": 2.2
+     },
+     {
+      "z": -1.9,
+      "rx": 0.77,
+      "ry": 0.7,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -200,
+     "end": 20
+    }
+   },
+   "thickness": 0.35,
+   "bevel": {
+    "radius": 0.12,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [],
+   "tags": [
+    "finger"
+   ],
+   "notes": "Phalanx 3: length 1.9 cm, width 1.4 cm; dorsal 220 deg arc.",
+   "mirror": true
+  },
+  {
+   "id": "thigh.front_l",
+   "name": "ThighFrontL",
+   "segment": "thigh",
+   "side": "L",
+   "bone": "thigh_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -6,
+      "rx": 8.9,
+      "ry": 8.6,
+      "n": 2.3
+     },
+     {
+      "z": -22,
+      "rx": 8.1,
+      "ry": 7.5,
+      "n": 2.3
+     },
+     {
+      "z": -39,
+      "rx": 6.6,
+      "ry": 6.0,
+      "n": 2.3
+     }
+    ],
+    "arc": {
+     "start": -70,
+     "end": 70
+    }
+   },
+   "thickness": 1.0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "seam": 0,
+     "z": [
+      -10,
+      -36
+     ],
+     "width": 0.18,
+     "depthScale": 0.7
+    },
+    {
+     "ring": -16,
+     "width": 0.18,
+     "depthScale": 1.0
+    }
+   ],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "thigh.outer_l",
+     "cm": 1.0,
+     "edge": "side",
+     "mode": "over"
+    },
+    {
+     "plate": "thigh.inner_l",
+     "cm": 1.0,
+     "edge": "side",
+     "mode": "over"
+    }
+   ],
+   "mirror": true
+  },
+  {
+   "id": "thigh.outer_l",
+   "name": "ThighOuterL",
+   "segment": "thigh",
+   "side": "L",
+   "bone": "thigh_twist_01_l",
+   "fallbackBone": "thigh_l",
+   "frameBone": "thigh_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -4,
+      "rx": 9.0,
+      "ry": 8.8,
+      "n": 2.3
+     },
+     {
+      "z": -22,
+      "rx": 8.2,
+      "ry": 7.6,
+      "n": 2.3
+     },
+     {
+      "z": -40,
+      "rx": 6.8,
+      "ry": 6.2,
+      "n": 2.3
+     }
+    ],
+    "arc": {
+     "start": -170,
+     "end": -60
+    }
+   },
+   "thickness": 1.0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "ring": -28,
+     "width": 0.18,
+     "depthScale": 0.8
+    }
+   ],
+   "slot": "primary",
+   "shade": 0.92,
+   "layer": 1,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "thigh.rear_l",
+   "name": "ThighRearL",
+   "segment": "thigh",
+   "side": "L",
+   "bone": "thigh_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -9,
+      "rx": 8.6,
+      "ry": 8.4,
+      "n": 2.3
+     },
+     {
+      "z": -38,
+      "rx": 6.6,
+      "ry": 6.0,
+      "n": 2.3
+     }
+    ],
+    "arc": {
+     "start": 150,
+     "end": 215
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 0,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "thigh.inner_l",
+   "name": "ThighInnerL",
+   "segment": "thigh",
+   "side": "L",
+   "bone": "thigh_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -8,
+      "rx": 8.3,
+      "ry": 8.1,
+      "n": 2.2
+     },
+     {
+      "z": -38,
+      "rx": 6.4,
+      "ry": 5.8,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": 60,
+     "end": 160
+    }
+   },
+   "thickness": 0.7,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 0,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "knee.cap_l",
+   "name": "KneeCapL",
+   "segment": "thigh",
+   "side": "L",
+   "bone": "calf_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "superellipsoidShell",
+    "center": [
+     5.4,
+     0,
+     -1.5
+    ],
+    "radii": [
+     2.6,
+     5.2,
+     5.6
+    ],
+    "exponents": [
+     2.0,
+     2.4
+    ],
+    "clip": [
+     {
+      "n": [
+       -1,
+       0,
+       0
+      ],
+      "d": -0.4
+     }
+    ]
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "accent",
+   "layer": 3,
+   "overlaps": [
+    {
+     "plate": "thigh.front_l",
+     "cm": 2.0,
+     "edge": "top",
+     "mode": "over"
+    },
+    {
+     "plate": "shin.front_l",
+     "cm": 1.5,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "notes": "Patella cup on calf_l so it stays over the joint as the knee bends; thigh front tucks under it.",
+   "mirror": true
+  },
+  {
+   "id": "shin.front_l",
+   "name": "ShinFrontL",
+   "segment": "shin",
+   "side": "L",
+   "bone": "calf_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -4,
+      "rx": 6.4,
+      "ry": 6.0,
+      "n": 2.4
+     },
+     {
+      "z": -14,
+      "rx": 6.6,
+      "ry": 6.2,
+      "n": 2.4
+     },
+     {
+      "z": -37,
+      "rx": 4.8,
+      "ry": 4.6,
+      "n": 2.4
+     }
+    ],
+    "arc": {
+     "start": -95,
+     "end": 95
+    }
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "seam": 0,
+     "z": [
+      -6,
+      -34
+     ],
+     "width": 0.18,
+     "depthScale": 0.8
+    },
+    {
+     "ring": -25,
+     "width": 0.18,
+     "depthScale": 0.7
+    }
+   ],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "shin.calf_l",
+     "cm": 1.0,
+     "edge": "side",
+     "mode": "over"
+    },
+    {
+     "plate": "boot.cuff_l",
+     "cm": 2.0,
+     "edge": "bottom",
+     "mode": "over"
+    }
+   ],
+   "mirror": true
+  },
+  {
+   "id": "shin.calf_l",
+   "name": "ShinCalfL",
+   "segment": "shin",
+   "side": "L",
+   "bone": "calf_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -5,
+      "rx": 6.8,
+      "ry": 6.2,
+      "n": 2.3
+     },
+     {
+      "z": -15,
+      "rx": 7.3,
+      "ry": 6.6,
+      "n": 2.3
+     },
+     {
+      "z": -36,
+      "rx": 5.0,
+      "ry": 4.6,
+      "n": 2.3
+     }
+    ],
+    "arc": {
+     "start": 85,
+     "end": 275
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [
+    {
+     "seam": 180,
+     "z": [
+      -8,
+      -32
+     ],
+     "width": 0.18,
+     "depthScale": 0.7
+    }
+   ],
+   "slot": "secondary",
+   "layer": 1,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "shin.ankle_l",
+   "name": "AnkleRingL",
+   "segment": "shin",
+   "side": "L",
+   "bone": "calf_twist_01_l",
+   "fallbackBone": "calf_l",
+   "frameBone": "calf_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -37.5,
+      "rx": 5.0,
+      "ry": 4.8,
+      "n": 2.6
+     },
+     {
+      "z": -41,
+      "rx": 4.7,
+      "ry": 4.5,
+      "n": 2.6
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0.6,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "accent",
+   "layer": 0,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "boot.cuff_l",
+   "name": "BootCuffL",
+   "segment": "boot",
+   "side": "L",
+   "bone": "foot_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 2,
+      "rx": 5.6,
+      "ry": 5.2,
+      "n": 2.6
+     },
+     {
+      "z": -4,
+      "rx": 6.6,
+      "ry": 5.6,
+      "n": 2.6
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0.8,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "shade": 0.9,
+   "layer": 1,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "boot.vamp_l",
+   "name": "BootVampL",
+   "segment": "boot",
+   "side": "L",
+   "bone": "foot_l",
+   "offset": {
+    "location": [
+     2.0,
+     0,
+     -1.0
+    ],
+    "rotation": {
+     "pitch": 65,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -4.4,
+      0
+     ],
+     [
+      4.4,
+      0
+     ],
+     [
+      4.8,
+      -13
+     ],
+     [
+      -4.6,
+      -13
+     ]
+    ],
+    "wrapU": 6.5,
+    "wrapV": null
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [
+    {
+     "plate": "boot.cuff_l",
+     "cm": 1.5,
+     "edge": "top",
+     "mode": "over"
+    },
+    {
+     "plate": "boot.toe_l",
+     "cm": 1.0,
+     "edge": "front",
+     "mode": "under"
+    }
+   ],
+   "notes": "Instep plate pitched 65 deg, sloping from the ankle down to the ball.",
+   "mirror": true
+  },
+  {
+   "id": "boot.heel_l",
+   "name": "BootHeelL",
+   "segment": "boot",
+   "side": "L",
+   "bone": "foot_l",
+   "offset": {
+    "location": [
+     -5.5,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 180,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "extrudeShell",
+    "profile": [
+     [
+      -5,
+      2
+     ],
+     [
+      5,
+      2
+     ],
+     [
+      4.6,
+      -8
+     ],
+     [
+      -4.6,
+      -8
+     ]
+    ],
+    "wrapU": 5,
+    "wrapV": null
+   },
+   "thickness": 1.0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "secondary",
+   "layer": 2,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "boot.toe_l",
+   "name": "BootToeL",
+   "segment": "boot",
+   "side": "L",
+   "bone": "ball_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "superellipsoidShell",
+    "center": [
+     2.5,
+     0,
+     -3.0
+    ],
+    "radii": [
+     6.5,
+     4.8,
+     4.0
+    ],
+    "exponents": [
+     2.0,
+     2.6
+    ],
+    "clip": [
+     {
+      "n": [
+       0,
+       0,
+       -1
+      ],
+      "d": 4.8
+     },
+     {
+      "n": [
+       -1,
+       0,
+       0
+      ],
+      "d": 2.5
+     }
+    ]
+   },
+   "thickness": 0.9,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "primary",
+   "layer": 2,
+   "overlaps": [],
+   "notes": "Toe cap ~9 cm forward of the ball.",
+   "mirror": true
+  },
+  {
+   "id": "boot.sole_rear_l",
+   "name": "BootSoleRearL",
+   "segment": "boot",
+   "side": "L",
+   "bone": "foot_l",
+   "offset": {
+    "location": [
+     1.0,
+     0,
+     -7.1
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "box",
+    "size": [
+     20,
+     10.2,
+     1.8
+    ]
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.4,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "fixed.sole",
+   "layer": 1,
+   "overlaps": [],
+   "mirror": true
+  },
+  {
+   "id": "boot.sole_front_l",
+   "name": "BootSoleFrontL",
+   "segment": "boot",
+   "side": "L",
+   "bone": "ball_l",
+   "offset": {
+    "location": [
+     4.0,
+     0,
+     -0.7
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "box",
+    "size": [
+     9,
+     9.6,
+     1.6
+    ]
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.4,
+    "segments": 2
+   },
+   "panelLines": [],
+   "slot": "fixed.sole",
+   "layer": 1,
+   "overlaps": [],
+   "notes": "Flexes with ball_l. Total boot length ~28 cm.",
+   "mirror": true
+  },
+  {
+   "id": "boot.jet_l",
+   "name": "BootJetGlowL",
+   "segment": "boot",
+   "side": "L",
+   "bone": "foot_l",
+   "offset": {
+    "location": [
+     -1.0,
+     0,
+     -8.05
+    ],
+    "rotation": {
+     "pitch": -90,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "revolve",
+    "axis": "X",
+    "profile": [
+     [
+      0,
+      0.2
+     ],
+     [
+      3.0,
+      0.1
+     ],
+     [
+      3.0,
+      0
+     ]
+    ],
+    "sweep": 360,
+    "radialSegments": 32
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.05,
+    "segments": 1
+   },
+   "panelLines": [],
+   "slot": "glow.reactor",
+   "glow": {
+    "channel": "reactor",
+    "intensity": 15
+   },
+   "layer": 4,
+   "overlaps": [],
+   "notes": "Boot thruster facing down; 'Jet' -> ClassifyGlow Other -> reactor colour.",
+   "mirror": true
+  },
+  {
+   "id": "under.upperarm_l",
+   "name": "UndersuitUpperarmL",
+   "segment": "upperarm",
+   "side": "L",
+   "bone": "upperarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 0,
+      "rx": 5.6,
+      "ry": 5.6,
+      "n": 2
+     },
+     {
+      "z": -30,
+      "rx": 4.6,
+      "ry": 4.6,
+      "n": 2
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "fixed.undersuit",
+   "layer": -1,
+   "overlaps": [],
+   "tags": [
+    "fallbackOnly"
+   ],
+   "notes": "Solid tube, only when no skinned body is shown.",
+   "mirror": true
+  },
+  {
+   "id": "under.forearm_l",
+   "name": "UndersuitForearmL",
+   "segment": "forearm",
+   "side": "L",
+   "bone": "lowerarm_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 2,
+      "rx": 4.6,
+      "ry": 4.6,
+      "n": 2
+     },
+     {
+      "z": -26,
+      "rx": 3.6,
+      "ry": 3.6,
+      "n": 2
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "fixed.undersuit",
+   "layer": -1,
+   "overlaps": [],
+   "tags": [
+    "fallbackOnly"
+   ],
+   "notes": "Solid tube, only when no skinned body is shown.",
+   "mirror": true
+  },
+  {
+   "id": "under.thigh_l",
+   "name": "UndersuitThighL",
+   "segment": "thigh",
+   "side": "L",
+   "bone": "thigh_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 0,
+      "rx": 7.8,
+      "ry": 7.8,
+      "n": 2
+     },
+     {
+      "z": -44,
+      "rx": 5.6,
+      "ry": 5.6,
+      "n": 2
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "fixed.undersuit",
+   "layer": -1,
+   "overlaps": [],
+   "tags": [
+    "fallbackOnly"
+   ],
+   "notes": "Solid tube, only when no skinned body is shown.",
+   "mirror": true
+  },
+  {
+   "id": "under.shin_l",
+   "name": "UndersuitShinL",
+   "segment": "shin",
+   "side": "L",
+   "bone": "calf_l",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": 2,
+      "rx": 5.6,
+      "ry": 5.6,
+      "n": 2
+     },
+     {
+      "z": -42,
+      "rx": 3.9,
+      "ry": 3.9,
+      "n": 2
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "fixed.undersuit",
+   "layer": -1,
+   "overlaps": [],
+   "tags": [
+    "fallbackOnly"
+   ],
+   "notes": "Solid tube, only when no skinned body is shown.",
+   "mirror": true
+  },
+  {
+   "id": "under.torso",
+   "name": "UndersuitTorso",
+   "segment": "chest",
+   "side": "C",
+   "bone": "spine_03",
+   "offset": {
+    "location": [
+     0,
+     0,
+     0
+    ],
+    "rotation": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   "geometry": {
+    "type": "loftShell",
+    "stations": [
+     {
+      "z": -40,
+      "rx": 12,
+      "ry": 16,
+      "n": 2.2
+     },
+     {
+      "z": 14,
+      "rx": 12,
+      "ry": 17,
+      "n": 2.2
+     }
+    ],
+    "arc": {
+     "start": -180,
+     "end": 180
+    }
+   },
+   "thickness": 0,
+   "bevel": {
+    "radius": 0.3,
+    "segments": 3
+   },
+   "panelLines": [],
+   "slot": "fixed.undersuit",
+   "layer": -1,
+   "overlaps": [],
+   "tags": [
+    "fallbackOnly"
+   ],
+   "mirror": false
+  }
+ ],
+ "variants": {
+  "helmet": {
+   "classic": {
+    "add": [],
+    "remove": [],
+    "modify": [],
+    "notes": "Base helmet as authored."
+   },
+   "sleek": {
+    "add": [],
+    "remove": [],
+    "modify": [
+     {
+      "match": "helmet.*",
+      "set": {
+       "thicknessScale": 0.75
+      }
+     },
+     {
+      "match": "helmet.ear_l",
+      "set": {
+       "radiusScale": 0.75
+      }
+     },
+     {
+      "match": "helmet.shell",
+      "set": {
+       "radii": [
+        12.4,
+        9.8,
+        14.2
+       ],
+       "exponents": [
+        2.1,
+        2.1
+       ]
+      }
+     }
+    ],
+    "notes": "Tighter, smoother shell; small ear discs."
+   },
+   "angular": {
+    "add": [
+     {
+      "id": "helmet.fin",
+      "name": "HelmetCrestFin",
+      "segment": "helmet",
+      "side": "C",
+      "bone": "head",
+      "offset": {
+       "location": [
+        3,
+        0,
+        23.2
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 90
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         0,
+         0
+        ],
+        [
+         0,
+         2.2
+        ],
+        [
+         -14,
+         1.2
+        ],
+        [
+         -16,
+         0
+        ]
+       ],
+       "wrapU": null,
+       "wrapV": null
+      },
+      "thickness": 1.2,
+      "bevel": {
+       "radius": 0.15,
+       "segments": 1
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 2,
+      "overlaps": []
+     },
+     {
+      "id": "helmet.cheek_blade_l",
+      "name": "HelmetCheekBladeL",
+      "segment": "helmet",
+      "side": "L",
+      "bone": "head",
+      "offset": {
+       "location": [
+        6.5,
+        -9.9,
+        1.5
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": -75,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         0,
+         0
+        ],
+        [
+         7,
+         1.5
+        ],
+        [
+         8.5,
+         -1.5
+        ],
+        [
+         1,
+         -3
+        ]
+       ],
+       "wrapU": null,
+       "wrapV": null
+      },
+      "thickness": 0.6,
+      "bevel": {
+       "radius": 0.1,
+       "segments": 1
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 3,
+      "overlaps": []
+     }
+    ],
+    "remove": [],
+    "modify": [
+     {
+      "match": "helmet.*",
+      "set": {
+       "bevelSegments": 1,
+       "facetize": true
+      }
+     },
+     {
+      "match": "helmet.shell",
+      "set": {
+       "exponents": [
+        3.2,
+        3.2
+       ]
+      }
+     }
+    ],
+    "notes": "Faceted, sharp-edged: Silver Centurion / Shades / XLV / Ultron family."
+   },
+   "bulky": {
+    "add": [
+     {
+      "id": "helmet.jaw_guard",
+      "name": "HelmetJawGuard",
+      "segment": "helmet",
+      "side": "C",
+      "bone": "head",
+      "offset": {
+       "location": [
+        10.5,
+        0,
+        -6.5
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         -8,
+         0
+        ],
+        [
+         8,
+         0
+        ],
+        [
+         7,
+         -4
+        ],
+        [
+         -7,
+         -4
+        ]
+       ],
+       "wrapU": 9,
+       "wrapV": null
+      },
+      "thickness": 1.4,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 4,
+      "overlaps": [
+       {
+        "plate": "helmet.faceplate",
+        "cm": 1.0,
+        "edge": "bottom",
+        "mode": "over"
+       }
+      ]
+     }
+    ],
+    "remove": [],
+    "modify": [
+     {
+      "match": "helmet.*",
+      "set": {
+       "scale": 1.12,
+       "thicknessScale": 1.4
+      }
+     }
+    ],
+    "notes": "+12% everywhere, thick jaw guard; War Machine/Striker/Igor."
+   },
+   "crude": {
+    "add": [
+     {
+      "id": "helmet.bucket",
+      "name": "CrudeBucketHelmet",
+      "segment": "helmet",
+      "side": "C",
+      "bone": "head",
+      "offset": {
+       "location": [
+        1,
+        0,
+        0
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "revolve",
+       "axis": "Z",
+       "profile": [
+        [
+         11.5,
+         -6
+        ],
+        [
+         12.2,
+         6
+        ],
+        [
+         11.5,
+         16
+        ],
+        [
+         8.5,
+         22
+        ],
+        [
+         0,
+         23.5
+        ]
+       ],
+       "sweep": 360,
+       "radialSegments": 14
+      },
+      "thickness": 1.6,
+      "bevel": {
+       "radius": 0.1,
+       "segments": 1
+      },
+      "panelLines": [
+       {
+        "ringH": 9.5,
+        "width": 0.6,
+        "depthScale": 1.5
+       }
+      ],
+      "slot": "primary",
+      "layer": 1,
+      "overlaps": [],
+      "studs": {
+       "along": "ringH:13",
+       "count": 14,
+       "radius": 0.5
+      },
+      "notes": "14-sided riveted bucket (welded iron look)."
+     },
+     {
+      "id": "helmet.band",
+      "name": "CrudeBrowBand",
+      "segment": "helmet",
+      "side": "C",
+      "bone": "head",
+      "offset": {
+       "location": [
+        1,
+        0,
+        0
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "revolve",
+       "axis": "Z",
+       "profile": [
+        [
+         12.4,
+         7.5
+        ],
+        [
+         12.6,
+         11.5
+        ]
+       ],
+       "sweep": 360,
+       "radialSegments": 14
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 2,
+      "overlaps": [],
+      "studs": {
+       "count": 12,
+       "radius": 0.55
+      }
+     },
+     {
+      "id": "helmet.eye_slit_l",
+      "name": "CrudeEyeSlitL",
+      "segment": "helmet",
+      "side": "L",
+      "bone": "head",
+      "offset": {
+       "location": [
+        12.6,
+        -2.9,
+        9.8
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "box",
+       "size": [
+        0.2,
+        4.0,
+        0.7
+       ]
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "glow.eyes",
+      "glow": {
+       "channel": "eyes",
+       "intensity": 6
+      },
+      "layer": 3,
+      "overlaps": []
+     },
+     {
+      "id": "helmet.mouth_slot",
+      "name": "CrudeMouthSlot",
+      "segment": "helmet",
+      "side": "C",
+      "bone": "head",
+      "offset": {
+       "location": [
+        12.5,
+        0,
+        1.0
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "box",
+       "size": [
+        0.4,
+        6.0,
+        0.8
+       ]
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "fixed.undersuit",
+      "layer": 3,
+      "overlaps": []
+     }
+    ],
+    "remove": [
+     "helmet.faceplate",
+     "helmet.eye_l",
+     "helmet.jaw_l",
+     "helmet.ear_l",
+     "helmet.chin_rear",
+     "helmet.shell"
+    ],
+    "modify": [],
+    "notes": "Mark I bucket."
+   }
+  },
+  "reactor": {
+   "round": {
+    "add": [],
+    "remove": [],
+    "modify": [],
+    "notes": "Base round housing/core as authored."
+   },
+   "triangle": {
+    "add": [
+     {
+      "id": "chest.tri_housing",
+      "name": "ChestTriHousing",
+      "segment": "chest",
+      "side": "C",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        13.6,
+        0,
+        1
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         0,
+         6.0
+        ],
+        [
+         6.4,
+         -4.6
+        ],
+        [
+         -6.4,
+         -4.6
+        ]
+       ],
+       "wrapU": 17,
+       "wrapV": 40,
+       "cornerRadius": 1.0
+      },
+      "thickness": 1.6,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 6,
+      "overlaps": []
+     },
+     {
+      "id": "chest.tri_core",
+      "name": "TriReactorCore",
+      "segment": "chest",
+      "side": "C",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        14.6,
+        0,
+        1
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         0,
+         4.6
+        ],
+        [
+         4.9,
+         -3.4
+        ],
+        [
+         -4.9,
+         -3.4
+        ]
+       ],
+       "wrapU": 17,
+       "wrapV": 40,
+       "cornerRadius": 0.6
+      },
+      "thickness": 0.3,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "glow.reactor",
+      "glow": {
+       "channel": "reactor",
+       "intensity": 25
+      },
+      "layer": 7,
+      "overlaps": []
+     }
+    ],
+    "remove": [
+     "chest.reactor_housing",
+     "chest.reactor_core"
+    ],
+    "modify": [
+     {
+      "match": "chest.pec_*",
+      "set": {
+       "circleCuts": [],
+       "polyCuts": [
+        [
+         [
+          0,
+          6.6
+         ],
+         [
+          7.0,
+          -5.1
+         ],
+         [
+          -7.0,
+          -5.1
+         ]
+        ]
+       ]
+      }
+     }
+    ],
+    "notes": "Name contains 'Tri' -> reactor glow."
+   },
+   "none": {
+    "add": [
+     {
+      "id": "chest.sternum",
+      "name": "ChestSternumPlate",
+      "segment": "chest",
+      "side": "C",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        13.0,
+        0,
+        1
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         -3,
+         9
+        ],
+        [
+         3,
+         9
+        ],
+        [
+         3.5,
+         -7
+        ],
+        [
+         -3.5,
+         -7
+        ]
+       ],
+       "wrapU": 17,
+       "wrapV": null
+      },
+      "thickness": 0.8,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 6,
+      "overlaps": [
+       {
+        "plate": "chest.pec_l",
+        "cm": 0.5,
+        "edge": "side",
+        "mode": "over"
+       },
+       {
+        "plate": "chest.pec_r",
+        "cm": 0.5,
+        "edge": "side",
+        "mode": "over"
+       }
+      ]
+     }
+    ],
+    "remove": [
+     "chest.reactor_housing",
+     "chest.reactor_core"
+    ],
+    "modify": [
+     {
+      "match": "chest.pec_*",
+      "set": {
+       "circleCuts": []
+      }
+     }
+    ],
+    "notes": "Arachnid/Ultron: no reactor; null reactor channel glows dark anyway."
+   },
+   "mounted": {
+    "includes": [
+     "reactor.round"
+    ],
+    "add": [],
+    "remove": [],
+    "modify": [
+     {
+      "match": "chest.reactor_*",
+      "set": {
+       "offsetAdd": [
+        1.2,
+        0,
+        0
+       ]
+      }
+     }
+    ],
+    "notes": "Enum exists in SuitTypes.h (unused by suits.json): proud external housing."
+   }
+  },
+  "shoulders": {
+   "none": {
+    "add": [],
+    "remove": [],
+    "modify": []
+   },
+   "pads": {
+    "add": [
+     {
+      "id": "shoulder.pauldron_l",
+      "name": "PauldronL",
+      "segment": "shoulder",
+      "side": "L",
+      "bone": "clavicle_l",
+      "offset": {
+       "location": [
+        0,
+        -15.5,
+        3.5
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": -15
+       }
+      },
+      "geometry": {
+       "type": "superellipsoidShell",
+       "center": [
+        0,
+        0,
+        0
+       ],
+       "radii": [
+        10.5,
+        9.5,
+        4.8
+       ],
+       "exponents": [
+        2.2,
+        2.6
+       ],
+       "clip": [
+        {
+         "n": [
+          0,
+          0,
+          -1
+         ],
+         "d": 1.0
+        }
+       ]
+      },
+      "thickness": 1.0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [
+       {
+        "ringX": [
+         0
+        ],
+        "width": 0.18,
+        "depthScale": 1.0
+       }
+      ],
+      "slot": "secondary",
+      "layer": 4,
+      "overlaps": [
+       {
+        "plate": "shoulder.deltoid_upper_l",
+        "cm": 2.5,
+        "edge": "bottom",
+        "mode": "over"
+       }
+      ],
+      "notes": "21 x 19 cm pauldron dome on the clavicle so it does not swing with the arm; roll -15 deg droops it outward; slides up 0-4 cm when the arm abducts (see slidingPlates)."
+     }
+    ],
+    "remove": [],
+    "modify": []
+   },
+   "spiked": {
+    "includes": [
+     "shoulders.pads"
+    ],
+    "add": [
+     {
+      "id": "shoulder.spike1_l",
+      "name": "PauldronSpike1L",
+      "segment": "shoulder",
+      "side": "L",
+      "bone": "clavicle_l",
+      "offset": {
+       "location": [
+        -3.5,
+        -17.0,
+        7.5
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": -35
+       }
+      },
+      "geometry": {
+       "type": "pyramid",
+       "base": [
+        3.2,
+        3.2
+       ],
+       "height": 7.5
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.1,
+       "segments": 1
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 5,
+      "overlaps": []
+     },
+     {
+      "id": "shoulder.spike2_l",
+      "name": "PauldronSpike2L",
+      "segment": "shoulder",
+      "side": "L",
+      "bone": "clavicle_l",
+      "offset": {
+       "location": [
+        3.5,
+        -17.0,
+        7.5
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": -35
+       }
+      },
+      "geometry": {
+       "type": "pyramid",
+       "base": [
+        3.2,
+        3.2
+       ],
+       "height": 7.5
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.1,
+       "segments": 1
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 5,
+      "overlaps": []
+     }
+    ],
+    "remove": [],
+    "modify": [],
+    "notes": "Ultron."
+   },
+   "cannon": {
+    "includes": [
+     "shoulders.pads"
+    ],
+    "add": [
+     {
+      "id": "cannon.mount",
+      "name": "CannonMount",
+      "segment": "shoulder",
+      "side": "R",
+      "bone": "clavicle_r",
+      "offset": {
+       "location": [
+        -4,
+        15,
+        12
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "box",
+       "size": [
+        10,
+        8,
+        6
+       ]
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.5,
+       "segments": 2
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 5,
+      "overlaps": [],
+      "mirror": false
+     },
+     {
+      "id": "cannon.barrel",
+      "name": "CannonBarrel",
+      "segment": "shoulder",
+      "side": "R",
+      "bone": "clavicle_r",
+      "offset": {
+       "location": [
+        8,
+        15,
+        17
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "cylinder",
+       "radius": 2.4,
+       "length": 30,
+       "axis": "X",
+       "radialSegments": 16
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [
+       {
+        "ringX": [
+         4,
+         12,
+         20
+        ],
+        "width": 0.25,
+        "depthScale": 1.0
+       }
+      ],
+      "slot": "accent",
+      "layer": 6,
+      "overlaps": [],
+      "mirror": false
+     },
+     {
+      "id": "cannon.muzzle",
+      "name": "CannonMuzzle",
+      "segment": "shoulder",
+      "side": "R",
+      "bone": "clavicle_r",
+      "offset": {
+       "location": [
+        23.3,
+        15,
+        17
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "cylinder",
+       "radius": 1.6,
+       "length": 1,
+       "axis": "X",
+       "radialSegments": 16
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "glow.repulsors",
+      "glow": {
+       "channel": "repulsors",
+       "intensity": 15
+      },
+      "layer": 7,
+      "overlaps": [],
+      "notes": "'Muzzle' -> repulsor channel (fires with weapon).",
+      "mirror": false
+     }
+    ],
+    "remove": [],
+    "modify": [],
+    "notes": "Right shoulder only (matches SuitRig: cannon +Y). No mirror."
+   }
+  },
+  "backpack": {
+   "none": {
+    "add": [],
+    "remove": [],
+    "modify": []
+   },
+   "jets": {
+    "add": [
+     {
+      "id": "back.jetpod_l",
+      "name": "BackJetPodL",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_04",
+      "offset": {
+       "location": [
+        -14.5,
+        -8,
+        4
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "cone",
+       "radius0": 3.4,
+       "radius1": 4.2,
+       "length": 16,
+       "axis": "-Z"
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 4,
+      "overlaps": []
+     },
+     {
+      "id": "back.jetglow_l",
+      "name": "BackJetGlowL",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_04",
+      "offset": {
+       "location": [
+        -14.5,
+        -8,
+        -12.1
+       ],
+       "rotation": {
+        "pitch": -90,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "revolve",
+       "axis": "X",
+       "profile": [
+        [
+         0,
+         0.2
+        ],
+        [
+         3.6,
+         0.1
+        ],
+        [
+         3.6,
+         0
+        ]
+       ],
+       "sweep": 360,
+       "radialSegments": 32
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "glow.reactor",
+      "glow": {
+       "channel": "reactor",
+       "intensity": 18
+      },
+      "layer": 5,
+      "overlaps": []
+     }
+    ],
+    "remove": [],
+    "modify": []
+   },
+   "missiles": {
+    "add": [
+     {
+      "id": "back.missile_pack",
+      "name": "BackMissilePack",
+      "segment": "back",
+      "side": "C",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        -16,
+        0,
+        -2
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "box",
+       "size": [
+        8,
+        30,
+        26
+       ]
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.6,
+       "segments": 2
+      },
+      "panelLines": [
+       {
+        "grid": [
+         5,
+         3
+        ],
+        "width": 0.2,
+        "depthScale": 1.0
+       }
+      ],
+      "slot": "secondary",
+      "layer": 4,
+      "overlaps": []
+     },
+     {
+      "id": "back.missile_tips",
+      "name": "BackMissileTips",
+      "segment": "back",
+      "side": "C",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        -16,
+        0,
+        11.5
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "barrelCluster",
+       "count": 10,
+       "grid": [
+        5,
+        2
+       ],
+       "radius": 1.1,
+       "length": 2,
+       "axis": "Z"
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 5,
+      "overlaps": []
+     }
+    ],
+    "remove": [],
+    "modify": []
+   },
+   "minigun": {
+    "add": [
+     {
+      "id": "gun.mount",
+      "name": "GunMount",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        -14,
+        -16,
+        6
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "box",
+       "size": [
+        8,
+        8,
+        10
+       ]
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.5,
+       "segments": 2
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 4,
+      "overlaps": [],
+      "mirror": false
+     },
+     {
+      "id": "gun.barrels",
+      "name": "GunBarrelCluster",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        -2,
+        -16,
+        15
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "barrelCluster",
+       "count": 6,
+       "ringRadius": 2.2,
+       "radius": 0.8,
+       "length": 34,
+       "axis": "X"
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "fixed.baresteel",
+      "layer": 5,
+      "overlaps": [],
+      "mirror": false
+     },
+     {
+      "id": "gun.ring",
+      "name": "GunRing",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        18,
+        -16,
+        15
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "revolve",
+       "axis": "X",
+       "profile": [
+        [
+         2.0,
+         0
+        ],
+        [
+         3.6,
+         0
+        ],
+        [
+         3.6,
+         2
+        ],
+        [
+         2.0,
+         2
+        ]
+       ],
+       "sweep": 360,
+       "radialSegments": 32
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 6,
+      "overlaps": [],
+      "mirror": false
+     },
+     {
+      "id": "gun.muzzle",
+      "name": "MinigunMuzzle",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        32.5,
+        -16,
+        15
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "cylinder",
+       "radius": 2.2,
+       "length": 0.6,
+       "axis": "X",
+       "radialSegments": 16
+      },
+      "thickness": 0,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "glow.repulsors",
+      "glow": {
+       "channel": "repulsors",
+       "intensity": 15
+      },
+      "layer": 7,
+      "overlaps": [],
+      "mirror": false
+     }
+    ],
+    "remove": [],
+    "modify": [],
+    "notes": "Left (-Y) only, matching SuitRig minigun placement. No mirror."
+   }
+  },
+  "wings": {
+   "false": {
+    "add": [],
+    "remove": [],
+    "modify": []
+   },
+   "true": {
+    "add": [
+     {
+      "id": "wing.l",
+      "name": "WingL",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        -13,
+        -6,
+        4
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 180,
+        "roll": -8
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         0,
+         0
+        ],
+        [
+         -38,
+         6
+        ],
+        [
+         -46,
+         -2
+        ],
+        [
+         -30,
+         -8
+        ],
+        [
+         0,
+         -6
+        ]
+       ],
+       "wrapU": null,
+       "wrapV": null
+      },
+      "thickness": 0.8,
+      "bevel": {
+       "radius": 0.2,
+       "segments": 2
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 3,
+      "overlaps": [],
+      "notes": "Folded flight wing (stowed along the back, deploys roll +70 deg)."
+     },
+     {
+      "id": "wing.trim_l",
+      "name": "WingTrimL",
+      "segment": "back",
+      "side": "L",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        -13.9,
+        -6,
+        4
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 180,
+        "roll": -8
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         -38,
+         6
+        ],
+        [
+         -46,
+         -2
+        ],
+        [
+         -43,
+         -1.5
+        ],
+        [
+         -36,
+         4.5
+        ]
+       ],
+       "wrapU": null,
+       "wrapV": null
+      },
+      "thickness": 0.3,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 4,
+      "overlaps": []
+     }
+    ],
+    "remove": [],
+    "modify": []
+   }
+  },
+  "plating": {
+   "0": {
+    "add": [],
+    "remove": [],
+    "modify": [
+     {
+      "match": "*",
+      "set": {
+       "radialScale": 0.92,
+       "thicknessScale": 0.8
+      }
+     }
+    ],
+    "notes": "SuitRig PlatingScale 0.92"
+   },
+   "1": {
+    "add": [],
+    "remove": [],
+    "modify": [],
+    "notes": "SuitRig PlatingScale 1.0"
+   },
+   "2": {
+    "add": [
+     {
+      "id": "thigh.armour_l",
+      "name": "ThighArmourL",
+      "segment": "thigh",
+      "side": "L",
+      "bone": "thigh_l",
+      "offset": {
+       "location": [
+        0,
+        -9.6,
+        -10
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": -90,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         -5,
+         0
+        ],
+        [
+         5,
+         0
+        ],
+        [
+         4.5,
+         -16
+        ],
+        [
+         -4.5,
+         -16
+        ]
+       ],
+       "wrapU": 9.5,
+       "wrapV": null
+      },
+      "thickness": 1.3,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 4,
+      "overlaps": [
+       {
+        "plate": "thigh.outer_l",
+        "cm": 0,
+        "edge": "face",
+        "mode": "onTop"
+       }
+      ]
+     },
+     {
+      "id": "forearm.armour_l",
+      "name": "ForearmArmourL",
+      "segment": "forearm",
+      "side": "L",
+      "bone": "lowerarm_l",
+      "offset": {
+       "location": [
+        0,
+        -6.6,
+        -3
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": -90,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         -3.5,
+         0
+        ],
+        [
+         3.5,
+         0
+        ],
+        [
+         3,
+         -12
+        ],
+        [
+         -3,
+         -12
+        ]
+       ],
+       "wrapU": 6.5,
+       "wrapV": null
+      },
+      "thickness": 1.2,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "secondary",
+      "layer": 4,
+      "overlaps": [
+       {
+        "plate": "forearm.upper_l",
+        "cm": 0,
+        "edge": "face",
+        "mode": "onTop"
+       }
+      ]
+     },
+     {
+      "id": "chest.armour_l",
+      "name": "ChestArmourL",
+      "segment": "chest",
+      "side": "L",
+      "bone": "spine_05",
+      "offset": {
+       "location": [
+        13.8,
+        0,
+        0
+       ],
+       "rotation": {
+        "pitch": 0,
+        "yaw": 0,
+        "roll": 0
+       }
+      },
+      "geometry": {
+       "type": "extrudeShell",
+       "profile": [
+        [
+         -10,
+         5
+        ],
+        [
+         -17,
+         4
+        ],
+        [
+         -17,
+         -6
+        ],
+        [
+         -9,
+         -7
+        ]
+       ],
+       "wrapU": 17.5,
+       "wrapV": null
+      },
+      "thickness": 1.2,
+      "bevel": {
+       "radius": 0.3,
+       "segments": 3
+      },
+      "panelLines": [],
+      "slot": "accent",
+      "layer": 6,
+      "overlaps": [
+       {
+        "plate": "chest.pec_l",
+        "cm": 0,
+        "edge": "face",
+        "mode": "onTop"
+       }
+      ]
+     }
+    ],
+    "remove": [],
+    "modify": [
+     {
+      "match": "*",
+      "set": {
+       "radialScale": 1.1,
+       "thicknessScale": 1.4
+      }
+     }
+    ],
+    "notes": "SuitRig PlatingScale 1.1 + bolt-on armour."
+   }
+  }
+ },
+ "styles": {
+  "standard": {
+   "thicknessScale": 1.0,
+   "bevelRadius": null,
+   "bevelSegments": null,
+   "overlapScale": 1.0,
+   "panelLineWidthScale": 1.0,
+   "keepPanelLines": "all",
+   "notes": "Movie Mk III-XLVII machined plate."
+  },
+  "nano": {
+   "thicknessScale": 0.55,
+   "bevelRadius": 0.6,
+   "bevelSegments": 5,
+   "overlapScale": 0.5,
+   "panelLineWidth": 0.08,
+   "keepPanelLines": "major",
+   "remove": [
+    "helmet.ear_l",
+    "back.flap_l"
+   ],
+   "notes": "Mk L / LXXXV / Arachnid / Rescue: thin, smooth, flowing nanite shells; only major seams (depthScale >= 0.8)."
+  },
+  "industrial": {
+   "thicknessScale": 1.2,
+   "bevelRadius": 0.15,
+   "bevelSegments": 1,
+   "overlapScale": 1.2,
+   "panelLineWidthScale": 1.5,
+   "keepPanelLines": "all",
+   "addRivets": {
+    "spacing": 6,
+    "radius": 0.25,
+    "along": "perimeter"
+   },
+   "notes": "Striker/Igor heavy-lift: chamfers, rivets, wide grooves."
+  },
+  "heavy": {
+   "thicknessScale": 1.35,
+   "bevelRadius": 0.25,
+   "bevelSegments": 2,
+   "overlapScale": 1.3,
+   "panelLineWidthScale": 1.2,
+   "keepPanelLines": "all",
+   "notes": "War Machine / Iron Patriot: thick military plate."
+  },
+  "crude": {
+   "thicknessScale": 2.0,
+   "bevelRadius": 0.1,
+   "bevelSegments": 1,
+   "overlapScale": 1.5,
+   "panelLineWidthScale": 3.0,
+   "keepPanelLines": "all",
+   "facetize": true,
+   "weldBeads": {
+    "radius": 0.35,
+    "along": "panelLines"
+   },
+   "addRivets": {
+    "spacing": 4,
+    "radius": 0.45,
+    "along": "perimeter"
+   },
+   "notes": "Mark I scrap-iron: faceted, thick, weld beads instead of grooves."
+  }
+ },
+ "partsRules": {
+  "description": "Variant = parts.<field> from suits.json. Apply groups in this order, then style, then suitOverrides.",
+  "order": [
+   "helmet",
+   "reactor",
+   "shoulders",
+   "backpack",
+   "wings",
+   "plating",
+   "style",
+   "suitOverride"
+  ],
+  "fieldMap": {
+   "helmet": "helmet",
+   "reactor": "reactor",
+   "shoulders": "shoulders",
+   "backpack": "backpack",
+   "wings": "wings (bool -> 'true'/'false')",
+   "plating": "plating (int -> '0'/'1'/'2')"
+  },
+  "styleRules": [
+   {
+    "if": "suitOverrides[id].style exists",
+    "style": "<that>"
+   },
+   {
+    "if": "parts.helmet == 'crude'",
+    "style": "crude"
+   },
+   {
+    "if": "suit_materials.panelLineDepth <= 0.06",
+    "style": "nano"
+   },
+   {
+    "if": "suit_materials.panelLineDepth >= 0.2",
+    "style": "industrial"
+   },
+   {
+    "if": "parts.helmet == 'bulky' && parts.plating == 2",
+    "style": "heavy"
+   },
+   {
+    "else": true,
+    "style": "standard"
+   }
+  ],
+  "colourBinding": "primary/secondary/accent -> suit_materials.suits[id].layers.*; glow.* -> suit_materials emissive.* (null -> dark, no light)."
+ },
+ "suitVariantTable": {
+  "mark-i": {
+   "name": "Mark I",
+   "helmet": "crude",
+   "reactor": "round",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "2",
+   "style": "crude",
+   "panelLineDepth": 0.35,
+   "override": true
+  },
+  "mark-ii": {
+   "name": "Mark II",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "0",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-iii": {
+   "name": "Mark III",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": true
+  },
+  "mark-iv": {
+   "name": "Mark IV",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-v": {
+   "name": "Mark V",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "0",
+   "style": "standard",
+   "panelLineDepth": 0.1,
+   "override": false
+  },
+  "mark-vi": {
+   "name": "Mark VI",
+   "helmet": "classic",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-vii": {
+   "name": "Mark VII",
+   "helmet": "classic",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "missiles",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": true
+  },
+  "mark-xv-sneaky": {
+   "name": "Mark XV \"Sneaky\"",
+   "helmet": "sleek",
+   "reactor": "triangle",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "0",
+   "style": "standard",
+   "panelLineDepth": 0.08,
+   "override": false
+  },
+  "mark-xvi-nightclub": {
+   "name": "Mark XVI \"Nightclub\"",
+   "helmet": "sleek",
+   "reactor": "triangle",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "0",
+   "style": "standard",
+   "panelLineDepth": 0.08,
+   "override": false
+  },
+  "mark-xvii-heartbreaker": {
+   "name": "Mark XVII \"Heartbreaker\"",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "2",
+   "style": "standard",
+   "panelLineDepth": 0.14,
+   "override": false
+  },
+  "mark-xx-python": {
+   "name": "Mark XX \"Python\"",
+   "helmet": "sleek",
+   "reactor": "triangle",
+   "shoulders": "none",
+   "backpack": "jets",
+   "wings": "false",
+   "plating": "0",
+   "style": "standard",
+   "panelLineDepth": 0.1,
+   "override": false
+  },
+  "mark-xxi-midas": {
+   "name": "Mark XXI \"Midas\"",
+   "helmet": "classic",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "jets",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.1,
+   "override": false
+  },
+  "mark-xxii-hot-rod": {
+   "name": "Mark XXII \"Hot Rod\"",
+   "helmet": "classic",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "jets",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-xxiii-shades": {
+   "name": "Mark XXIII \"Shades\"",
+   "helmet": "angular",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-xxv-striker": {
+   "name": "Mark XXV \"Striker\"",
+   "helmet": "bulky",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "2",
+   "style": "industrial",
+   "panelLineDepth": 0.22,
+   "override": false
+  },
+  "mark-xxvii-disco": {
+   "name": "Mark XXVII \"Disco\"",
+   "helmet": "sleek",
+   "reactor": "triangle",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.1,
+   "override": false
+  },
+  "mark-xxxiii-silver-centurion": {
+   "name": "Mark XXXIII \"Silver Centurion\"",
+   "helmet": "angular",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-xxxviii-igor": {
+   "name": "Mark XXXVIII \"Igor\"",
+   "helmet": "bulky",
+   "reactor": "triangle",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "2",
+   "style": "industrial",
+   "panelLineDepth": 0.25,
+   "override": false
+  },
+  "mark-xl-shotgun": {
+   "name": "Mark XL \"Shotgun\"",
+   "helmet": "sleek",
+   "reactor": "triangle",
+   "shoulders": "none",
+   "backpack": "jets",
+   "wings": "true",
+   "plating": "0",
+   "style": "standard",
+   "panelLineDepth": 0.08,
+   "override": false
+  },
+  "mark-xli-bones": {
+   "name": "Mark XLI \"Bones\"",
+   "helmet": "sleek",
+   "reactor": "triangle",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "0",
+   "style": "standard",
+   "panelLineDepth": 0.1,
+   "override": false
+  },
+  "mark-xlii": {
+   "name": "Mark XLII",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-xliii": {
+   "name": "Mark XLIII",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-xlv": {
+   "name": "Mark XLV",
+   "helmet": "angular",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "jets",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-xlvi": {
+   "name": "Mark XLVI",
+   "helmet": "angular",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "2",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-xlvii": {
+   "name": "Mark XLVII",
+   "helmet": "classic",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "standard",
+   "panelLineDepth": 0.12,
+   "override": false
+  },
+  "mark-l": {
+   "name": "Mark L",
+   "helmet": "sleek",
+   "reactor": "round",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "nano",
+   "panelLineDepth": 0.04,
+   "override": true
+  },
+  "mark-lxxxv": {
+   "name": "Mark LXXXV",
+   "helmet": "sleek",
+   "reactor": "round",
+   "shoulders": "pads",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "1",
+   "style": "nano",
+   "panelLineDepth": 0.05,
+   "override": true
+  },
+  "war-machine": {
+   "name": "War Machine",
+   "helmet": "bulky",
+   "reactor": "round",
+   "shoulders": "cannon",
+   "backpack": "minigun",
+   "wings": "false",
+   "plating": "2",
+   "style": "heavy",
+   "panelLineDepth": 0.18,
+   "override": true
+  },
+  "iron-patriot": {
+   "name": "Iron Patriot",
+   "helmet": "bulky",
+   "reactor": "round",
+   "shoulders": "cannon",
+   "backpack": "missiles",
+   "wings": "false",
+   "plating": "2",
+   "style": "heavy",
+   "panelLineDepth": 0.16,
+   "override": false
+  },
+  "rescue": {
+   "name": "Rescue",
+   "helmet": "sleek",
+   "reactor": "round",
+   "shoulders": "none",
+   "backpack": "jets",
+   "wings": "true",
+   "plating": "1",
+   "style": "nano",
+   "panelLineDepth": 0.05,
+   "override": false
+  },
+  "arachnid": {
+   "name": "Arachnid (Iron Spider)",
+   "helmet": "sleek",
+   "reactor": "none",
+   "shoulders": "none",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "0",
+   "style": "nano",
+   "panelLineDepth": 0.04,
+   "override": false
+  },
+  "ultron": {
+   "name": "Ultron Suit",
+   "helmet": "angular",
+   "reactor": "none",
+   "shoulders": "spiked",
+   "backpack": "none",
+   "wings": "false",
+   "plating": "2",
+   "style": "standard",
+   "panelLineDepth": 0.15,
+   "override": false
+  }
+ },
+ "suitOverrides": {
+  "mark-i": {
+   "style": "crude",
+   "why": "The only crude-helmet/plating-2 suit and the furthest from the base kit (bucket helmet, bare undersuit arms, no repulsors, flamethrowers): proves the kit spans the whole variant space. Picked over XLII/XLIII whose parts are identical to Mk III and are covered fully by rules.",
+   "remove": [
+    "hand.repulsor_l",
+    "abs.row1_l",
+    "abs.row2_l",
+    "abs.row3_l",
+    "hand.thumb_*",
+    "hand.index_*",
+    "hand.middle_*",
+    "hand.ring_*",
+    "hand.pinky_*",
+    "chest.collar",
+    "chest.reactor_housing",
+    "chest.reactor_core",
+    "forearm.armour_l",
+    "hand.palm_l",
+    "hand.knuckle_l",
+    "forearm.upper_l",
+    "forearm.lower_l"
+   ],
+   "add": [
+    {
+     "id": "mk1.ab_slab",
+     "name": "MarkIAbSlab",
+     "segment": "abs",
+     "side": "C",
+     "bone": "spine_02",
+     "offset": {
+      "location": [
+       12.5,
+       0,
+       0
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "extrudeShell",
+      "profile": [
+       [
+        -12,
+        8
+       ],
+       [
+        12,
+        8
+       ],
+       [
+        11,
+        -12
+       ],
+       [
+        -11,
+        -12
+       ]
+      ],
+      "wrapU": 15,
+      "wrapV": null
+     },
+     "thickness": 1.8,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [
+      {
+       "pts": [
+        [
+         -12,
+         -2
+        ],
+        [
+         12,
+         -2
+        ]
+       ],
+       "width": 0.5,
+       "depthScale": 2.0
+      }
+     ],
+     "slot": "primary",
+     "layer": 3,
+     "overlaps": []
+    },
+    {
+     "id": "mk1.reactor",
+     "name": "MarkIArcReactor",
+     "segment": "chest",
+     "side": "C",
+     "bone": "spine_05",
+     "offset": {
+      "location": [
+       13.8,
+       0,
+       1
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "revolve",
+      "axis": "X",
+      "profile": [
+       [
+        0,
+        1.2
+       ],
+       [
+        2.6,
+        1.2
+       ],
+       [
+        3.2,
+        0.6
+       ],
+       [
+        3.2,
+        0
+       ]
+      ],
+      "sweep": 360,
+      "radialSegments": 16
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "glow.reactor",
+     "glow": {
+      "channel": "reactor",
+      "intensity": 25
+     },
+     "layer": 7,
+     "overlaps": []
+    },
+    {
+     "id": "mk1.cage",
+     "name": "MarkICageRing",
+     "segment": "chest",
+     "side": "C",
+     "bone": "spine_05",
+     "offset": {
+      "location": [
+       13.4,
+       0,
+       1
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "revolve",
+      "axis": "X",
+      "profile": [
+       [
+        3.4,
+        0
+       ],
+       [
+        3.4,
+        2.6
+       ],
+       [
+        5.2,
+        2.6
+       ],
+       [
+        5.2,
+        0
+       ]
+      ],
+      "sweep": 360,
+      "radialSegments": 12
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "fixed.baresteel",
+     "layer": 6,
+     "overlaps": [],
+     "notes": "Bare welded cage around the Mk I reactor."
+    },
+    {
+     "id": "mk1.shoulder_dome_l",
+     "name": "MarkIShoulderDomeL",
+     "segment": "shoulder",
+     "side": "L",
+     "bone": "clavicle_l",
+     "offset": {
+      "location": [
+       0,
+       -15,
+       3
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "superellipsoidShell",
+      "center": [
+       0,
+       0,
+       0
+      ],
+      "radii": [
+       9,
+       8.5,
+       6.5
+      ],
+      "exponents": [
+       2.0,
+       2.0
+      ],
+      "clip": [
+       {
+        "n": [
+         0,
+         0,
+         -1
+        ],
+        "d": 0.5
+       }
+      ]
+     },
+     "thickness": 1.8,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "primary",
+     "layer": 4,
+     "overlaps": []
+    },
+    {
+     "id": "mk1.flame_nozzle_l",
+     "name": "MarkIFlameNozzleL",
+     "segment": "forearm",
+     "side": "L",
+     "bone": "lowerarm_l",
+     "offset": {
+      "location": [
+       0,
+       -5.4,
+       -20
+      ],
+      "rotation": {
+       "pitch": -90,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "cylinder",
+      "radius": 1.4,
+      "length": 6,
+      "axis": "X",
+      "radialSegments": 10
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "fixed.baresteel",
+     "layer": 4,
+     "overlaps": []
+    },
+    {
+     "id": "mk1.forearm_rocket",
+     "name": "MarkIForearmRocket",
+     "segment": "forearm",
+     "side": "L",
+     "bone": "lowerarm_l",
+     "offset": {
+      "location": [
+       2.5,
+       -5.0,
+       -12
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "cylinder",
+      "radius": 1.6,
+      "length": 14,
+      "axis": "Z",
+      "radialSegments": 10
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "accent",
+     "layer": 4,
+     "overlaps": [],
+     "mirror": false,
+     "notes": "Left forearm only."
+    },
+    {
+     "id": "mk1.glove_l",
+     "name": "MarkIGloveL",
+     "segment": "gauntlet",
+     "side": "L",
+     "bone": "hand_l",
+     "offset": {
+      "location": [
+       0,
+       0,
+       0
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "loftShell",
+      "stations": [
+       {
+        "z": -1,
+        "rx": 3.2,
+        "ry": 5.0,
+        "n": 2.0
+       },
+       {
+        "z": -14,
+        "rx": 2.6,
+        "ry": 4.6,
+        "n": 2.0
+       }
+      ],
+      "arc": {
+       "start": -180,
+       "end": 180
+      }
+     },
+     "thickness": 0.6,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "primary",
+     "layer": 2,
+     "overlaps": []
+    },
+    {
+     "id": "mk1.forearm_l",
+     "name": "MarkIForearmL",
+     "segment": "forearm",
+     "side": "L",
+     "bone": "lowerarm_l",
+     "offset": {
+      "location": [
+       0,
+       0,
+       0
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "loftShell",
+      "stations": [
+       {
+        "z": -1,
+        "rx": 6.4,
+        "ry": 6.6,
+        "n": 2.0
+       },
+       {
+        "z": -24,
+        "rx": 5.0,
+        "ry": 5.2,
+        "n": 2.0
+       }
+      ],
+      "arc": {
+       "start": -200,
+       "end": 200
+      }
+     },
+     "thickness": 1.6,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "secondary",
+     "layer": 2,
+     "overlaps": []
+    }
+   ],
+   "modify": [
+    {
+     "match": "upperarm.*",
+     "set": {
+      "slot": "fixed.undersuit",
+      "notes": "bare sleeves"
+     }
+    }
+   ]
+  },
+  "mark-iii": {
+   "why": "The canonical red/gold reference; base kit is authored to it. Override only pins the gold placement so other classic suits inherit a known-good layout.",
+   "modify": [
+    {
+     "match": "helmet.faceplate",
+     "set": {
+      "slot": "secondary"
+     }
+    },
+    {
+     "match": "abs.row*",
+     "set": {
+      "slot": "secondary"
+     }
+    },
+    {
+     "match": "upperarm.upper_l",
+     "set": {
+      "slot": "secondary"
+     }
+    },
+    {
+     "match": "forearm.*",
+     "set": {
+      "slot": "primary"
+     }
+    }
+   ]
+  },
+  "mark-vii": {
+   "why": "Avengers suit: triangle reactor + missile backpack is the most common non-default combo; adds forearm launcher pods and a heavier neck to show additive bolt-ons.",
+   "add": [
+    {
+     "id": "mk7.forearm_pod_l",
+     "name": "MarkVIIForearmPodL",
+     "segment": "forearm",
+     "side": "L",
+     "bone": "lowerarm_l",
+     "offset": {
+      "location": [
+       1.5,
+       -6.4,
+       -8
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "box",
+      "size": [
+       4,
+       3,
+       10
+      ]
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.4,
+      "segments": 2
+     },
+     "panelLines": [
+      {
+       "pts": [
+        [
+         0,
+         2
+        ],
+        [
+         0,
+         -8
+        ]
+       ],
+       "width": 0.18,
+       "depthScale": 1.0
+      }
+     ],
+     "slot": "secondary",
+     "layer": 4,
+     "overlaps": []
+    },
+    {
+     "id": "mk7.neck_collar",
+     "name": "MarkVIINeckCollar",
+     "segment": "neck",
+     "side": "C",
+     "bone": "neck_01",
+     "offset": {
+      "location": [
+       0,
+       0,
+       0
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "loftShell",
+      "stations": [
+       {
+        "z": -1,
+        "rx": 8.0,
+        "ry": 7.6,
+        "n": 2.2
+       },
+       {
+        "z": 2.5,
+        "rx": 7.4,
+        "ry": 7.0,
+        "n": 2.2
+       }
+      ],
+      "arc": {
+       "start": -180,
+       "end": 180
+      }
+     },
+     "thickness": 0.9,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "accent",
+     "layer": 3,
+     "overlaps": []
+    }
+   ],
+   "modify": [
+    {
+     "match": "*",
+     "set": {
+      "scale": 1.06
+     }
+    }
+   ]
+  },
+  "mark-l": {
+   "style": "nano",
+   "why": "Infinity War nanotech: panelLineDepth 0.04 drives the nano style; override adds the hex reactor and back hex so nano suits read differently from Mk III, not just thinner.",
+   "remove": [
+    "shoulder.deltoid_lower_l",
+    "shoulder.clavicle_l"
+   ],
+   "add": [
+    {
+     "id": "mkl.hex_back",
+     "name": "NanoBackHexPlate",
+     "segment": "back",
+     "side": "C",
+     "bone": "spine_05",
+     "offset": {
+      "location": [
+       -11.6,
+       0,
+       1
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 180,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "extrudeShell",
+      "profile": [
+       [
+        0,
+        7
+       ],
+       [
+        6,
+        3.5
+       ],
+       [
+        6,
+        -3.5
+       ],
+       [
+        0,
+        -7
+       ],
+       [
+        -6,
+        -3.5
+       ],
+       [
+        -6,
+        3.5
+       ]
+      ],
+      "wrapU": 17,
+      "wrapV": null,
+      "cornerRadius": 0.8
+     },
+     "thickness": 0.4,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "accent",
+     "layer": 3,
+     "overlaps": []
+    }
+   ],
+   "modify": [
+    {
+     "match": "chest.reactor_housing",
+     "set": {
+      "profileOverride": "roundedHex",
+      "radialSegments": 6,
+      "cornerRadius": 1.5
+     }
+    }
+   ]
+  },
+  "mark-lxxxv": {
+   "style": "nano",
+   "why": "Endgame suit: nano family but with softer, broader pauldrons and more gold; the second nano pick shows suit-specific tuning on top of a shared style.",
+   "modify": [
+    {
+     "match": "shoulder.pauldron_l",
+     "set": {
+      "exponents": [
+       2.0,
+       2.0
+      ],
+      "radii": [
+       11.5,
+       10.5,
+       4.2
+      ],
+      "bevelRadius": 1.0
+     }
+    },
+    {
+     "match": "abs.*",
+     "set": {
+      "slot": "secondary"
+     }
+    },
+    {
+     "match": "thigh.inner_l",
+     "set": {
+      "slot": "secondary"
+     }
+    },
+    {
+     "match": "shin.calf_l",
+     "set": {
+      "slot": "secondary"
+     }
+    }
+   ]
+  },
+  "war-machine": {
+   "style": "heavy",
+   "why": "The heaviest silhouette (bulky + cannon + minigun + plating 2) and a non-Stark palette; stresses layering, right-only cannon and left-only minigun.",
+   "add": [
+    {
+     "id": "wm.forearm_gun_l",
+     "name": "WMForearmGunL",
+     "segment": "forearm",
+     "side": "L",
+     "bone": "lowerarm_l",
+     "offset": {
+      "location": [
+       0,
+       -7.2,
+       -6
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "barrelCluster",
+      "count": 2,
+      "ringRadius": 1.2,
+      "radius": 0.7,
+      "length": 12,
+      "axis": "Z"
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "fixed.baresteel",
+     "layer": 5,
+     "overlaps": []
+    },
+    {
+     "id": "wm.back_armour",
+     "name": "WMBackArmour",
+     "segment": "back",
+     "side": "C",
+     "bone": "spine_05",
+     "offset": {
+      "location": [
+       -12.5,
+       0,
+       0
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 180,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "extrudeShell",
+      "profile": [
+       [
+        -15,
+        13
+       ],
+       [
+        15,
+        13
+       ],
+       [
+        14,
+        -9
+       ],
+       [
+        -14,
+        -9
+       ]
+      ],
+      "wrapU": 18,
+      "wrapV": null
+     },
+     "thickness": 1.6,
+     "bevel": {
+      "radius": 0.3,
+      "segments": 3
+     },
+     "panelLines": [],
+     "slot": "secondary",
+     "layer": 3,
+     "overlaps": []
+    },
+    {
+     "id": "wm.hip_pod_l",
+     "name": "WMHipPodL",
+     "segment": "pelvis",
+     "side": "L",
+     "bone": "pelvis",
+     "offset": {
+      "location": [
+       0,
+       -20,
+       -6
+      ],
+      "rotation": {
+       "pitch": 0,
+       "yaw": 0,
+       "roll": 0
+      }
+     },
+     "geometry": {
+      "type": "box",
+      "size": [
+       9,
+       4,
+       8
+      ]
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.4,
+      "segments": 2
+     },
+     "panelLines": [],
+     "slot": "secondary",
+     "layer": 4,
+     "overlaps": []
+    }
+   ],
+   "modify": [
+    {
+     "match": "*",
+     "set": {
+      "wrapScale": 1.25,
+      "notes": "flatter plates"
+     }
+    }
+   ]
+  }
+ },
+ "externalAssets": [
+  {
+   "name": "Sci-fi Chest Armor",
+   "author": "Mikesaz",
+   "url": "https://sketchfab.com/3d-models/sci-fi-chest-armor-34a4d75cf75f4543ba3b7a2bf3c6f48e",
+   "license": "CC BY 4.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
+   "verified": "Licence read from the model page HTML and Sketchfab API (2026-10-30)",
+   "notes": "~6.5k tris chest piece, author states it is based on a personal concept. Good reference for chest plate breakup.",
+   "attribution": "\"Sci-fi Chest Armor\" by Mikesaz, CC BY 4.0"
+  },
+  {
+   "name": "Sci-Fi Armor Clothing",
+   "author": "Kaan Tezcan",
+   "url": "https://sketchfab.com/3d-models/sci-fi-armor-clothing-2707c5a2601244daa4226357e63c4f76",
+   "license": "CC BY 4.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
+   "verified": "Licence read from page HTML + API",
+   "notes": "Full-body armour, ~200k faces (heavy; reference or decimate). Author says no attribution needed; credit anyway per CC BY.",
+   "attribution": "\"Sci-Fi Armor Clothing\" by Kaan Tezcan, CC BY 4.0"
+  },
+  {
+   "name": "Sci-fi armor part",
+   "author": "cherry_bomb",
+   "url": "https://sketchfab.com/3d-models/sci-fi-armor-part-3e6ad3506ee24d2eaab6c88072556558",
+   "license": "CC BY 4.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
+   "verified": "Licence read from page HTML + API",
+   "notes": "232-face practice piece; useful as a hard-surface bevel/panel-line reference.",
+   "attribution": "\"Sci-fi armor part\" by cherry_bomb, CC BY 4.0"
+  },
+  {
+   "name": "Mech Suit",
+   "author": "nataliedesign",
+   "url": "https://sketchfab.com/3d-models/mech-suit-936d052d807349d0aed54b177de8eea0",
+   "license": "CC BY 4.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
+   "verified": "Licence read from page HTML + API",
+   "notes": "~44k, original ZBrush sculpt per author; powered-suit proportions reference.",
+   "attribution": "\"Mech Suit\" by nataliedesign, CC BY 4.0"
+  },
+  {
+   "name": "Low Poly Mech Suit",
+   "author": "DEADEYEJAYNE",
+   "url": "https://sketchfab.com/3d-models/low-poly-mech-suit-efb3e2c60e0e4b3b8264d4a85e9abc7a",
+   "license": "CC BY 4.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by/4.0/",
+   "verified": "Licence read from page HTML + API",
+   "notes": "~18k WIP, gorilla-based; silhouette ideas for heavy (War Machine-like) style only.",
+   "attribution": "\"Low Poly Mech Suit\" by DEADEYEJAYNE, CC BY 4.0"
+  },
+  {
+   "name": "Exotrooper (low poly)",
+   "author": "nublet",
+   "url": "https://opengameart.org/content/exotrooper-low-poly",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "verified": "Licence shown on the OpenGameArt page",
+   "notes": "908 tris, rigged, original Quake 3 mod enemy; usable as a placeholder armoured enemy/prop.",
+   "attribution": "Not required (CC0); credit nublet as courtesy"
+  },
+  {
+   "name": "Sci-fi soldier",
+   "author": "Irondust",
+   "url": "https://opengameart.org/content/sci-fi-soldier",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "verified": "Licence shown on the OpenGameArt page",
+   "notes": "Low-poly armoured soldier; reference/placeholder.",
+   "attribution": "Not required (CC0)"
+  },
+  {
+   "name": "Animated Mech Pack",
+   "author": "Quaternius",
+   "url": "https://quaternius.com/packs/animatedmech.html",
+   "altUrl": "https://opengameart.org/content/animated-mech-pack",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "verified": "Licence shown on Quaternius and OpenGameArt pages",
+   "notes": "Non-humanoid mechs; props/enemies or hard-surface reference only.",
+   "attribution": "Not required (CC0)"
+  },
+  {
+   "name": "1964.88 Armor for Man and Horse",
+   "author": "Cleveland Museum of Art",
+   "url": "https://sketchfab.com/3d-models/196488-armor-for-man-and-horse-faca2ad557f64809b598c3a646a8804f",
+   "license": "CC0 1.0",
+   "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "verified": "Licence read from page HTML + API",
+   "notes": "Scan of real c.1575 plate armour: reference for lames, overlaps, articulation at elbow/knee (not sci-fi).",
+   "attribution": "Not required (CC0); credit Cleveland Museum of Art as courtesy"
+  }
+ ],
+ "externalAssetsExcluded": [
+  {
+   "what": "Fan models / rips named after Iron Man (e.g. 'Iron Man MK7'), Halo, Fallout, Samus, Doom, Helldivers, Batman, Black Panther, Stormworks 'Squib Exosuit'",
+   "reason": "Ripped or derivative of game/film IP even when labelled CC"
+  },
+  {
+   "what": "AI-generated exosuits (Meshy, klrxyz incl. a 'red and gold exosuit', 'White Sentinel Exosuit', 'Futuristic Armor Suit')",
+   "reason": "Unclear provenance / likely trained on IP; red-gold one imitates Iron Man"
+  },
+  {
+   "what": "GraphVFX sci-fi armour",
+   "reason": "Origin unclear"
+  },
+  {
+   "what": "'Sci-Fi Helmet - High Poly' (HiepVu/ngchipv, CC BY 4.0)",
+   "reason": "Licence OK but originality not stated; excluded to be safe"
+  },
+  {
+   "what": "'Iron armor set' (CC-BY 3.0)",
+   "reason": "Medieval, not relevant"
+  },
+  {
+   "what": "'Kappa'",
+   "reason": "CC-BY-SA/GPL share-alike; concept-art based"
+  },
+  {
+   "what": "Poly Haven, Kenney",
+   "reason": "Searched; nothing relevant"
+  }
+ ],
+ "trademarkCaution": "Iron Man, War Machine, Iron Patriot, Rescue and the suit designs/likeness are trademarks and copyrighted designs of Marvel/Disney. CC licences above cover only the creator's copyright in those meshes, not Marvel IP. This kit is an original procedural approximation; for any public/commercial release use original names and colourways, avoid literal film-accurate replicas, and do not use Marvel logos or names in store listings.",
+ "implementationNotes": [
+  "M_CarPaint (build_realism_materials.py) has no PanelNormalStrength parameter although SuitRig ApplyColors sets PanelNormalStrength = panelLineDepth*4; until added, panel lines only show when cut into geometry (this kit cuts them).",
+  "IronManArena.Build.cs lacks the ProceduralMeshComponent (or GeometryScriptingCore/GeometryFramework) module; add it before writing the C++ generator.",
+  "Glow plates must keep their keyword in the component name (ClassifyGlow).",
+  "Cache generated meshes per (suitId, plateId) and share across L/R by mirroring the vertex buffer."
+ ]
+}

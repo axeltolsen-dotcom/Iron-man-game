@@ -19,6 +19,7 @@ class UExponentialHeightFogComponent;
 class UVolumetricCloudComponent;
 class UPostProcessComponent;
 class AChapterSet;
+class ACityLayout;
 
 UCLASS()
 class IRONMANARENA_API AArenaEnvironment : public AActor
@@ -50,6 +51,8 @@ public:
 
 	/** The free-play city backdrop (AChapterSet "arena_city"), spawned in BeginPlay. */
 	AChapterSet* GetArenaCity() const { return ArenaCity.Get(); }
+	/** FRIDAY's full city layout (free play + menu backdrop), when Content/City/city_layout.json is staged. */
+	ACityLayout* GetCityLayout() const { return CityLayout.Get(); }
 
 	/** Re-skin the floor (garage concrete, asphalt, rubble ...). */
 	void SetFloorSurface(EArenaSurface Surface, const FLinearColor& Tint = FLinearColor::White);
@@ -104,6 +107,7 @@ protected:
 
 	/** Free-play city (replaces the old glow grid / pylons / cover blocks when it spawns). */
 	TWeakObjectPtr<AChapterSet> ArenaCity;
+	TWeakObjectPtr<ACityLayout> CityLayout;
 	bool bArenaDressingShown = true;
 
 	void SpawnArenaCity();
