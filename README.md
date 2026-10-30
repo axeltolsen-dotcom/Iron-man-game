@@ -53,11 +53,11 @@ Title menu (a slow cinematic camera circling the city) → **Story** or **Arena*
 | Key | Action |
 |---|---|
 | WASD, mouse | move / look |
-| F | toggle flight (hover when idle) |
-| Space / Ctrl | up / down |
+| F | toggle flight |
+| Space / Ctrl or C | up / down |
 | Shift | boost |
 | LMB | repulsors |
-| RMB | unibeam |
+| RMB | suit special (chest unibeam / beam; some suits have shield, overdrive or laser whip instead) |
 | X | vent heat (the HUD heat bar overheats if you keep firing) |
 | V | first / third person |
 | Q | Hulkbuster |
