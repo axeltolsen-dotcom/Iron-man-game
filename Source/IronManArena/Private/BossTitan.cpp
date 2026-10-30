@@ -1,4 +1,5 @@
 #include "BossTitan.h"
+#include "ArenaVisuals.h"
 #include "StoryDirector.h"
 #include "IronManCharacter.h"
 #include "IronProjectile.h"
@@ -149,7 +150,7 @@ void ABossTitan::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 
 	// Shield bubble visible while invulnerable (pulsing).
 	Shield->SetVisibility(InvulnerableLeft > 0.f && bUsePlaceholderVisuals);
-	if (ShieldMID) { ShieldMID->SetScalarParameterValue(TEXT("EmissiveStrength"), 1.f + 0.6f * FMath::Sin(Age * 30.f)); }
+	if (ShieldMID) { ShieldMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(1.f + 0.6f * FMath::Sin(Age * 30.f))); }
 
 	const FVector Loc = GetActorLocation();
 	const bool bRage = Phase >= 3;

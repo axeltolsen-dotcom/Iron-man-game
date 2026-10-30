@@ -503,6 +503,12 @@ protected:
 	void TickVisuals(float DeltaSeconds);
 	void TickBoundary();
 
+	/** Drives M_CarPaint "Damage" (battle wear from lost health) and "HeatGlow" (reactor heat). */
+	void TickSuitWear(float DeltaSeconds);
+	float SuitWearTimer = 0.f;
+	float ShownSuitDamage = -1.f;
+	float ShownSuitHeat = -1.f;
+
 	void FireRepulsor();
 	void UseSpecial();
 	void FireHoming(int32 Count, float Speed, float Homing, float Damage, float Blast, float Radius, float Life, const FLinearColor& Color);

@@ -1,0 +1,3700 @@
+{
+  "_notes": "Iron Man Arena helmet HUD layout. Spec: hud_spec.md (same folder). Element ids == BindWidget names on UHelmetHUDWidget (top level) or on the element's own widget class (children). Positions are in Slate units at the reference resolution; UE DPI scaling converts them. Colours: hex is sRGB RRGGBBAA, linear is FLinearColor (sRGB->linear, alpha linear). Child slot anchors are relative to the parent element. parallaxDepth: 0 = head-locked, 1 = world-locked/maximum lag.",
+  "schemaVersion": 1,
+  "engine": "Unreal Engine 5.8",
+  "rootWidgetClass": "UHelmetHUDWidget",
+  "referenceResolution": {
+    "x": 1920,
+    "y": 1080
+  },
+  "scaling": {
+    "rule": "ShortestSide",
+    "dpiCurve": [
+      {
+        "res": 720,
+        "scale": 0.6667
+      },
+      {
+        "res": 1080,
+        "scale": 1.0
+      },
+      {
+        "res": 1440,
+        "scale": 1.3333
+      },
+      {
+        "res": 2160,
+        "scale": 2.0
+      }
+    ],
+    "userScaleRange": {
+      "min": 0.8,
+      "max": 1.2,
+      "default": 1.0
+    },
+    "maxContentAspect": 2.3889,
+    "coreClusterAspect": 1.7778,
+    "safeZone": {
+      "titleSafe": 0.9,
+      "actionSafe": 0.93,
+      "useUSafeZone": true
+    },
+    "_notes": "Project Settings > User Interface: DPI Scale Rule = Shortest Side, curve as listed. Corner modules anchor to screen edges but are clamped inside a centred region no wider than maxContentAspect (43:18 = 21.5:9) for super-ultrawide. Core cluster (tapes, reticle, ladder) stays within a centred 16:9 box."
+  },
+  "layers": [
+    {
+      "name": "L0_Visor",
+      "depth": 0.0,
+      "zRange": [
+        0,
+        9
+      ],
+      "_notes": "Head-locked frame and vignette."
+    },
+    {
+      "name": "L1_Near",
+      "depth": 0.35,
+      "zRange": [
+        50,
+        79
+      ],
+      "_notes": "Corner modules, subtitles, warnings."
+    },
+    {
+      "name": "L2_Mid",
+      "depth": 0.6,
+      "zRange": [
+        20,
+        29
+      ],
+      "_notes": "Flight tapes, ladder."
+    },
+    {
+      "name": "L3_Far",
+      "depth": 1.0,
+      "zRange": [
+        30,
+        49
+      ],
+      "_notes": "Reticle and target brackets (world-projected)."
+    },
+    {
+      "name": "L4_FX",
+      "depth": 0.0,
+      "zRange": [
+        90,
+        99
+      ],
+      "_notes": "Scanlines and glitch, head-locked."
+    }
+  ],
+  "parallax": {
+    "maxOffsetPx": {
+      "x": 28,
+      "y": 18
+    },
+    "pxPerDegPerSec": 0.12,
+    "lagHalfLifeMs": {
+      "L1_Near": 55,
+      "L2_Mid": 85,
+      "L3_Far": 120
+    },
+    "headBob": {
+      "amplitudePx": {
+        "walk": 2.0,
+        "run": 3.5,
+        "flightHover": 1.0,
+        "boost": 0.0
+      },
+      "followMs": 40
+    },
+    "impactKickPx": 10,
+    "impactRecoverMs": 220,
+    "reducedMotionScale": 0.0
+  },
+  "visorWarp": {
+    "retainerMaterial": "MI_HUD_VisorWarp",
+    "textureParameter": "Texture",
+    "params": {
+      "BarrelK1": 0.06,
+      "BarrelK2": 0.015,
+      "OverscanScale": 1.035,
+      "ChromaticStart": 0.6,
+      "ChromaticEdgePx": 1.5,
+      "BloomIntensity": 0.35,
+      "BloomRadiusPx": 2.5,
+      "ScanlineDensity": 360.0,
+      "ScanlineIntensity": 0.04,
+      "NoiseIntensity": 0.02,
+      "NoiseFPS": 24.0,
+      "EdgeFade": 0.08,
+      "GlitchAmount": 0.0,
+      "TearCount": 0.0,
+      "TearSeed": 0.0,
+      "VignetteIntensity": 0.0
+    },
+    "_notes": "ChromaticEdgePx is at the 1080p reference; material multiplies by ViewSize.y/1080. ScanlineDensity = lines per screen height."
+  },
+  "fonts": {
+    "HUD_Display": {
+      "family": "Rajdhani",
+      "asset": "/Game/UI/Fonts/F_Rajdhani",
+      "typefaces": [
+        "Regular",
+        "SemiBold",
+        "Bold"
+      ],
+      "license": "SIL OFL 1.1",
+      "fallback": "Roboto"
+    },
+    "HUD_Mono": {
+      "family": "Share Tech Mono",
+      "asset": "/Game/UI/Fonts/F_ShareTechMono",
+      "typefaces": [
+        "Regular",
+        "Bold"
+      ],
+      "license": "SIL OFL 1.1",
+      "fallback": "Roboto Mono",
+      "_notes": "Share Tech Mono has one weight; Bold maps to Regular with outline 0 + 1px shadow, or to Roboto Mono Bold."
+    },
+    "HUD_Body": {
+      "family": "Exo 2",
+      "asset": "/Game/UI/Fonts/F_Exo2",
+      "typefaces": [
+        "Regular",
+        "SemiBold"
+      ],
+      "license": "SIL OFL 1.1",
+      "fallback": "Roboto"
+    },
+    "Persona_Orbitron": {
+      "family": "Orbitron",
+      "asset": "/Game/UI/Fonts/F_Orbitron",
+      "typefaces": [
+        "Bold",
+        "Black"
+      ],
+      "license": "SIL OFL 1.1",
+      "fallback": "Roboto"
+    },
+    "Persona_SairaStencil": {
+      "family": "Saira Stencil One",
+      "asset": "/Game/UI/Fonts/F_SairaStencilOne",
+      "typefaces": [
+        "Regular"
+      ],
+      "license": "SIL OFL 1.1",
+      "fallback": "Roboto Condensed"
+    },
+    "_notes": "size = UMG font Size (Slate points; ~1.333 px at 96 DPI). letterSpacing = FSlateFontInfo::LetterSpacing (1/1000 em). Fallback = FCoreStyle::GetDefaultFontStyle (Roboto) when the asset is missing."
+  },
+  "colors": {
+    "neutralText": {
+      "hex": "#E8F6FFFF",
+      "linear": {
+        "R": 0.807,
+        "G": 0.9216,
+        "B": 1.0,
+        "A": 1.0
+      }
+    },
+    "shadow": {
+      "hex": "#0000008C",
+      "linear": {
+        "R": 0.0,
+        "G": 0.0,
+        "B": 0.0,
+        "A": 0.549
+      }
+    },
+    "panelBg": {
+      "hex": "#06121A59",
+      "linear": {
+        "R": 0.0018,
+        "G": 0.006,
+        "B": 0.0103,
+        "A": 0.349
+      }
+    },
+    "tickDim": {
+      "hex": "#FFFFFF59",
+      "linear": {
+        "R": 1.0,
+        "G": 1.0,
+        "B": 1.0,
+        "A": 0.349
+      }
+    },
+    "caution": {
+      "hex": "#FFC94AFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.5841,
+        "B": 0.0685,
+        "A": 1.0
+      }
+    },
+    "warning": {
+      "hex": "#FF8A3DFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.2542,
+        "B": 0.0467,
+        "A": 1.0
+      }
+    },
+    "critical": {
+      "hex": "#FF3B3BFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.0437,
+        "B": 0.0437,
+        "A": 1.0
+      }
+    },
+    "overheatWhite": {
+      "hex": "#FFF4E0FF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.9047,
+        "B": 0.7454,
+        "A": 1.0
+      }
+    },
+    "morganComms": {
+      "hex": "#7CF2A6FF",
+      "linear": {
+        "R": 0.2016,
+        "G": 0.8879,
+        "B": 0.3813,
+        "A": 1.0
+      }
+    },
+    "ally": {
+      "hex": "#7CF2A6FF",
+      "linear": {
+        "R": 0.2016,
+        "G": 0.8879,
+        "B": 0.3813,
+        "A": 1.0
+      }
+    },
+    "objective": {
+      "hex": "#FFC94AFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.5841,
+        "B": 0.0685,
+        "A": 1.0
+      }
+    },
+    "threatDrone": {
+      "hex": "#FF8A3DFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.2542,
+        "B": 0.0467,
+        "A": 1.0
+      }
+    },
+    "threatTank": {
+      "hex": "#FF3B3BFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.0437,
+        "B": 0.0437,
+        "A": 1.0
+      }
+    },
+    "threatBoss": {
+      "hex": "#FF2D95FF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.0262,
+        "B": 0.3005,
+        "A": 1.0
+      }
+    },
+    "threatProjectile": {
+      "hex": "#FFFFFFFF",
+      "linear": {
+        "R": 1.0,
+        "G": 1.0,
+        "B": 1.0,
+        "A": 1.0
+      }
+    },
+    "pickup": {
+      "hex": "#5FF4FFFF",
+      "linear": {
+        "R": 0.1144,
+        "G": 0.9047,
+        "B": 1.0,
+        "A": 1.0
+      }
+    },
+    "integrityNominal": {
+      "hex": "#5FF4FF99",
+      "linear": {
+        "R": 0.1144,
+        "G": 0.9047,
+        "B": 1.0,
+        "A": 0.6
+      }
+    },
+    "integrityDamaged": {
+      "hex": "#FFC94AFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.5841,
+        "B": 0.0685,
+        "A": 1.0
+      }
+    },
+    "integrityCritical": {
+      "hex": "#FF3B3BFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.0437,
+        "B": 0.0437,
+        "A": 1.0
+      }
+    },
+    "integrityOffline": {
+      "hex": "#6B768099",
+      "linear": {
+        "R": 0.147,
+        "G": 0.1812,
+        "B": 0.2159,
+        "A": 0.6
+      }
+    },
+    "lockAcquire": {
+      "hex": "#FFFFFFD9",
+      "linear": {
+        "R": 1.0,
+        "G": 1.0,
+        "B": 1.0,
+        "A": 0.851
+      }
+    },
+    "lockTracking": {
+      "hex": "#FFC94AFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.5841,
+        "B": 0.0685,
+        "A": 1.0
+      }
+    },
+    "lockLocked": {
+      "hex": "#FF3B3BFF",
+      "linear": {
+        "R": 1.0,
+        "G": 0.0437,
+        "B": 0.0437,
+        "A": 1.0
+      }
+    }
+  },
+  "colorBlindPalette": {
+    "_notes": "Okabe-Ito based, used when Settings > Colour-blind safe HUD is on. Warnings always also carry an icon shape and text.",
+    "caution": {
+      "hex": "#F0E442FF",
+      "linear": {
+        "R": 0.8714,
+        "G": 0.7758,
+        "B": 0.0545,
+        "A": 1.0
+      }
+    },
+    "warning": {
+      "hex": "#E69F00FF",
+      "linear": {
+        "R": 0.7913,
+        "G": 0.3467,
+        "B": 0.0,
+        "A": 1.0
+      }
+    },
+    "critical": {
+      "hex": "#D55E00FF",
+      "linear": {
+        "R": 0.6654,
+        "G": 0.1119,
+        "B": 0.0,
+        "A": 1.0
+      }
+    },
+    "threatBoss": {
+      "hex": "#CC79A7FF",
+      "linear": {
+        "R": 0.6038,
+        "G": 0.1912,
+        "B": 0.3864,
+        "A": 1.0
+      }
+    },
+    "ally": {
+      "hex": "#009E73FF",
+      "linear": {
+        "R": 0.0,
+        "G": 0.3419,
+        "B": 0.1714,
+        "A": 1.0
+      }
+    },
+    "integrityDamaged": {
+      "hex": "#F0E442FF",
+      "linear": {
+        "R": 0.8714,
+        "G": 0.7758,
+        "B": 0.0545,
+        "A": 1.0
+      }
+    },
+    "integrityCritical": {
+      "hex": "#D55E00FF",
+      "linear": {
+        "R": 0.6654,
+        "G": 0.1119,
+        "B": 0.0,
+        "A": 1.0
+      }
+    },
+    "lockLocked": {
+      "hex": "#D55E00FF",
+      "linear": {
+        "R": 0.6654,
+        "G": 0.1119,
+        "B": 0.0,
+        "A": 1.0
+      }
+    }
+  },
+  "personas": {
+    "JARVIS": {
+      "label": "JARVIS",
+      "primary": {
+        "hex": "#5FF4FFFF",
+        "linear": {
+          "R": 0.1144,
+          "G": 0.9047,
+          "B": 1.0,
+          "A": 1.0
+        }
+      },
+      "secondary": {
+        "hex": "#1E8FFFFF",
+        "linear": {
+          "R": 0.013,
+          "G": 0.2747,
+          "B": 1.0,
+          "A": 1.0
+        }
+      },
+      "warning": {
+        "hex": "#FFC94AFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.5841,
+          "B": 0.0685,
+          "A": 1.0
+        }
+      },
+      "critical": {
+        "hex": "#FF3B3BFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.0437,
+          "B": 0.0437,
+          "A": 1.0
+        }
+      },
+      "glyph": "concentric_rings",
+      "glyphIndex": 0,
+      "font": "Rajdhani",
+      "fontFeel": "Refined, wide-tracked, calm; thin strokes, generous spacing.",
+      "letterSpacingBias": 40,
+      "motion": "smooth"
+    },
+    "FRIDAY": {
+      "label": "FRIDAY",
+      "primary": {
+        "hex": "#FFB347FF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.4508,
+          "B": 0.063,
+          "A": 1.0
+        }
+      },
+      "secondary": {
+        "hex": "#FF7A1AFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.1946,
+          "B": 0.0103,
+          "A": 1.0
+        }
+      },
+      "warning": {
+        "hex": "#FFF06AFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.8714,
+          "B": 0.1441,
+          "A": 1.0
+        }
+      },
+      "critical": {
+        "hex": "#FF3B3BFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.0437,
+          "B": 0.0437,
+          "A": 1.0
+        }
+      },
+      "glyph": "split_hexagon",
+      "glyphIndex": 1,
+      "font": "Exo 2",
+      "fontFeel": "Warm, rounded, quick; medium weight, friendly corners.",
+      "letterSpacingBias": 20,
+      "motion": "snappy"
+    },
+    "EDITH": {
+      "label": "EDITH",
+      "primary": {
+        "hex": "#C77DFFFF",
+        "linear": {
+          "R": 0.5711,
+          "G": 0.2051,
+          "B": 1.0,
+          "A": 1.0
+        }
+      },
+      "secondary": {
+        "hex": "#7B2CBFFF",
+        "linear": {
+          "R": 0.1981,
+          "G": 0.0252,
+          "B": 0.521,
+          "A": 1.0
+        }
+      },
+      "warning": {
+        "hex": "#FFC94AFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.5841,
+          "B": 0.0685,
+          "A": 1.0
+        }
+      },
+      "critical": {
+        "hex": "#FF3B5CFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.0437,
+          "B": 0.107,
+          "A": 1.0
+        }
+      },
+      "glyph": "eight_leg_radial_diamond",
+      "glyphIndex": 2,
+      "font": "Share Tech Mono",
+      "fontFeel": "Tactical, monospaced, terse; tight tracking, data-dense.",
+      "letterSpacingBias": 0,
+      "motion": "precise"
+    },
+    "ULTRON": {
+      "label": "ULTRON",
+      "primary": {
+        "hex": "#FF3B3BFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.0437,
+          "B": 0.0437,
+          "A": 1.0
+        }
+      },
+      "secondary": {
+        "hex": "#8A0F12FF",
+        "linear": {
+          "R": 0.2542,
+          "G": 0.0048,
+          "B": 0.006,
+          "A": 1.0
+        }
+      },
+      "warning": {
+        "hex": "#FFC94AFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.5841,
+          "B": 0.0685,
+          "A": 1.0
+        }
+      },
+      "critical": {
+        "hex": "#FFFFFFFF",
+        "linear": {
+          "R": 1.0,
+          "G": 1.0,
+          "B": 1.0,
+          "A": 1.0
+        }
+      },
+      "glyph": "inverted_triangle_slit",
+      "glyphIndex": 3,
+      "font": "Orbitron",
+      "fontFeel": "Heavy, angular, oppressive; black weight, wide letters.",
+      "letterSpacingBias": 80,
+      "motion": "twitchy"
+    },
+    "WARMACHINE": {
+      "label": "WAR MACHINE OS",
+      "primary": {
+        "hex": "#B9C6D4FF",
+        "linear": {
+          "R": 0.4851,
+          "G": 0.5647,
+          "B": 0.6584,
+          "A": 1.0
+        }
+      },
+      "secondary": {
+        "hex": "#5E6B78FF",
+        "linear": {
+          "R": 0.1119,
+          "G": 0.147,
+          "B": 0.1878,
+          "A": 1.0
+        }
+      },
+      "warning": {
+        "hex": "#FFB000FF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.4342,
+          "B": 0.0,
+          "A": 1.0
+        }
+      },
+      "critical": {
+        "hex": "#FF3B3BFF",
+        "linear": {
+          "R": 1.0,
+          "G": 0.0437,
+          "B": 0.0437,
+          "A": 1.0
+        }
+      },
+      "glyph": "chevron_rank_bracket",
+      "glyphIndex": 4,
+      "font": "Saira Stencil One",
+      "fontFeel": "Military stencil, utilitarian; condensed, all caps.",
+      "letterSpacingBias": 60,
+      "motion": "stepped"
+    }
+  },
+  "elements": [
+    {
+      "id": "VisorFrame",
+      "widgetClass": "UImage",
+      "description": "Helmet edge mask: dark curved bezel, inner glass edge glints. Head-locked.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 0,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "x": 0,
+          "y": 0
+        },
+        "zOrder": 0,
+        "parallaxDepth": 0.0,
+        "_notes": "Stretched: offsets are margins (left/top/right/bottom), size unused."
+      },
+      "invalidation": "static",
+      "material": "MI_HUD_VisorFrame",
+      "children": []
+    },
+    {
+      "id": "WarningVignette",
+      "widgetClass": "UImage",
+      "description": "Edge pulse driven by the top warning's colour.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 0,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "x": 0,
+          "y": 0
+        },
+        "zOrder": 5,
+        "parallaxDepth": 0.0,
+        "_notes": "Stretched: offsets are margins (left/top/right/bottom), size unused."
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Vignette",
+      "children": []
+    },
+    {
+      "id": "PitchLadder",
+      "widgetClass": "UPitchLadderWidget",
+      "description": "Pitch bars every 10 deg, horizon line, flight-path marker. Flight only.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 0.5,
+          "maxX": 0.5,
+          "maxY": 0.5
+        },
+        "alignment": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "offsets": {
+          "left": 0,
+          "top": 0,
+          "right": 520,
+          "bottom": 420
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "x": 520,
+          "y": 420
+        },
+        "zOrder": 20,
+        "parallaxDepth": 0.8
+      },
+      "invalidation": "volatile",
+      "font": {
+        "family": "HUD_Mono",
+        "typeface": "Regular",
+        "size": 10,
+        "letterSpacing": 50
+      },
+      "children": []
+    },
+    {
+      "id": "HeadingTape",
+      "widgetClass": "UHUDTapeWidget",
+      "description": "Compass tape, heading-up.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 0,
+          "maxX": 0.5,
+          "maxY": 0
+        },
+        "alignment": {
+          "x": 0.5,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 96,
+          "right": 640,
+          "bottom": 56
+        },
+        "position": {
+          "x": 0,
+          "y": 96
+        },
+        "size": {
+          "x": 640,
+          "y": 56
+        },
+        "zOrder": 22,
+        "parallaxDepth": 0.6
+      },
+      "invalidation": "volatile",
+      "font": {
+        "family": "HUD_Mono",
+        "typeface": "Regular",
+        "size": 11,
+        "letterSpacing": 80
+      },
+      "children": [
+        {
+          "id": "HeadingReadout",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 1,
+              "maxX": 0.5,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 1
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 72,
+              "bottom": 26
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 72,
+              "y": 26
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Bold",
+            "size": 14,
+            "letterSpacing": 40
+          }
+        }
+      ],
+      "tapeKind": "Heading"
+    },
+    {
+      "id": "SpeedTape",
+      "widgetClass": "UHUDTapeWidget",
+      "description": "Airspeed tape (m/s) with Mach box.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 0.5,
+          "maxX": 0.5,
+          "maxY": 0.5
+        },
+        "alignment": {
+          "x": 1,
+          "y": 0.5
+        },
+        "offsets": {
+          "left": -330,
+          "top": 0,
+          "right": 110,
+          "bottom": 420
+        },
+        "position": {
+          "x": -330,
+          "y": 0
+        },
+        "size": {
+          "x": 110,
+          "y": 420
+        },
+        "zOrder": 22,
+        "parallaxDepth": 0.6
+      },
+      "invalidation": "volatile",
+      "font": {
+        "family": "HUD_Mono",
+        "typeface": "Regular",
+        "size": 11,
+        "letterSpacing": 40
+      },
+      "children": [
+        {
+          "id": "SpeedReadout",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0.5,
+              "maxX": 1,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 96,
+              "bottom": 34
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 96,
+              "y": 34
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Bold",
+            "size": 16,
+            "letterSpacing": 20
+          }
+        },
+        {
+          "id": "MachReadout",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 1,
+              "maxX": 1,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 6,
+              "right": 96,
+              "bottom": 22
+            },
+            "position": {
+              "x": 0,
+              "y": 6
+            },
+            "size": {
+              "x": 96,
+              "y": 22
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 11,
+            "letterSpacing": 60
+          }
+        }
+      ],
+      "tapeKind": "Speed"
+    },
+    {
+      "id": "AltitudeTape",
+      "widgetClass": "UHUDTapeWidget",
+      "description": "Altitude tape (m MSL) with AGL box and vertical-speed caret.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 0.5,
+          "maxX": 0.5,
+          "maxY": 0.5
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0.5
+        },
+        "offsets": {
+          "left": 330,
+          "top": 0,
+          "right": 120,
+          "bottom": 420
+        },
+        "position": {
+          "x": 330,
+          "y": 0
+        },
+        "size": {
+          "x": 120,
+          "y": 420
+        },
+        "zOrder": 22,
+        "parallaxDepth": 0.6
+      },
+      "invalidation": "volatile",
+      "font": {
+        "family": "HUD_Mono",
+        "typeface": "Regular",
+        "size": 11,
+        "letterSpacing": 40
+      },
+      "children": [
+        {
+          "id": "AltitudeReadout",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0.5,
+              "maxX": 0,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 104,
+              "bottom": 34
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 104,
+              "y": 34
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Bold",
+            "size": 16,
+            "letterSpacing": 20
+          }
+        },
+        {
+          "id": "AglReadout",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 1,
+              "maxX": 0,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 6,
+              "right": 104,
+              "bottom": 22
+            },
+            "position": {
+              "x": 0,
+              "y": 6
+            },
+            "size": {
+              "x": 104,
+              "y": 22
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 11,
+            "letterSpacing": 60
+          }
+        },
+        {
+          "id": "VerticalSpeedCaret",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0.5,
+              "maxX": 0,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": -4,
+              "top": 0,
+              "right": 14,
+              "bottom": 14
+            },
+            "position": {
+              "x": -4,
+              "y": 0
+            },
+            "size": {
+              "x": 14,
+              "y": 14
+            },
+            "zOrder": 2
+          }
+        }
+      ],
+      "tapeKind": "Altitude"
+    },
+    {
+      "id": "TargetLayer",
+      "widgetClass": "UTargetLayerWidget",
+      "description": "Pool of UTargetBracketWidget (24) and UOffscreenIndicatorWidget (8), positioned by world projection.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 0,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "x": 0,
+          "y": 0
+        },
+        "zOrder": 30,
+        "parallaxDepth": 1.0,
+        "_notes": "Stretched: offsets are margins (left/top/right/bottom), size unused."
+      },
+      "invalidation": "volatile",
+      "font": {
+        "family": "HUD_Mono",
+        "typeface": "Regular",
+        "size": 10,
+        "letterSpacing": 60
+      },
+      "material": "MI_HUD_Bracket",
+      "children": []
+    },
+    {
+      "id": "Reticle",
+      "widgetClass": "UReticleWidget",
+      "description": "Centre reticle plus lock-progress ring.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 0.5,
+          "maxX": 0.5,
+          "maxY": 0.5
+        },
+        "alignment": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "offsets": {
+          "left": 0,
+          "top": 0,
+          "right": 96,
+          "bottom": 96
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "x": 96,
+          "y": 96
+        },
+        "zOrder": 40,
+        "parallaxDepth": 1.0
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Reticle",
+      "children": [
+        {
+          "id": "ReticleImage",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0.5,
+              "maxX": 0.5,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 48,
+              "bottom": 48
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 48,
+              "y": 48
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "LockProgressRing",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0.5,
+              "maxX": 0.5,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 96,
+              "bottom": 96
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 96,
+              "y": 96
+            },
+            "zOrder": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "PersonaGlyph",
+      "widgetClass": "UPersonaGlyphWidget",
+      "description": "AI persona glyph, persona name and suit name.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 0,
+          "maxX": 0,
+          "maxY": 0
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0
+        },
+        "offsets": {
+          "left": 120,
+          "top": 96,
+          "right": 260,
+          "bottom": 72
+        },
+        "position": {
+          "x": 120,
+          "y": 96
+        },
+        "size": {
+          "x": 260,
+          "y": 72
+        },
+        "zOrder": 50,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Glyph",
+      "children": [
+        {
+          "id": "GlyphImage",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0.5,
+              "maxX": 0,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 64,
+              "bottom": 64
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 64,
+              "y": 64
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "PersonaNameText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 76,
+              "top": 6,
+              "right": 184,
+              "bottom": 30
+            },
+            "position": {
+              "x": 76,
+              "y": 6
+            },
+            "size": {
+              "x": 184,
+              "y": 30
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 18,
+            "letterSpacing": 120
+          }
+        },
+        {
+          "id": "SuitNameText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 76,
+              "top": 40,
+              "right": 184,
+              "bottom": 24
+            },
+            "position": {
+              "x": 76,
+              "y": 40
+            },
+            "size": {
+              "x": 184,
+              "y": 24
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Body",
+            "typeface": "Regular",
+            "size": 11,
+            "letterSpacing": 60
+          }
+        }
+      ]
+    },
+    {
+      "id": "ObjectivePanel",
+      "widgetClass": "UObjectivePanelWidget",
+      "description": "Story chapter, objective, progress / beacon distance.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 0,
+          "maxX": 0,
+          "maxY": 0
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0
+        },
+        "offsets": {
+          "left": 120,
+          "top": 184,
+          "right": 420,
+          "bottom": 96
+        },
+        "position": {
+          "x": 120,
+          "y": 184
+        },
+        "size": {
+          "x": 420,
+          "y": 96
+        },
+        "zOrder": 50,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "cached",
+      "children": [
+        {
+          "id": "ObjectiveChapterText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 420,
+              "bottom": 22
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 420,
+              "y": 22
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 11,
+            "letterSpacing": 150
+          }
+        },
+        {
+          "id": "ObjectiveText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 26,
+              "right": 420,
+              "bottom": 32
+            },
+            "position": {
+              "x": 0,
+              "y": 26
+            },
+            "size": {
+              "x": 420,
+              "y": 32
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Body",
+            "typeface": "Regular",
+            "size": 15,
+            "letterSpacing": 20
+          }
+        },
+        {
+          "id": "ObjectiveProgressText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 62,
+              "right": 420,
+              "bottom": 24
+            },
+            "position": {
+              "x": 0,
+              "y": 62
+            },
+            "size": {
+              "x": 420,
+              "y": 24
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 12,
+            "letterSpacing": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "BossBar",
+      "widgetClass": "UBossBarWidget",
+      "description": "Boss health with name and phase.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 0,
+          "maxX": 0.5,
+          "maxY": 0
+        },
+        "alignment": {
+          "x": 0.5,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 168,
+          "right": 760,
+          "bottom": 40
+        },
+        "position": {
+          "x": 0,
+          "y": 168
+        },
+        "size": {
+          "x": 760,
+          "y": 40
+        },
+        "zOrder": 52,
+        "parallaxDepth": 0.5
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Bar",
+      "children": [
+        {
+          "id": "BossNameText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 760,
+              "bottom": 20
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 760,
+              "y": 20
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 12,
+            "letterSpacing": 200
+          }
+        },
+        {
+          "id": "BossFill",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 1,
+              "maxX": 0,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0,
+              "y": 1
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 760,
+              "bottom": 10
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 760,
+              "y": 10
+            },
+            "zOrder": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "CommsPortrait",
+      "widgetClass": "UCommsPortraitWidget",
+      "description": "Morgan (and other story speakers) comms window with video feed.",
+      "slot": {
+        "anchors": {
+          "minX": 1,
+          "minY": 0,
+          "maxX": 1,
+          "maxY": 0
+        },
+        "alignment": {
+          "x": 1,
+          "y": 0
+        },
+        "offsets": {
+          "left": -120,
+          "top": 96,
+          "right": 300,
+          "bottom": 220
+        },
+        "position": {
+          "x": -120,
+          "y": 96
+        },
+        "size": {
+          "x": 300,
+          "y": 220
+        },
+        "zOrder": 60,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_CommsFeed",
+      "children": [
+        {
+          "id": "CommsFeed",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 8,
+              "top": 28,
+              "right": 284,
+              "bottom": 160
+            },
+            "position": {
+              "x": 8,
+              "y": 28
+            },
+            "size": {
+              "x": 284,
+              "y": 160
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "CommsNameText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 8,
+              "top": 0,
+              "right": 200,
+              "bottom": 24
+            },
+            "position": {
+              "x": 8,
+              "y": 0
+            },
+            "size": {
+              "x": 200,
+              "y": 24
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 13,
+            "letterSpacing": 160
+          }
+        },
+        {
+          "id": "CommsSignalBars",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": -8,
+              "top": 4,
+              "right": 40,
+              "bottom": 16
+            },
+            "position": {
+              "x": -8,
+              "y": 4
+            },
+            "size": {
+              "x": 40,
+              "y": 16
+            },
+            "zOrder": 1
+          }
+        },
+        {
+          "id": "CommsRing",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0.5,
+              "maxX": 0.5,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 300,
+              "bottom": 220
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 300,
+              "y": 220
+            },
+            "zOrder": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "ScoreCombo",
+      "widgetClass": "UScoreComboWidget",
+      "description": "Arena score / combo / wave (hidden in story unless enabled).",
+      "slot": {
+        "anchors": {
+          "minX": 1,
+          "minY": 0,
+          "maxX": 1,
+          "maxY": 0
+        },
+        "alignment": {
+          "x": 1,
+          "y": 0
+        },
+        "offsets": {
+          "left": -120,
+          "top": 332,
+          "right": 260,
+          "bottom": 90
+        },
+        "position": {
+          "x": -120,
+          "y": 332
+        },
+        "size": {
+          "x": 260,
+          "y": 90
+        },
+        "zOrder": 50,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "cached",
+      "children": [
+        {
+          "id": "ScoreText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 260,
+              "bottom": 30
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 260,
+              "y": 30
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Bold",
+            "size": 18,
+            "letterSpacing": 20
+          }
+        },
+        {
+          "id": "ComboText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 34,
+              "right": 260,
+              "bottom": 24
+            },
+            "position": {
+              "x": 0,
+              "y": 34
+            },
+            "size": {
+              "x": 260,
+              "y": 24
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 13,
+            "letterSpacing": 100
+          }
+        },
+        {
+          "id": "WaveText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 62,
+              "right": 260,
+              "bottom": 24
+            },
+            "position": {
+              "x": 0,
+              "y": 62
+            },
+            "size": {
+              "x": 260,
+              "y": 24
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 11,
+            "letterSpacing": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "IntegrityDiagram",
+      "widgetClass": "USuitIntegrityWidget",
+      "description": "Suit body diagram, 7 regions.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 1,
+          "maxX": 0,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 1
+        },
+        "offsets": {
+          "left": 120,
+          "top": -96,
+          "right": 130,
+          "bottom": 260
+        },
+        "position": {
+          "x": 120,
+          "y": -96
+        },
+        "size": {
+          "x": 130,
+          "y": 260
+        },
+        "zOrder": 55,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "cached",
+      "material": "MI_HUD_IntegrityRegion",
+      "children": [
+        {
+          "id": "Region_Helmet",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 34,
+              "bottom": 36
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 34,
+              "y": 36
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "Region_Torso",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 40,
+              "right": 52,
+              "bottom": 72
+            },
+            "position": {
+              "x": 0,
+              "y": 40
+            },
+            "size": {
+              "x": 52,
+              "y": 72
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "Region_SpineMount",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 48,
+              "right": 20,
+              "bottom": 52
+            },
+            "position": {
+              "x": 0,
+              "y": 48
+            },
+            "size": {
+              "x": 20,
+              "y": 52
+            },
+            "zOrder": 1
+          }
+        },
+        {
+          "id": "Region_ArmL",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": -28,
+              "top": 42,
+              "right": 24,
+              "bottom": 84
+            },
+            "position": {
+              "x": -28,
+              "y": 42
+            },
+            "size": {
+              "x": 24,
+              "y": 84
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "Region_ArmR",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 28,
+              "top": 42,
+              "right": 24,
+              "bottom": 84
+            },
+            "position": {
+              "x": 28,
+              "y": 42
+            },
+            "size": {
+              "x": 24,
+              "y": 84
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "Region_LegL",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": -2,
+              "top": 116,
+              "right": 24,
+              "bottom": 104
+            },
+            "position": {
+              "x": -2,
+              "y": 116
+            },
+            "size": {
+              "x": 24,
+              "y": 104
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "Region_LegR",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 2,
+              "top": 116,
+              "right": 24,
+              "bottom": 104
+            },
+            "position": {
+              "x": 2,
+              "y": 116
+            },
+            "size": {
+              "x": 24,
+              "y": 104
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "IntegrityPercentText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 1,
+              "maxX": 0.5,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 1
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 130,
+              "bottom": 24
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 130,
+              "y": 24
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Bold",
+            "size": 14,
+            "letterSpacing": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "PowerGauge",
+      "widgetClass": "UReactorGaugeWidget",
+      "description": "Suit energy (output of the mounted reactor).",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 1,
+          "maxX": 0,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 1
+        },
+        "offsets": {
+          "left": 266,
+          "top": -200,
+          "right": 260,
+          "bottom": 84
+        },
+        "position": {
+          "x": 266,
+          "y": -200
+        },
+        "size": {
+          "x": 260,
+          "y": 84
+        },
+        "zOrder": 55,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Gauge",
+      "children": [
+        {
+          "id": "PowerFill",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 1,
+              "maxX": 0,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0,
+              "y": 1
+            },
+            "offsets": {
+              "left": 0,
+              "top": -8,
+              "right": 260,
+              "bottom": 14
+            },
+            "position": {
+              "x": 0,
+              "y": -8
+            },
+            "size": {
+              "x": 260,
+              "y": 14
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "PowerValueText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 140,
+              "bottom": 34
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 140,
+              "y": 34
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Bold",
+            "size": 20,
+            "letterSpacing": 20
+          }
+        },
+        {
+          "id": "PowerDrawText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 8,
+              "right": 120,
+              "bottom": 22
+            },
+            "position": {
+              "x": 0,
+              "y": 8
+            },
+            "size": {
+              "x": 120,
+              "y": 22
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 11,
+            "letterSpacing": 40
+          }
+        }
+      ],
+      "gaugeKind": "Power"
+    },
+    {
+      "id": "HeatGauge",
+      "widgetClass": "UReactorGaugeWidget",
+      "description": "Reactor heat for Harley's spine-mounted makeshift unit, vent state.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 1,
+          "maxX": 0,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 1
+        },
+        "offsets": {
+          "left": 266,
+          "top": -96,
+          "right": 260,
+          "bottom": 96
+        },
+        "position": {
+          "x": 266,
+          "y": -96
+        },
+        "size": {
+          "x": 260,
+          "y": 96
+        },
+        "zOrder": 55,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Gauge",
+      "children": [
+        {
+          "id": "HeatFill",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 1,
+              "maxX": 0,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0,
+              "y": 1
+            },
+            "offsets": {
+              "left": 0,
+              "top": -26,
+              "right": 260,
+              "bottom": 14
+            },
+            "position": {
+              "x": 0,
+              "y": -26
+            },
+            "size": {
+              "x": 260,
+              "y": 14
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "HeatRecoverMarker",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 1,
+              "maxX": 0,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 1
+            },
+            "offsets": {
+              "left": 91,
+              "top": -22,
+              "right": 3,
+              "bottom": 22
+            },
+            "position": {
+              "x": 91,
+              "y": -22
+            },
+            "size": {
+              "x": 3,
+              "y": 22
+            },
+            "zOrder": 2
+          }
+        },
+        {
+          "id": "HeatValueText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 0,
+              "maxX": 0,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 140,
+              "bottom": 34
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 140,
+              "y": 34
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Bold",
+            "size": 20,
+            "letterSpacing": 20
+          }
+        },
+        {
+          "id": "VentPrompt",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0,
+              "minY": 1,
+              "maxX": 0,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 0,
+              "y": 1
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 200,
+              "bottom": 22
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 200,
+              "y": 22
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 12,
+            "letterSpacing": 150
+          }
+        },
+        {
+          "id": "VentCooldownRing",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 4,
+              "right": 30,
+              "bottom": 30
+            },
+            "position": {
+              "x": 0,
+              "y": 4
+            },
+            "size": {
+              "x": 30,
+              "y": 30
+            },
+            "zOrder": 1
+          }
+        }
+      ],
+      "gaugeKind": "Heat"
+    },
+    {
+      "id": "HulkbusterStatus",
+      "widgetClass": "UHulkbusterStatusWidget",
+      "description": "Hulkbuster deployment / time left.",
+      "slot": {
+        "anchors": {
+          "minX": 1,
+          "minY": 1,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 1,
+          "y": 1
+        },
+        "offsets": {
+          "left": -120,
+          "top": -484,
+          "right": 260,
+          "bottom": 56
+        },
+        "position": {
+          "x": -120,
+          "y": -484
+        },
+        "size": {
+          "x": 260,
+          "y": 56
+        },
+        "zOrder": 55,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "cached",
+      "children": [
+        {
+          "id": "HulkbusterText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0.5,
+              "maxX": 1,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 260,
+              "bottom": 30
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 260,
+              "y": 30
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 14,
+            "letterSpacing": 120
+          }
+        }
+      ]
+    },
+    {
+      "id": "WeaponReadout",
+      "widgetClass": "UWeaponReadoutWidget",
+      "description": "Active weapon, special cost, beam timer.",
+      "slot": {
+        "anchors": {
+          "minX": 1,
+          "minY": 1,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 1,
+          "y": 1
+        },
+        "offsets": {
+          "left": -120,
+          "top": -372,
+          "right": 260,
+          "bottom": 100
+        },
+        "position": {
+          "x": -120,
+          "y": -372
+        },
+        "size": {
+          "x": 260,
+          "y": 100
+        },
+        "zOrder": 55,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "volatile",
+      "children": [
+        {
+          "id": "WeaponNameText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 260,
+              "bottom": 28
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 260,
+              "y": 28
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 15,
+            "letterSpacing": 120
+          }
+        },
+        {
+          "id": "SpecialCostText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 34,
+              "right": 260,
+              "bottom": 24
+            },
+            "position": {
+              "x": 0,
+              "y": 34
+            },
+            "size": {
+              "x": 260,
+              "y": 24
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 12,
+            "letterSpacing": 40
+          }
+        },
+        {
+          "id": "BeamTimerText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 0,
+              "maxX": 1,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 1,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 64,
+              "right": 260,
+              "bottom": 24
+            },
+            "position": {
+              "x": 0,
+              "y": 64
+            },
+            "size": {
+              "x": 260,
+              "y": 24
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 12,
+            "letterSpacing": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "ThreatRadar",
+      "widgetClass": "UThreatRadarWidget",
+      "description": "Heading-up threat radar, blips by type.",
+      "slot": {
+        "anchors": {
+          "minX": 1,
+          "minY": 1,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 1,
+          "y": 1
+        },
+        "offsets": {
+          "left": -120,
+          "top": -96,
+          "right": 260,
+          "bottom": 260
+        },
+        "position": {
+          "x": -120,
+          "y": -96
+        },
+        "size": {
+          "x": 260,
+          "y": 260
+        },
+        "zOrder": 55,
+        "parallaxDepth": 0.35
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Radar",
+      "children": [
+        {
+          "id": "RadarSweep",
+          "widgetClass": "UImage",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0.5,
+              "maxX": 0.5,
+              "maxY": 0.5
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 260,
+              "bottom": 260
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 260,
+              "y": 260
+            },
+            "zOrder": 0
+          }
+        },
+        {
+          "id": "RadarRangeText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 1,
+              "minY": 1,
+              "maxX": 1,
+              "maxY": 1
+            },
+            "alignment": {
+              "x": 1,
+              "y": 1
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 90,
+              "bottom": 20
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 90,
+              "y": 20
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Mono",
+            "typeface": "Regular",
+            "size": 10,
+            "letterSpacing": 60
+          }
+        }
+      ]
+    },
+    {
+      "id": "WarningStack",
+      "widgetClass": "UWarningStackWidget",
+      "description": "Prioritised warnings, max 3 visible.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 0.5,
+          "maxX": 0.5,
+          "maxY": 0.5
+        },
+        "alignment": {
+          "x": 0.5,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 230,
+          "right": 560,
+          "bottom": 132
+        },
+        "position": {
+          "x": 0,
+          "y": 230
+        },
+        "size": {
+          "x": 560,
+          "y": 132
+        },
+        "zOrder": 70,
+        "parallaxDepth": 0.5
+      },
+      "invalidation": "volatile",
+      "children": [
+        {
+          "id": "WarningSlot0",
+          "widgetClass": "UWarningEntryWidget",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 0,
+              "right": 560,
+              "bottom": 48
+            },
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "size": {
+              "x": 560,
+              "y": 48
+            },
+            "zOrder": 2
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "Bold",
+            "size": 18,
+            "letterSpacing": 180
+          }
+        },
+        {
+          "id": "WarningSlot1",
+          "widgetClass": "UWarningEntryWidget",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 52,
+              "right": 520,
+              "bottom": 38
+            },
+            "position": {
+              "x": 0,
+              "y": 52
+            },
+            "size": {
+              "x": 520,
+              "y": 38
+            },
+            "zOrder": 1
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 14,
+            "letterSpacing": 160
+          }
+        },
+        {
+          "id": "WarningSlot2",
+          "widgetClass": "UWarningEntryWidget",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 94,
+              "right": 480,
+              "bottom": 38
+            },
+            "position": {
+              "x": 0,
+              "y": 94
+            },
+            "size": {
+              "x": 480,
+              "y": 38
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 14,
+            "letterSpacing": 160
+          }
+        }
+      ]
+    },
+    {
+      "id": "SubtitleBar",
+      "widgetClass": "USubtitleBarWidget",
+      "description": "Speaker label in speaker colour + line, ties to CommsPortrait.",
+      "slot": {
+        "anchors": {
+          "minX": 0.5,
+          "minY": 1,
+          "maxX": 0.5,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0.5,
+          "y": 1
+        },
+        "offsets": {
+          "left": 0,
+          "top": -60,
+          "right": 840,
+          "bottom": 96
+        },
+        "position": {
+          "x": 0,
+          "y": -60
+        },
+        "size": {
+          "x": 840,
+          "y": 96
+        },
+        "zOrder": 75,
+        "parallaxDepth": 0.4
+      },
+      "invalidation": "volatile",
+      "children": [
+        {
+          "id": "SpeakerText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 4,
+              "right": 840,
+              "bottom": 24
+            },
+            "position": {
+              "x": 0,
+              "y": 4
+            },
+            "size": {
+              "x": 840,
+              "y": 24
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Display",
+            "typeface": "SemiBold",
+            "size": 13,
+            "letterSpacing": 200
+          }
+        },
+        {
+          "id": "LineText",
+          "widgetClass": "UTextBlock",
+          "slot": {
+            "anchors": {
+              "minX": 0.5,
+              "minY": 0,
+              "maxX": 0.5,
+              "maxY": 0
+            },
+            "alignment": {
+              "x": 0.5,
+              "y": 0
+            },
+            "offsets": {
+              "left": 0,
+              "top": 32,
+              "right": 840,
+              "bottom": 60
+            },
+            "position": {
+              "x": 0,
+              "y": 32
+            },
+            "size": {
+              "x": 840,
+              "y": 60
+            },
+            "zOrder": 0
+          },
+          "font": {
+            "family": "HUD_Body",
+            "typeface": "Regular",
+            "size": 18,
+            "letterSpacing": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "VisorNoise",
+      "widgetClass": "UImage",
+      "description": "Scanlines + animated grain over the HUD only (inside the retainer).",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 0,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "x": 0,
+          "y": 0
+        },
+        "zOrder": 90,
+        "parallaxDepth": 0.0,
+        "_notes": "Stretched: offsets are margins (left/top/right/bottom), size unused."
+      },
+      "invalidation": "static",
+      "material": "MI_HUD_Scanlines",
+      "children": []
+    },
+    {
+      "id": "GlitchOverlay",
+      "widgetClass": "UImage",
+      "description": "Damage glitch: tears, blocks, colour drop. Collapsed at tier 0.",
+      "slot": {
+        "anchors": {
+          "minX": 0,
+          "minY": 0,
+          "maxX": 1,
+          "maxY": 1
+        },
+        "alignment": {
+          "x": 0,
+          "y": 0
+        },
+        "offsets": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "size": {
+          "x": 0,
+          "y": 0
+        },
+        "zOrder": 95,
+        "parallaxDepth": 0.0,
+        "_notes": "Stretched: offsets are margins (left/top/right/bottom), size unused."
+      },
+      "invalidation": "volatile",
+      "material": "MI_HUD_Glitch",
+      "children": []
+    }
+  ],
+  "_allowedOverlaps": [
+    [
+      "PitchLadder",
+      "Reticle"
+    ],
+    [
+      "PitchLadder",
+      "SpeedTape"
+    ],
+    [
+      "PitchLadder",
+      "AltitudeTape"
+    ]
+  ],
+  "thresholds": {
+    "heat": {
+      "max": 100,
+      "caution": 60,
+      "warning": 80,
+      "critical": 95,
+      "overheat": 100,
+      "recoverAt": 35,
+      "ventDurationS": 1.2,
+      "ventCooldownS": 6.0,
+      "ventCoolingPerS": 70,
+      "_notes": "Mirrors UReactorComponent (MaxHeat 100, OverheatRecoverAt 35, VentDuration 1.2, VentCooldown 6, VentCoolingPerSecond 70). Values are heat units = percent of MaxHeat."
+    },
+    "power": {
+      "low": 0.2,
+      "critical": 0.1,
+      "_notes": "Fraction of MaxEnergy."
+    },
+    "integrity": {
+      "damaged": 0.7,
+      "critical": 0.35,
+      "offline": 0.05,
+      "_notes": "Region fraction 0..1."
+    },
+    "glitchTiers": [
+      {
+        "tier": 0,
+        "healthBelow": 1.01,
+        "glitch": 0.0
+      },
+      {
+        "tier": 1,
+        "healthBelow": 0.6,
+        "glitch": 0.15
+      },
+      {
+        "tier": 2,
+        "healthBelow": 0.35,
+        "glitch": 0.35
+      },
+      {
+        "tier": 3,
+        "healthBelow": 0.15,
+        "glitch": 0.6
+      },
+      {
+        "tier": 4,
+        "healthBelow": 0.05,
+        "glitch": 0.85
+      }
+    ],
+    "lock": {
+      "coneDeg": 12.0,
+      "acquireRangeM": 180,
+      "lockTimeRepulsorS": 0.6,
+      "lockTimeMissileS": 1.2,
+      "loseGraceS": 0.25,
+      "maxBrackets": 24,
+      "maxLocks": 6,
+      "maxOffscreen": 8,
+      "offscreenEllipseInset": 0.06
+    },
+    "radar": {
+      "rangeGroundM": 120,
+      "rangeFlightM": 300,
+      "rangeBossM": 500,
+      "elevationMarkerM": 10,
+      "sweepPeriodS": 1.5
+    },
+    "tapes": {
+      "speed": {
+        "unit": "m/s",
+        "windowHalf": 50,
+        "minor": 2,
+        "major": 10,
+        "pxPerUnit": 3.6,
+        "machFrom": 0.3,
+        "min": 0,
+        "max": 400
+      },
+      "altitude": {
+        "unit": "m",
+        "windowHalf": 100,
+        "minor": 5,
+        "major": 20,
+        "pxPerUnit": 1.8,
+        "aglBoxBelowM": 60,
+        "min": -500,
+        "max": 9999
+      },
+      "heading": {
+        "unit": "deg",
+        "windowHalf": 45,
+        "minor": 5,
+        "major": 10,
+        "pxPerUnit": 6.4,
+        "min": 0,
+        "max": 359
+      },
+      "pitchLadder": {
+        "unit": "deg",
+        "stepDeg": 10,
+        "pxPerDeg": 8.0,
+        "visibleDeg": 25
+      }
+    },
+    "flashMaxHz": 3.0
+  },
+  "warnings": [
+    {
+      "id": "SuitCritical",
+      "priority": 0,
+      "text": "SUIT CRITICAL",
+      "color": "critical",
+      "icon": "octagon",
+      "flashHz": 2.5,
+      "minShowS": 2.0,
+      "audio": "klaxon"
+    },
+    {
+      "id": "Overheat",
+      "priority": 1,
+      "text": "OVERHEAT - WEAPONS OFFLINE",
+      "color": "critical",
+      "icon": "flame_triangle",
+      "flashHz": 2.5,
+      "minShowS": 1.5,
+      "audio": "klaxon"
+    },
+    {
+      "id": "MissileLock",
+      "priority": 2,
+      "text": "MISSILE LOCK",
+      "color": "critical",
+      "icon": "chevrons_in",
+      "flashHz": 2.0,
+      "minShowS": 1.0,
+      "audio": "lock_tone"
+    },
+    {
+      "id": "ArmorCritical",
+      "priority": 3,
+      "text": "ARMOR CRITICAL",
+      "color": "critical",
+      "icon": "cracked_shield",
+      "flashHz": 1.5,
+      "minShowS": 1.5,
+      "audio": "chime_hi"
+    },
+    {
+      "id": "VentNow",
+      "priority": 4,
+      "text": "HEAT HIGH - VENT [X]",
+      "color": "warning",
+      "icon": "triangle",
+      "flashHz": 1.5,
+      "minShowS": 1.5,
+      "audio": "chime_mid"
+    },
+    {
+      "id": "CoreDark",
+      "priority": 4,
+      "text": "REACTOR OUTPUT LOST",
+      "color": "critical",
+      "icon": "ring_slash",
+      "flashHz": 1.0,
+      "minShowS": 2.0,
+      "audio": "chime_hi"
+    },
+    {
+      "id": "LowPower",
+      "priority": 5,
+      "text": "LOW POWER",
+      "color": "caution",
+      "icon": "battery",
+      "flashHz": 1.0,
+      "minShowS": 1.5,
+      "audio": "chime_low"
+    },
+    {
+      "id": "PullUp",
+      "priority": 6,
+      "text": "PULL UP",
+      "color": "warning",
+      "icon": "caret_up",
+      "flashHz": 2.0,
+      "minShowS": 0.5,
+      "audio": "chime_mid"
+    },
+    {
+      "id": "Info",
+      "priority": 7,
+      "text": "",
+      "color": "neutralText",
+      "icon": "dot",
+      "flashHz": 0.0,
+      "minShowS": 2.0,
+      "audio": "none"
+    }
+  ],
+  "warningStacking": {
+    "maxVisible": 3,
+    "dedupeById": true,
+    "refreshExtendsS": 1.0,
+    "demoteSlideMs": 160,
+    "lowerPriorityDimTo": 0.7,
+    "audioTopOnly": true
+  },
+  "animations": {
+    "bootSequence": {
+      "durationMs": 1400,
+      "easing": "ExpoOut",
+      "delayMs": 0,
+      "stagger": {
+        "L0_Visor": 0,
+        "L2_Mid": 250,
+        "L1_Near": 450,
+        "L3_Far": 650
+      },
+      "_notes": "Elements fade+scaleY 0.6->1 with a scan line sweep top to bottom."
+    },
+    "bracketAcquire": {
+      "durationMs": 180,
+      "easing": "ExpoOut",
+      "fromScale": 1.6,
+      "toScale": 1.0
+    },
+    "bracketTrackSmoothMs": {
+      "durationMs": 40,
+      "easing": "Linear"
+    },
+    "bracketLockSnap": {
+      "durationMs": 80,
+      "easing": "CircularOut",
+      "fromScale": 1.0,
+      "toScale": 0.82
+    },
+    "bracketLockedPulse": {
+      "loopHz": 1.5,
+      "easing": "SinusoidalInOut",
+      "amplitude": 0.06
+    },
+    "bracketLostFade": {
+      "durationMs": 150,
+      "easing": "EaseIn",
+      "delayMs": 250
+    },
+    "lockProgressRing": {
+      "easing": "Linear",
+      "_notes": "Duration = lockTimeRepulsorS / lockTimeMissileS."
+    },
+    "warningIn": {
+      "durationMs": 140,
+      "easing": "ExpoOut",
+      "fromScale": 1.25
+    },
+    "warningOut": {
+      "durationMs": 200,
+      "easing": "EaseIn"
+    },
+    "warningFlash": {
+      "easing": "Step",
+      "_notes": "Rate per warning flashHz; never above thresholds.flashMaxHz."
+    },
+    "commsIncomingRing": {
+      "durationMs": 900,
+      "loops": 3,
+      "easing": "SinusoidalOut",
+      "delayMs": 0
+    },
+    "commsOpen": {
+      "durationMs": 300,
+      "easing": "ExpoOut",
+      "delayMs": 900,
+      "fromScaleY": 0.0
+    },
+    "commsClose": {
+      "durationMs": 220,
+      "easing": "EaseIn",
+      "delayMs": 1500,
+      "_notes": "delay = hold after the last subtitle line ends."
+    },
+    "commsFeedJitter": {
+      "loopHz": 12.0,
+      "easing": "Step",
+      "amplitudePx": 1.0
+    },
+    "subtitleIn": {
+      "durationMs": 120,
+      "easing": "EaseOut"
+    },
+    "subtitleOut": {
+      "durationMs": 250,
+      "easing": "EaseIn",
+      "delayMs": 0
+    },
+    "personaSwap": {
+      "durationMs": 600,
+      "easing": "SinusoidalInOut",
+      "_notes": "Glyph morph: old glyph scales 1->0 (300ms) with a 1-frame glitch, new glyph 0->1 (300ms); palette crossfades in linear space over the full 600ms."
+    },
+    "personaSpeakingPulse": {
+      "loopHz": 0.0,
+      "easing": "Linear",
+      "_notes": "Driven by voice envelope (0..1) with 30ms attack, 120ms release."
+    },
+    "radarSweep": {
+      "loopHz": 0.6667,
+      "easing": "Linear"
+    },
+    "heatPulseWarning": {
+      "loopHz": 1.5,
+      "easing": "SinusoidalInOut"
+    },
+    "heatPulseCritical": {
+      "loopHz": 2.5,
+      "easing": "Step"
+    },
+    "ventChevrons": {
+      "durationMs": 1200,
+      "easing": "Linear",
+      "loopHz": 4.0
+    },
+    "integrityHitFlash": {
+      "durationMs": 250,
+      "easing": "ExpoOut"
+    },
+    "glitchTear": {
+      "durationMs": 120,
+      "easing": "Step",
+      "_notes": "Per tear; tier 2 repeats every 2-4 s (random), tier 3 every 0.6-1.5 s."
+    },
+    "glitchBlackout": {
+      "durationMs": 90,
+      "easing": "Step",
+      "_notes": "Tier 4 only, every 3-6 s; skipped in reduced motion."
+    },
+    "impactKick": {
+      "durationMs": 220,
+      "easing": "CircularOut"
+    },
+    "lowPowerBrownout": {
+      "loopHz": 0.5,
+      "easing": "SinusoidalInOut",
+      "amplitude": 0.25,
+      "_notes": "Global HUD opacity dips to 0.75 below power.critical."
+    }
+  },
+  "accessibility": {
+    "colorBlindSafe": false,
+    "reducedMotion": false,
+    "hudOpacity": 1.0,
+    "subtitleScale": {
+      "min": 0.8,
+      "max": 1.6,
+      "default": 1.0
+    },
+    "subtitleBackgroundOpacity": 0.55,
+    "_notes": "Defaults; user settings override. reducedMotion zeroes parallax/head-bob/impact kick, replaces tears with a static 0.1 desaturate, caps flashes to steady-on with 1 Hz brightness pulse."
+  },
+  "performance": {
+    "gpuBudgetMs": 0.35,
+    "gameThreadBudgetMs": 0.25,
+    "maxDrawCalls": 60,
+    "retainerBoxes": 1,
+    "retainerRenderEveryFrame": true,
+    "bracketPool": 24,
+    "offscreenPool": 8,
+    "textUpdateQuantize": {
+      "speed": 1,
+      "altitude": 1,
+      "heading": 1,
+      "heatPct": 1,
+      "powerPct": 1
+    }
+  }
+}

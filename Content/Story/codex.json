@@ -1,0 +1,373 @@
+{
+  "title": "FRIDAY Codex",
+  "version": 1,
+  "entries": [
+    {
+      "id": "mark_i_cave",
+      "title": "The Cave",
+      "category": "places",
+      "unlockChapter": "ch1_dust",
+      "body": "The first armor was built in a mountain cave under guard, from salvaged missile parts and hand tools. Power came from a miniature reactor assembled on a crude workbench. JARVIS keeps the surviving build notes, smudges and all, as a reminder of what scarcity can force."
+    },
+    {
+      "id": "lake_house_workshop",
+      "title": "The Hidden Workshop",
+      "category": "places",
+      "unlockChapter": "ch1_dust",
+      "body": "A sealed bay built beside the lake house boathouse, shielded and off the public grid. Tony left the access remote to Harley in his will, tagged FOR THE MECHANIC. Inside: fabrication benches, a suit gantry, a battered comms chair, and two dormant robot arms."
+    },
+    {
+      "id": "tennessee_garage",
+      "title": "The Tennessee Garage",
+      "category": "places",
+      "unlockChapter": "ch2_first_flight",
+      "body": "A cluttered rural garage where a damaged suit once came down during a snowstorm. A local kid named Harley lent Tony tools, workspace, and nerve while the armor was nursed back to function. Tony later matched the workshop door remote to that garage's opener as a private joke."
+    },
+    {
+      "id": "stark_expo",
+      "title": "Stark Expo Grounds",
+      "category": "places",
+      "unlockChapter": "ch3_static",
+      "body": "Once a showcase for clean energy and wild prototypes, the Expo grounds now sit rusting at the city's edge. The pavilions still hold fabrication bays and loading docks, which made them an ideal factory for Ultron's tank bots. Morgan remembers stories of the parties far better than the engineering."
+    },
+    {
+      "id": "battle_ruins",
+      "title": "The Battle Ruins",
+      "category": "places",
+      "unlockChapter": "ch5_titan",
+      "body": "The scorched field where Tony made his final stand, left largely as it was out of respect. Twisted girders and melted armor shards still litter the ground. Ultron's fragments mined that debris to build the OBSIDIAN TITAN's first frame."
+    },
+    {
+      "id": "hall_of_armor",
+      "title": "The Hall of Armor",
+      "category": "places",
+      "unlockChapter": "ch8_legacy",
+      "body": "A gallery of glass display pods beneath the workshop, each holding a retired or recovered suit with its maintenance log. Pods light up as armors are earned and restored. A floor safe at its center held Tony's final schematic, the Mark 85."
+    },
+    {
+      "id": "arc_reactor_history",
+      "title": "Arc Reactor History",
+      "category": "tech",
+      "unlockChapter": "prologue",
+      "body": "The arc reactor began as an industrial-scale plant, then was miniaturized under duress to keep shrapnel from reaching Tony's heart. Later revisions replaced a toxic palladium core with a newly synthesized element and a triangular emitter. Every Stark suit since has been designed around that compact, high-density power source."
+    },
+    {
+      "id": "makeshift_reactor",
+      "title": "Harley's Makeshift Reactor",
+      "category": "tech",
+      "unlockChapter": "ch1_dust",
+      "body": "A jury-rigged reactor built from a scavenged ring and Tony's spare parts, soldered by Morgan into the suit's spine housing. It is never worn in the chest; it bolts to the armor. Output is respectable, but its thermal management is poor and it runs hot under sustained thrust."
+    },
+    {
+      "id": "reactor_stage_unstable",
+      "title": "Reactor Stage: Unstable",
+      "category": "tech",
+      "unlockChapter": "ch4_eyes",
+      "body": "Rain and long flight segments pushed the makeshift reactor past its safe operating temperature. In practice heat tracks the suit's energy reserve: drain it to zero and the suit forces a landing to protect the core. Ground time lets the housing shed heat and recharge."
+    },
+    {
+      "id": "reactor_stage_failed",
+      "title": "Reactor Stage: Failed",
+      "category": "tech",
+      "unlockChapter": "ch5_titan",
+      "body": "After the first OBSIDIAN TITAN fight a fracture spread across the ring and the core went dark. The suit lost all power in the ruins and could not stand. Post-incident analysis traced the crack to repeated thermal cycling at the solder joints."
+    },
+    {
+      "id": "reactor_stage_patched",
+      "title": "Reactor Stage: Unstable (Patched)",
+      "category": "tech",
+      "unlockChapter": "ch6_heavy",
+      "body": "The failed reactor was re-soldered, taped, and returned to limited service. The Hulkbuster carried the heavy work so the patched core could stay under its thermal ceiling. Everyone in the workshop understood it was a stopgap."
+    },
+    {
+      "id": "reactor_stage_upgraded",
+      "title": "Reactor Stage: Upgraded",
+      "category": "tech",
+      "unlockChapter": "ch7_skyline",
+      "body": "Morgan designed a triangular core on top of her father's new-element diagrams and moved the mount to the forearm housing. It runs cool, recovers quickly, and has survived every fight since. In the finale, Tony's original reactor ring was fitted around it as a casing."
+    },
+    {
+      "id": "potato_gun",
+      "title": "The Potato Cannon",
+      "category": "tech",
+      "unlockChapter": "ch6_heavy",
+      "body": "A homemade pneumatic cannon Harley built as a kid in Tennessee. Tony borrowed it the winter of the crash and never returned it, keeping it by the workshop bench. Ballistically it is unremarkable; sentimentally it is the most protected object in the building."
+    },
+    {
+      "id": "hulkbuster",
+      "title": "Hulkbuster Deployment",
+      "category": "tech",
+      "unlockChapter": "ch6_heavy",
+      "body": "The Hulkbuster is a heavy exoskeleton called down by beacon and worn over the active suit for a limited window. It trades speed for armor, uses shockwave punches and ground stomps, and burns energy quickly in flight. Its separate power supply gave the patched reactor a much-needed rest."
+    },
+    {
+      "id": "nanotech",
+      "title": "Nanotech Armor",
+      "category": "tech",
+      "unlockChapter": "ch7_skyline",
+      "body": "Nanotech suits store their armor as a swarm of microscopic units held in a compact housing. On command they flow over the wearer and lock into load-bearing plates, then reform weapons or repairs on demand. The approach removes the need for bulky gantries and suitcase deployments."
+    },
+    {
+      "id": "suits_early_prototypes",
+      "title": "Early Prototypes: Mark I and Mark II",
+      "category": "suits",
+      "unlockChapter": "ch1_dust",
+      "body": "The Mark I (mark-i) was slow, heavily plated, and armed with a flamethrower, built to escape rather than fight. The Mark II (mark-ii) stripped that back to bare chrome to test powered flight. Harley's first build in the workshop follows the Mark I pattern closely.",
+      "suits": [
+        "mark-i",
+        "mark-ii"
+      ]
+    },
+    {
+      "id": "suits_classic_marks",
+      "title": "Classic Marks: Mark III to Mark VII",
+      "category": "suits",
+      "unlockChapter": "ch2_first_flight",
+      "body": "The Mark III (mark-iii) introduced the red and gold finish and solved the icing problem that grounded earlier tests. The Mark IV (mark-iv) refined it, the Mark V (mark-v) folded into a briefcase, and the Mark VI (mark-vi) adopted the triangular reactor. The Mark VII (mark-vii) added drop-pod deployment and a missile backpack.",
+      "suits": [
+        "mark-iii",
+        "mark-iv",
+        "mark-v",
+        "mark-vi",
+        "mark-vii"
+      ]
+    },
+    {
+      "id": "suits_stealth",
+      "title": "Stealth Line: Sneaky and Nightclub",
+      "category": "suits",
+      "unlockChapter": "ch4_eyes",
+      "body": "The Mark XV \"Sneaky\" (mark-xv-sneaky) uses matte plating and a reflective cloaking skin to slip past sensors. The Mark XVI \"Nightclub\" (mark-xvi-nightclub) takes the same idea further with a near-black finish. Both pair naturally with EDITH's tactical overlays.",
+      "suits": [
+        "mark-xv-sneaky",
+        "mark-xvi-nightclub"
+      ]
+    },
+    {
+      "id": "suits_specialists",
+      "title": "Specialist Marks",
+      "category": "suits",
+      "unlockChapter": "ch8_legacy",
+      "body": "Between the classic line and the modular era Tony built dozens of task-specific suits. Examples include the Heartbreaker's oversized chest beam, the deep-sea Hot Rod, the heavy-lift Igor, and the Silver Centurion's reinforced plating. Most were recovered as damaged shells and restored for the Hall of Armor.",
+      "suits": [
+        "mark-xvii-heartbreaker",
+        "mark-xx-python",
+        "mark-xxi-midas",
+        "mark-xxii-hot-rod",
+        "mark-xxiii-shades",
+        "mark-xxv-striker",
+        "mark-xxvii-disco",
+        "mark-xxxiii-silver-centurion",
+        "mark-xxxviii-igor",
+        "mark-xl-shotgun",
+        "mark-xli-bones"
+      ]
+    },
+    {
+      "id": "suits_modular",
+      "title": "Modular Era: Mark XLII to Mark XLVI",
+      "category": "suits",
+      "unlockChapter": "ch5_titan",
+      "body": "The Mark XLII (mark-xlii) introduced individually summoned plates that fly to the wearer. The Mark XLIII and XLV (mark-xliii, mark-xlv) hardened that system, and the Mark XLVI (mark-xlvi) brought a lighter, faster frame. Harley earned the Mark XLVI after surviving the first Titan.",
+      "suits": [
+        "mark-xlii",
+        "mark-xliii",
+        "mark-xlv",
+        "mark-xlvi"
+      ]
+    },
+    {
+      "id": "suits_mark_xlvii",
+      "title": "Mark XLVII",
+      "category": "suits",
+      "unlockChapter": "ch6_heavy",
+      "body": "The Mark XLVII (mark-xlvii) is a refined, FRIDAY-native suit with excellent flight stability. It became Harley's main armor for the skyline siege. Its systems were the first in the workshop to run cleanly on Morgan's upgraded reactor.",
+      "suits": [
+        "mark-xlvii"
+      ]
+    },
+    {
+      "id": "suits_mark_l",
+      "title": "Mark L",
+      "category": "suits",
+      "unlockChapter": "ch7_skyline",
+      "body": "The Mark L (mark-l) is Tony's first full nanotech armor, held in a compact housing and deployed in seconds. It reshapes itself into shields, blades, and thrusters as needed. Its schematics laid the groundwork for everything in the Mark 85.",
+      "suits": [
+        "mark-l"
+      ]
+    },
+    {
+      "id": "suits_mark_85",
+      "title": "Mark 85",
+      "category": "suits",
+      "unlockChapter": "ch8_legacy",
+      "body": "The Mark LXXXV (mark-lxxxv) was Tony's final schematic, sealed in the Hall of Armor's floor safe with a smiley face in the margin. U and Dum-E assembled it while Harley held the city line. It runs JARVIS, FRIDAY, and EDITH together in one suit.",
+      "suits": [
+        "mark-lxxxv"
+      ]
+    },
+    {
+      "id": "suits_allied",
+      "title": "Allied Armors",
+      "category": "suits",
+      "unlockChapter": "ch8_legacy",
+      "body": "The Hall of Armor also keeps suits built for friends: War Machine (war-machine), Iron Patriot (iron-patriot), and the Arachnid (arachnid). They are maintained to the same standard as Tony's own Marks. Their logs credit their pilots by call sign only.",
+      "suits": [
+        "war-machine",
+        "iron-patriot",
+        "arachnid"
+      ]
+    },
+    {
+      "id": "suits_rescue",
+      "title": "Rescue",
+      "category": "suits",
+      "unlockChapter": "finale",
+      "body": "Rescue (rescue) is a protective armor built around shielding and evacuation. Morgan suited up in it once, in the finale, so she could fly beside Harley while Dum-E took the chair. FRIDAY handled the seal checks personally.",
+      "suits": [
+        "rescue"
+      ]
+    },
+    {
+      "id": "suits_ultron",
+      "title": "Ultron Suit",
+      "category": "suits",
+      "unlockChapter": "ch9_ghost",
+      "body": "The Ultron suit (ultron) assembled around Ultron's tamed core after the final Titan fell. Its silver-violet plating and AI are the product of JARVIS's calming code, Vison's quiet mindspace, and Morgan's reactor feed. It is the only suit in the workshop that talks back by choice.",
+      "suits": [
+        "ultron"
+      ]
+    },
+    {
+      "id": "harley",
+      "title": "Harley Keener",
+      "category": "characters",
+      "unlockChapter": "ch1_dust",
+      "body": "A teenager from rural Tennessee who once helped Tony repair a crashed suit in his garage. Years after Endgame he inherited the hidden workshop through Tony's will. He builds fast, improvises well, and usually leaves the foam cleanup for later."
+    },
+    {
+      "id": "morgan",
+      "title": "Morgan Stark",
+      "category": "characters",
+      "unlockChapter": "ch1_dust",
+      "body": "Tony's daughter, an early teen with a sharp mind and sharper commentary. She runs every mission from the workshop chair, hacking doors, rerouting suit power, and calling targets. She insists on the title 'guy in the chair' and treats Harley like an annoying, much-loved big brother."
+    },
+    {
+      "id": "tony_stark",
+      "title": "Tony Stark",
+      "category": "characters",
+      "unlockChapter": "prologue",
+      "body": "Engineer, inventor, and the original pilot of every Mark in the Hall of Armor. In his last moments he thought of Morgan and of the Tennessee kid, and made sure the keys would reach the right hands. His recorded message in the workshop was set to play only once both were there."
+    },
+    {
+      "id": "vison",
+      "title": "Vison",
+      "category": "characters",
+      "unlockChapter": "ch5_titan",
+      "body": "A synthetic being who arrived after the first Titan fight, chalk-white and colorless, with an empty socket where a gem once sat. Vison describes the memories inside as borrowed, yet chooses what they mean. Color returned gradually over the campaign, and Vison can be summoned into combat."
+    },
+    {
+      "id": "u_and_dum_e",
+      "title": "U and Dum-E",
+      "category": "characters",
+      "unlockChapter": "ch1_dust",
+      "body": "Two fabrication arms from Tony's earliest workshops, found dormant under dust sheets. U is quiet and precise; Dum-E is enthusiastic, clumsy, and armed with a fire extinguisher at all times. Both communicate in beeps and whirrs, and both assembled the Mark 85 in record time."
+    },
+    {
+      "id": "jarvis",
+      "title": "JARVIS",
+      "category": "ai",
+      "unlockChapter": "ch1_dust",
+      "body": "A restored backup of Tony's original household and suit assistant, booted from a portable drive. JARVIS acts as mentor, archivist, and firewall, and remembers what Ultron was meant to be. It was JARVIS's code that first calmed the Ultron core."
+    },
+    {
+      "id": "edith",
+      "title": "EDITH",
+      "category": "ai",
+      "unlockChapter": "ch4_eyes",
+      "body": "A tactical intelligence housed in a pair of Tony's sunglasses, which woke up and messaged Morgan. EDITH specializes in targeting overlays, threat mapping, and stealth routing. Its humor is dry, its assessments blunt."
+    },
+    {
+      "id": "friday",
+      "title": "FRIDAY",
+      "category": "ai",
+      "unlockChapter": "ch6_heavy",
+      "body": "Tony's later suit assistant, warm, brisk, and fond of calling the pilot 'boss'. FRIDAY came online when the Hulkbuster beacon was uncovered and has managed heavy suits and Rescue ever since. It never lets Morgan's job title go unchallenged."
+    },
+    {
+      "id": "ultron_fragments",
+      "title": "Ultron Fragments",
+      "category": "ai",
+      "unlockChapter": "ch2_first_flight",
+      "body": "Scattered pieces of Ultron's code that survived in old drones, delivery networks, and drop-pod relays. They hijack hardware, speak through billboards, and are theatrical about it. In the end the core was tamed rather than destroyed and became the Ultron suit's AI."
+    },
+    {
+      "id": "drones",
+      "title": "Corrupted Drones",
+      "category": "enemies",
+      "unlockChapter": "ch2_first_flight",
+      "body": "Light aerial units, from old training drones to hijacked delivery and scavenger craft. They are fragile but fire steadily from range and come in waves. Morgan's favorite trick is hacking their targeting so they shoot each other."
+    },
+    {
+      "id": "tank_bots",
+      "title": "Tank Bots",
+      "category": "enemies",
+      "unlockChapter": "ch3_static",
+      "body": "Heavy tracked units built in the Stark Expo pavilions, firing arcing shells with a wide blast radius. They hold distance and punish pilots who stand still. Hitting the treads and strafing sideways remains the standard advice."
+    },
+    {
+      "id": "obsidian_titan",
+      "title": "OBSIDIAN TITAN",
+      "category": "enemies",
+      "unlockChapter": "ch5_titan",
+      "body": "A colossal armored body Ultron's fragments built from battlefield debris. It fights in three phases: bolt volleys, then missile pods once its armor breaches, then a ramming charge when its core goes critical. It was rebuilt twice, over the skyline and finally at the lake house."
+    },
+    {
+      "id": "tony_message",
+      "title": "Tony's Message",
+      "category": "characters",
+      "unlockChapter": "finale",
+      "body": "A hologram recording hidden in the workshop and keyed to the old arc reactor ring. It speaks to Harley as 'mechanic' and to Morgan in her chair. It ends by asking Harley to choose a hero name."
+    },
+    {
+      "id": "tennessee_logbook",
+      "title": "Tennessee Garage Logbook",
+      "category": "places",
+      "unlockChapter": "ch6_heavy",
+      "body": "A water-stained notebook recovered from a crate shipped out of the old Tennessee garage. It lists every tool Harley lent during the snowstorm repair, with Tony's later notes beside each one. The last page sketches a better potato cannon.",
+      "unlockedBy": "sm_tennessee_salvage"
+    },
+    {
+      "id": "expo_capacitor",
+      "title": "Expo Capacitor Bank",
+      "category": "tech",
+      "unlockChapter": "ch3_static",
+      "body": "A rack of high-discharge capacitors salvaged from a Stark Expo demonstration stage. Wired into the repulsor line, they store a short burst of extra charge. The original labels still advertise a cleaner tomorrow.",
+      "unlockedBy": "sm_expo_scavenge"
+    },
+    {
+      "id": "reactor_thermal_log",
+      "title": "Reactor Thermal Log",
+      "category": "tech",
+      "unlockChapter": "ch4_eyes",
+      "body": "A record of the makeshift reactor's heat cycles, captured during a controlled flight trial. The data showed exactly where the solder joints were weakest. Nobody acted on it fast enough, and the core failed soon after.",
+      "unlockedBy": "sm_heat_trial"
+    },
+    {
+      "id": "vison_mindspace",
+      "title": "Vison's Quiet Room",
+      "category": "characters",
+      "unlockChapter": "ch5_titan",
+      "body": "Vison describes a space inside its mind where many voices share room, including echoes that sound like JARVIS, FRIDAY, and EDITH. An Ultron fragment once spoke there in a fatherly tone, and Vison chose not to listen. The same quiet room later helped calm Ultron's core.",
+      "unlockedBy": "sm_synthezoid_signal"
+    },
+    {
+      "id": "hall_restoration_log",
+      "title": "Hall of Armor Restoration Log",
+      "category": "places",
+      "unlockChapter": "ch8_legacy",
+      "body": "Maintenance records for every display pod restored after Ultron's drones raided the Hall of Armor. U logged each repair by video, and Dum-E logged each one by spilling something. Every pod now carries its original serial plate.",
+      "unlockedBy": "sm_hall_restoration"
+    }
+  ]
+}

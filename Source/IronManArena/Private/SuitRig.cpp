@@ -3,6 +3,13 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/Actor.h"
+#include "Dom/JsonObject.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "IronManArena.h"
 
 using namespace ArenaVisuals;
 
@@ -60,6 +67,142 @@ namespace
 	const FLinearColor WireBlack(0.02f, 0.02f, 0.02f);
 	const FLinearColor Copper(0.55f, 0.25f, 0.08f);
 	const FLinearColor BareSteel(0.3f, 0.3f, 0.32f);
+}
+
+// ---------------------------------------------------------------------------- suit materials
+// Content/Story/suit_materials.json (U's per-suit PBR table, linear colour): paint layers map
+// 1:1 onto M_CarPaint, emissive entries onto M_ArcGlow. Missing file / suit = heuristics.
+namespace
+{
+	struct FSuitLayerMat
+	{
+		bool bValid = false;
+		FLinearColor Color = FLinearColor::White;
+		float Metallic = 0.7f, Roughness = 0.3f, ClearCoat = 1.f, ClearCoatRoughness = 0.04f, Flake = 0.35f, FlakeScale = 1.2f;
+	};
+	struct FSuitGlowMat
+	{
+		bool bValid = false;
+		FLinearColor Color = FLinearColor::White;
+		float Intensity = 10.f, CoreWhite = 0.5f;
+	};
+	struct FSuitMaterialDef
+	{
+		FSuitLayerMat Layers[3]; // primary, secondary, accent
+		FSuitGlowMat Eyes, Reactor, Repulsors;
+		FLinearColor WearColor = FLinearColor(0.56f, 0.57f, 0.58f);
+		float EdgeWear = 0.1f, Scorch = 0.f, Dirt = 0.f, PanelLineDepth = 0.f;
+	};
+
+	FLinearColor ReadColor(const TSharedPtr<FJsonObject>& O, const TCHAR* Field, const FLinearColor& Default)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* A = nullptr;
+		if (O.IsValid() && O->TryGetArrayField(Field, A) && A && A->Num() >= 3)
+		{
+			return FLinearColor(float((*A)[0]->AsNumber()), float((*A)[1]->AsNumber()), float((*A)[2]->AsNumber()), 1.f);
+		}
+		return Default;
+	}
+
+	float ReadNum(const TSharedPtr<FJsonObject>& O, const TCHAR* Field, float Default)
+	{
+		double V = 0.0;
+		return (O.IsValid() && O->TryGetNumberField(Field, V)) ? float(V) : Default;
+	}
+
+	FSuitGlowMat ReadGlow(const TSharedPtr<FJsonObject>& Emissive, const TCHAR* Field)
+	{
+		FSuitGlowMat G;
+		const TSharedPtr<FJsonObject>* O = nullptr;
+		if (Emissive.IsValid() && Emissive->TryGetObjectField(Field, O) && O && O->IsValid()) // null entries = no such light
+		{
+			G.bValid = true;
+			G.Color = ReadColor(*O, TEXT("colorLinear"), G.Color);
+			G.Intensity = ReadNum(*O, TEXT("intensity"), G.Intensity);
+			G.CoreWhite = ReadNum(*O, TEXT("coreWhite"), G.CoreWhite);
+		}
+		return G;
+	}
+
+	const TMap<FName, FSuitMaterialDef>& GetSuitMaterials()
+	{
+		static TMap<FName, FSuitMaterialDef> Table;
+		static bool bLoaded = false;
+		if (bLoaded) { return Table; }
+		bLoaded = true;
+		const FString Path = FPaths::ProjectContentDir() / TEXT("Story/suit_materials.json");
+		FString Text;
+		TSharedPtr<FJsonObject> Root;
+		if (!FFileHelper::LoadFileToString(Text, *Path)
+			|| !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Root) || !Root.IsValid())
+		{
+			UE_LOG(LogIronManArena, Warning, TEXT("Suit materials: %s missing or invalid - using built-in finishes"), *Path);
+			return Table;
+		}
+		const TSharedPtr<FJsonObject>* Suits = nullptr;
+		if (!Root->TryGetObjectField(TEXT("suits"), Suits) || !Suits) { return Table; }
+		for (const auto& Pair : (*Suits)->Values)
+		{
+			const TSharedPtr<FJsonObject> S = Pair.Value.IsValid() ? Pair.Value->AsObject() : nullptr;
+			if (!S.IsValid()) { continue; }
+			FSuitMaterialDef Def;
+			const TSharedPtr<FJsonObject>* Layers = nullptr;
+			if (S->TryGetObjectField(TEXT("layers"), Layers) && Layers)
+			{
+				const TCHAR* Names[3] = { TEXT("primary"), TEXT("secondary"), TEXT("accent") };
+				for (int32 i = 0; i < 3; ++i)
+				{
+					const TSharedPtr<FJsonObject>* L = nullptr;
+					if (!(*Layers)->TryGetObjectField(Names[i], L) || !L) { continue; }
+					FSuitLayerMat& M = Def.Layers[i];
+					M.bValid = true;
+					M.Color = ReadColor(*L, TEXT("baseColorLinear"), M.Color);
+					M.Metallic = ReadNum(*L, TEXT("metallic"), M.Metallic);
+					M.Roughness = ReadNum(*L, TEXT("roughness"), M.Roughness);
+					M.ClearCoat = ReadNum(*L, TEXT("clearcoat"), M.ClearCoat);
+					M.ClearCoatRoughness = ReadNum(*L, TEXT("clearcoatRoughness"), M.ClearCoatRoughness);
+					M.Flake = ReadNum(*L, TEXT("metalFlake"), M.Flake);
+					M.FlakeScale = ReadNum(*L, TEXT("flakeScale"), M.FlakeScale);
+				}
+			}
+			const TSharedPtr<FJsonObject>* Wear = nullptr;
+			if (S->TryGetObjectField(TEXT("wear"), Wear) && Wear)
+			{
+				Def.EdgeWear = ReadNum(*Wear, TEXT("edgeWear"), Def.EdgeWear);
+				Def.Scorch = ReadNum(*Wear, TEXT("scorch"), Def.Scorch);
+				Def.Dirt = ReadNum(*Wear, TEXT("dirt"), Def.Dirt);
+				Def.WearColor = ReadColor(*Wear, TEXT("substrateColorLinear"), Def.WearColor);
+			}
+			const TSharedPtr<FJsonObject>* Em = nullptr;
+			if (S->TryGetObjectField(TEXT("emissive"), Em) && Em)
+			{
+				Def.Eyes = ReadGlow(*Em, TEXT("eyes"));
+				Def.Reactor = ReadGlow(*Em, TEXT("reactor"));
+				Def.Repulsors = ReadGlow(*Em, TEXT("repulsors"));
+			}
+			Def.PanelLineDepth = ReadNum(S, TEXT("panelLineDepth"), 0.f);
+			Table.Add(FName(*Pair.Key), Def);
+		}
+		UE_LOG(LogIronManArena, Log, TEXT("Suit materials: %d suits from %s"), Table.Num(), *Path);
+		return Table;
+	}
+
+	enum class EGlowKind : uint8 { Eyes, Reactor, Repulsor, Other };
+
+	EGlowKind ClassifyGlow(const FArenaPaintedPart& P)
+	{
+		const FString N = P.Component ? P.Component->GetName() : FString();
+		if (N.Contains(TEXT("Eye")) || N.Contains(TEXT("Visor"))) { return EGlowKind::Eyes; }
+		if (N.Contains(TEXT("Palm")) || N.Contains(TEXT("Muzzle")) || N.Contains(TEXT("Repulsor")) || N.Contains(TEXT("Unibeam"))) { return EGlowKind::Repulsor; }
+		if (N.Contains(TEXT("Reactor")) || N.Contains(TEXT("Core")) || N.Contains(TEXT("Arc")) || N.Contains(TEXT("Tri"))) { return EGlowKind::Reactor; }
+		return EGlowKind::Other;
+	}
+}
+
+namespace SuitRig
+{
+	bool HasSuitMaterial(FName SuitId) { return GetSuitMaterials().Contains(SuitId); }
+	int32 GetSuitMaterialCount() { return GetSuitMaterials().Num(); }
 }
 
 namespace SuitRig
@@ -329,6 +472,93 @@ namespace SuitRig
 
 	void ApplyColors(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts)
 	{
+		if (const FSuitMaterialDef* Def = GetSuitMaterials().Find(Suit.Id))
+		{
+			// Data-driven finish (U's suit_materials.json). Dirt has no material input: it darkens
+			// the base colour by up to 30% and adds up to +0.25 roughness. Panel line depth (cm)
+			// x 4 drives the procedural panel-line normal strength.
+			const float DirtDarken = 1.f - 0.3f * FMath::Clamp(Def->Dirt, 0.f, 1.f);
+			const float DirtRough = 0.25f * FMath::Clamp(Def->Dirt, 0.f, 1.f);
+			for (FArenaPaintedPart& P : Parts)
+			{
+				int32 Layer = INDEX_NONE;
+				switch (P.Role)
+				{
+				case ESuitPaintRole::Primary:   Layer = 0; break;
+				case ESuitPaintRole::Secondary: Layer = 1; break;
+				case ESuitPaintRole::Accent:    Layer = 2; break;
+				case ESuitPaintRole::Emissive:
+				{
+					const EGlowKind Kind = ClassifyGlow(P);
+					const FSuitGlowMat* G = Kind == EGlowKind::Eyes ? &Def->Eyes
+						: Kind == EGlowKind::Repulsor ? &Def->Repulsors
+						: &Def->Reactor; // reactor cores and other suit lights (jets, trims) follow the reactor
+					if (!G->bValid && Kind == EGlowKind::Other && Def->Eyes.bValid) { G = &Def->Eyes; }
+					if (G->bValid)
+					{
+						P.Color = G->Color;
+						// Repulsor strength is driven by firing; eyes / reactor take the table intensity.
+						if (Kind == EGlowKind::Eyes || Kind == EGlowKind::Reactor) { P.Emissive = G->Intensity; }
+						if (P.MID) { P.MID->SetScalarParameterValue(TEXT("CoreWhite"), G->CoreWhite); }
+					}
+					else
+					{
+						// Null entry: the suit has no such light (Mark I palms, Arachnid core) - keep it dark.
+						P.Color = FLinearColor(0.02f, 0.02f, 0.02f);
+						P.Emissive = 0.f;
+					}
+					P.Color.A = 1.f;
+					RepaintPart(P);
+					continue;
+				}
+				default: continue;
+				}
+				const FSuitLayerMat& M = Def->Layers[Layer].bValid ? Def->Layers[Layer] : Def->Layers[0];
+				P.Color = M.Color * P.Shade * DirtDarken;
+				P.Color.A = 1.f;
+				if (P.MID)
+				{
+					P.MID->SetScalarParameterValue(TEXT("Metallic"), M.Metallic);
+					P.MID->SetScalarParameterValue(TEXT("Roughness"), FMath::Min(1.f, M.Roughness + DirtRough));
+					P.MID->SetScalarParameterValue(TEXT("ClearCoat"), M.ClearCoat);
+					P.MID->SetScalarParameterValue(TEXT("ClearCoatRoughness"), M.ClearCoatRoughness);
+					P.MID->SetScalarParameterValue(TEXT("FlakeAmount"), M.Flake);
+					P.MID->SetScalarParameterValue(TEXT("FlakeScale"), M.FlakeScale);
+					P.MID->SetScalarParameterValue(TEXT("EdgeWear"), Def->EdgeWear);
+					P.MID->SetScalarParameterValue(TEXT("Scorch"), Def->Scorch);
+					P.MID->SetScalarParameterValue(TEXT("Dirt"), Def->Dirt);
+					P.MID->SetScalarParameterValue(TEXT("PanelNormalStrength"), Def->PanelLineDepth * 4.f);
+					P.MID->SetVectorParameterValue(TEXT("WearColor"), Def->WearColor);
+				}
+				RepaintPart(P);
+			}
+			return;
+		}
+
+		// Paint finish for M_CarPaint (ignored by the flat fallback material). Saturated suits
+		// get hot-rod clear coat with flakes; desaturated ones (Mark I iron, stealth, Ultron
+		// chrome) read as bare metal. The Mark I is welded scrap: rough, worn, scorched.
+		const FLinearColor HSV = Suit.PrimaryColor.LinearRGBToHSV();
+		const bool bMarkI = Suit.Id == FName(TEXT("mark-i"));
+		const bool bBareMetal = bMarkI || HSV.G < 0.25f;
+		const float Coat     = bMarkI ? 0.f : (bBareMetal ? 0.35f : 1.f);
+		const float Rough    = bMarkI ? 0.62f : (bBareMetal ? 0.28f : 0.3f);
+		const float Flakes   = bBareMetal ? 0.05f : 0.4f;
+		const float Wear     = bMarkI ? 0.5f : 0.1f;
+		const float Scorch   = bMarkI ? 0.3f : 0.f;
+		for (FArenaPaintedPart& P : Parts)
+		{
+			if (P.MID && P.Role != ESuitPaintRole::Fixed && P.Role != ESuitPaintRole::Emissive)
+			{
+				const bool bGoldish = P.Role != ESuitPaintRole::Primary && !bBareMetal;
+				P.MID->SetScalarParameterValue(TEXT("ClearCoat"), Coat);
+				P.MID->SetScalarParameterValue(TEXT("Roughness"), bGoldish ? 0.22f : Rough);
+				P.MID->SetScalarParameterValue(TEXT("Metallic"), bGoldish || bBareMetal ? 1.f : 0.7f);
+				P.MID->SetScalarParameterValue(TEXT("FlakeAmount"), Flakes);
+				P.MID->SetScalarParameterValue(TEXT("EdgeWear"), Wear);
+				P.MID->SetScalarParameterValue(TEXT("Scorch"), Scorch);
+			}
+		}
 		for (FArenaPaintedPart& P : Parts)
 		{
 			switch (P.Role)

@@ -144,7 +144,7 @@ public:
 	float QueueTimeout = 5.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
-	float VoiceVolume = 1.f;
+	float VoiceVolume = 0.7f;
 
 	/** Seconds of no events before an "idle" remark. 0 disables. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")

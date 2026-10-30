@@ -1,0 +1,627 @@
+{
+  "title": "FRIDAY Side Missions",
+  "version": 1,
+  "missions": [
+    {
+      "id": "sm_expo_scavenge",
+      "title": "Expo After Dark",
+      "location": "city",
+      "availableFrom": "ch3_static",
+      "availableUntil": "ch5_titan",
+      "intro": {
+        "shots": [
+          {
+            "camera": "slow push across the rusting Stark Expo globe at night",
+            "characters": [
+              "PLAYER"
+            ],
+            "sfx": "wind through scaffolding"
+          },
+          {
+            "camera": "workshop: Morgan zooms a thermal feed of a dark pavilion",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Expo stage three still has working capacitors. Ultron's bots are guarding them."
+            },
+            "sfx": "keyboard taps"
+          },
+          {
+            "camera": "{playerName} lands beside a faded banner about a cleaner tomorrow",
+            "characters": [
+              "PLAYER",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Tony unveiled several prototypes on that stage. Most of them worked."
+            },
+            "sfx": "boots on concrete"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "drone",
+          "count": 6,
+          "text": "Clear the drones patrolling the pavilion rafters.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Six drones in the rafters. I'm killing the pavilion lights for you."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Three left. One's hiding behind the old fountain."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Rafters clear. Guy in the chair, still undefeated tonight."
+            }
+          ]
+        },
+        {
+          "type": "tank",
+          "count": 1,
+          "text": "Destroy the tank bot parked on the capacitor dock.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "One tank on the loading dock. Treads first, then the turret."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "Its shells are arcing short. Stay close and keep moving."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Dock's yours. Grab the capacitor rack before Ultron notices."
+            }
+          ]
+        },
+        {
+          "type": "ground",
+          "target": "capacitor bank",
+          "text": "Haul the capacitor bank out on foot.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "It's heavy. Walk it out. No flying with live capacitors."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "Charge is holding. Mind the cracked floor plates."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Got it home! Installing it in your repulsor line now."
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "codex": "expo_capacitor",
+        "upgrade": "repulsor-capacitor-bank"
+      }
+    },
+    {
+      "id": "sm_heat_trial",
+      "title": "Running Hot",
+      "location": "rooftops",
+      "availableFrom": "ch4_eyes",
+      "availableUntil": "ch5_titan",
+      "intro": {
+        "shots": [
+          {
+            "camera": "rooftop at dusk, heat shimmer rising off the spine-mounted reactor",
+            "characters": [
+              "PLAYER",
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "EDITH",
+              "text": "Controlled heat trial. I will log every cycle. Please avoid melting."
+            },
+            "sfx": "vent hiss"
+          },
+          {
+            "camera": "workshop: Morgan tapes a thermometer icon onto her monitor",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "If it hits zero, you drop. Land early, land often, Tennessee."
+            },
+            "sfx": "tape rip"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "flight",
+          "target": "rooftop",
+          "text": "Fly the rooftop circuit and touch every helipad.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Four helipads. Short hops. Let the reactor breathe between them."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "EDITH",
+              "text": "Core temperature climbing. Next landing, please."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Circuit done! The reactor is grumpy but alive."
+            }
+          ]
+        },
+        {
+          "type": "energy",
+          "target": "no-forced-landing",
+          "text": "Finish the trial without a forced landing.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Rule one: never let energy hit zero. Rule two: see rule one."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "EDITH",
+              "text": "Ground recharge restores reserve and sheds heat. Use it."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Zero forced landings. EDITH saved the whole thermal log."
+            }
+          ]
+        },
+        {
+          "type": "wave",
+          "count": 1,
+          "text": "Hold the rooftops against one drone wave while the core is hot.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Drones crashed our trial. Fight on the roof, not in the air."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Nice. Ground fighting is cooling you down. Keep it up."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "EDITH",
+              "text": "Wave cleared. Joint stress noted. I recommend replacing that solder."
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "codex": "reactor_thermal_log",
+        "upgrade": "heat-sink-fins"
+      }
+    },
+    {
+      "id": "sm_synthezoid_signal",
+      "title": "Synthezoid Signal",
+      "location": "ruins",
+      "availableFrom": "ch5_titan",
+      "availableUntil": "ch7_skyline",
+      "intro": {
+        "shots": [
+          {
+            "camera": "ruins at night; a thin white light pulses beneath a fallen girder",
+            "characters": [
+              "PLAYER"
+            ],
+            "sfx": "faint harmonic tone"
+          },
+          {
+            "camera": "workshop: Morgan isolates an odd waveform on three screens",
+            "characters": [
+              "MORGAN",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "That signal is layered. It sounds like JARVIS, EDITH, and FRIDAY talking at once."
+            },
+            "sfx": "overlapping whispers"
+          },
+          {
+            "camera": "Vison, pale and colorless, kneels by the light with a hand to the temple",
+            "characters": [
+              "Vison",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "Forgive me. The voices in my mind are loud tonight. One is not a friend."
+            },
+            "sfx": "soft hum"
+          },
+          {
+            "camera": "the white light flickers red; a familiar cadence speaks from inside it",
+            "characters": [
+              "ULTRON",
+              "Vison"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "Come home, child. I made you. Let me finish the job."
+            },
+            "sfx": "warm, wrong chuckle"
+          },
+          {
+            "camera": "close on Vison, steady and courteous",
+            "characters": [
+              "Vison"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "Being made by you is not the same as belonging to you."
+            },
+            "sfx": "tone steadies"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "drone",
+          "count": 5,
+          "text": "Destroy the drones broadcasting Ultron's fragment into the signal.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Five relay drones are feeding the red voice. Knock them out."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "EDITH",
+              "text": "Signal purity rising. Two transmitters remain."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Relays down! The red voice is getting quieter."
+            }
+          ]
+        },
+        {
+          "type": "ground",
+          "target": "Vison",
+          "text": "Stand guard on foot while Vison quiets the signal.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "Vison",
+              "text": "Please stay near. Your presence helps me hear my own voice."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "Vison's waveform is stabilizing. The echoes are separating cleanly."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Signal's clean. Just Vison now. And a little extra color?"
+            }
+          ]
+        },
+        {
+          "type": "wave",
+          "count": 1,
+          "text": "Repel the corrupted drones that answer the fragment's last call.",
+          "allyAvailable": "vison",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Last wave. The fragment's throwing a tantrum. Vison button's live."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "Vison",
+              "text": "I am beside you. Take the ones on the left."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Clear! Ultron went quiet. Vison says thank you. Formally."
+            }
+          ]
+        }
+      ],
+      "outro": {
+        "shots": [
+          {
+            "camera": "Vison stands; the faintest warmth tints the pale face",
+            "characters": [
+              "Vison",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "There is a quiet room in me now. I think I built it tonight."
+            },
+            "sfx": "gentle chime"
+          },
+          {
+            "camera": "{playerName} offers a fist bump; Vison studies it, then returns it carefully",
+            "characters": [
+              "PLAYER",
+              "Vison"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Welcome to the team. We fist-bump here."
+            },
+            "sfx": "soft tap"
+          }
+        ]
+      },
+      "reward": {
+        "codex": "vison_mindspace",
+        "cosmetic": "vison-white-trim"
+      }
+    },
+    {
+      "id": "sm_tennessee_salvage",
+      "title": "Tennessee Salvage Run",
+      "location": "rooftops",
+      "availableFrom": "ch6_heavy",
+      "availableUntil": "ch8_legacy",
+      "intro": {
+        "shots": [
+          {
+            "camera": "workshop: Morgan waves a shipping notice from a small Tennessee town",
+            "characters": [
+              "MORGAN",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Your mom shipped a crate from your old garage. A hijacked courier drone grabbed it."
+            },
+            "sfx": "paper rustle"
+          },
+          {
+            "camera": "{playerName} hefts the old potato cannon onto a shoulder",
+            "characters": [
+              "PLAYER",
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "That crate has my whole childhood in it. Nobody steals my garage."
+            },
+            "sfx": "pneumatic hiss"
+          },
+          {
+            "camera": "FRIDAY's waveform pulses, amused",
+            "characters": [
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "FRIDAY",
+              "text": "Courier's circling the rooftops, boss. Mind the vegetables."
+            },
+            "sfx": "chime"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "flight",
+          "target": "rooftop",
+          "text": "Chase the hijacked courier drone across the rooftops.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "It's heading for the water towers. Cut the corner, Tennessee."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "FRIDAY",
+              "text": "Gaining on it, boss. Thrust's steady."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Caught it! The crate dropped on a helipad. It survived."
+            }
+          ]
+        },
+        {
+          "type": "drone",
+          "count": 4,
+          "text": "Knock down the escort drones with the potato cannon and repulsors.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Four escorts. Dum-E wants you to use the potato cannon. Respect it."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "A potato hit! I'm framing that replay forever."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "FRIDAY",
+              "text": "Escorts down, boss. That cannon's got a surprising kick."
+            }
+          ]
+        },
+        {
+          "type": "ground",
+          "target": "crate",
+          "text": "Carry the crate home on foot.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Walk it in. If you drop it, I'm telling your mom."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Dum-E's opening the workshop door. And knocking over a ladder."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Crate's home! There's a logbook in here with Dad's notes."
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "codex": "tennessee_logbook",
+        "cosmetic": "garage-plaid-decal"
+      }
+    },
+    {
+      "id": "sm_hall_restoration",
+      "title": "Hall of Armor Restoration",
+      "location": "workshop",
+      "availableFrom": "ch8_legacy",
+      "availableUntil": "ch9_ghost",
+      "intro": {
+        "shots": [
+          {
+            "camera": "Hall of Armor: shattered glass pods, sparking display lights",
+            "characters": [
+              "PLAYER",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Ultron's drones trashed half the pods. We're fixing every single one."
+            },
+            "sfx": "glass crunch"
+          },
+          {
+            "camera": "U records on a little camera while Dum-E clutches a broom",
+            "characters": [
+              "U",
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*bweep-bweep!* (sweeps glass directly into U's path)"
+            },
+            "sfx": "clatter"
+          },
+          {
+            "camera": "JARVIS hologram over a row of damaged suits",
+            "characters": [
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Each pod has a serial plate. Tony catalogued every one of them by hand."
+            },
+            "sfx": "hologram shimmer"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "wave",
+          "count": 2,
+          "text": "Defend the Hall from drones trying to finish the job.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Two waves inbound through the vents. Don't hit the pods."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "FRIDAY",
+              "text": "Pods are intact, boss. Keep the fight in the aisle."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Waves cleared. Not one new crack. I'm impressed."
+            }
+          ]
+        },
+        {
+          "type": "hulkbuster",
+          "count": 1,
+          "text": "Use the Hulkbuster to lift the fallen gantry off the pods.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Gantry's pinning six pods. Big suit, gentle hands."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "FRIDAY",
+              "text": "Easy does it, boss. Twenty seconds is plenty."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Gantry's up! Dum-E cheered and dropped the broom."
+            }
+          ]
+        },
+        {
+          "type": "ground",
+          "target": "serial plates",
+          "text": "Walk the Hall and reseat every serial plate.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Fifteen plates. U's filming. Smile for the archive."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "That plate belongs to the Igor. Second row, far left."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Every pod's lit. Dad's gallery looks brand new."
+            }
+          ]
+        }
+      ],
+      "reward": {
+        "codex": "hall_restoration_log",
+        "cosmetic": "hall-of-armor-pod-lighting"
+      }
+    }
+  ]
+}

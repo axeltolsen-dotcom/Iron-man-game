@@ -1,4 +1,5 @@
 #include "StoryDirector.h"
+#include "ContribLighting.h"
 #include "Sound/SoundClass.h"
 
 #include "IronManArena.h"
@@ -32,6 +33,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Blueprint/UserWidget.h"
+#include "ChapterSet.h"
+#include "ArenaEnvironment.h"
+#include "EnvironmentPreset.h"
 
 #define LOCTEXT_NAMESPACE "StoryDirector"
 
@@ -205,6 +209,7 @@ void AStoryDirector::StartStory(int32 InChapterIndex, bool bPlayPrologue, bool b
 	{
 		ChapterIndex = Chapter;
 		bInPrologue = true;
+		ApplyEnvironment(TEXT("workshop"), EnvironmentPresets::Prologue());
 		PlayCutscene(Story.Prologue, FText::FromString(Story.Title), LOCTEXT("Prologue", "PROLOGUE"),
 			[this, Chapter]() { BeginChapter(Chapter, false); });
 	}
@@ -225,6 +230,7 @@ void AStoryDirector::StopStory()
 	if (Prompt) { Prompt->OnSubmitted = nullptr; Prompt->RemoveFromParent(); Prompt = nullptr; }
 	if (Beacon) { Beacon->Destroy(); Beacon = nullptr; }
 	if (Ally) { Ally->Destroy(); Ally = nullptr; }
+	ClearEnvironment();
 	for (auto& Pair : Npcs) { if (Pair.Value) { Pair.Value->Destroy(); } }
 	Npcs.Reset();
 	ObjectiveEnemies.Reset();
@@ -299,6 +305,13 @@ void AStoryDirector::BeginChapter(int32 Index, bool bSkipIntro)
 	ApplyReactor(C.Reactor);
 	ApplyChapterSuit(Index, false);
 	SaveProgress(Index, false);
+	{
+		bool bHasBoss = false;
+		for (const FStoryObjective& Obj : C.Objectives) { bHasBoss |= (Obj.Type == EStoryObjectiveType::Boss); }
+		FName SetName;
+		const FEnvironmentPreset Env = EnvironmentPresets::ForChapter(C.Location, C.Id.ToString(), bHasBoss, SetName);
+		ApplyEnvironment(SetName, Env);
+	}
 
 	if (Reports.IsValidIndex(Index))
 	{
@@ -426,6 +439,7 @@ void AStoryDirector::StartFinale()
 	bFinaleReached = true;
 	ClearHostiles();
 	ApplyReactor(Story.Finale.Reactor);
+	ApplyEnvironment(TEXT("battlefield"), EnvironmentPresets::Finale());
 	if (Story.Finale.Shots.Num() == 0) { FinishStory(); return; }
 	PlayCutscene(Story.Finale.Shots, LOCTEXT("Finale", "FINALE"), FText::FromString(Story.Title), [this]() { FinishStory(); });
 }
@@ -460,6 +474,59 @@ void AStoryDirector::NotifyPlayerDied()
 			FText::FromString(Resolve(TEXT("{playerName}? Talk to me! ...Okay, rebooting the suit. Again."))),
 			UStoryLibrary::GetSpeakerColor(NAME_Morgan), nullptr, 90, true);
 	}
+}
+
+// =============================================================================== environment
+
+void AStoryDirector::ApplyEnvironment(FName SetName, const FEnvironmentPreset& Preset)
+{
+	AArenaGameMode* GM = GetGM();
+	AArenaEnvironment* Env = AArenaEnvironment::Find(this);
+	const bool bArena = SetName.IsNone() || SetName == TEXT("arena");
+	if (EnvironmentId == Preset.Id && (ChapterSet != nullptr) == !bArena) { return; } // same look already up
+	LightingKey = NAME_None;
+
+	if (ChapterSet) { ChapterSet->Destroy(); ChapterSet = nullptr; }
+	EnvironmentId = Preset.Id;
+	if (Env)
+	{
+		Env->ApplyPreset(Preset);
+		// Vison's data-driven presets (Content/Story/lighting_presets.json) override the C++ look.
+		LightingKey = ContribLighting::HasPreset(Preset.Id) ? Preset.Id : ContribLighting::PresetKeyFor(Preset.Id);
+		if (!LightingKey.IsNone()) { ContribLighting::Apply(Env, LightingKey); }
+		Env->SetArenaDressingVisible(bArena);
+		EArenaSurface Floor = EArenaSurface::Concrete;
+		const FString S = SetName.ToString();
+		if (S == TEXT("workshop"))         { Floor = EArenaSurface::Concrete; }
+		else if (S == TEXT("rooftops"))    { Floor = Preset.bWet ? EArenaSurface::ConcreteWet : EArenaSurface::Concrete; }
+		else if (S == TEXT("city"))        { Floor = Preset.bWet ? EArenaSurface::ConcreteWet : EArenaSurface::Concrete; }
+		else if (S == TEXT("ruins"))       { Floor = EArenaSurface::Rubble; }
+		else if (S == TEXT("battlefield")) { Floor = EArenaSurface::BurnedGround; }
+		Env->SetFloorSurface(Floor, FLinearColor(0.8f, 0.8f, 0.8f));
+	}
+	if (!bArena && GM)
+	{
+		const FVector Origin(GM->GetArenaCenter().X, GM->GetArenaCenter().Y, GM->GetArenaFloorZ());
+		ChapterSet = AChapterSet::SpawnSet(GetWorld(), Origin, SetName, Preset);
+	}
+	UE_LOG(LogIronManArena, Log, TEXT("Story environment: set '%s', look '%s'%s"), *SetName.ToString(), *Preset.Id.ToString(),
+		Env ? TEXT("") : TEXT(" (level has its own lighting: set only)"));
+}
+
+void AStoryDirector::ClearEnvironment()
+{
+	if (ChapterSet) { ChapterSet->Destroy(); ChapterSet = nullptr; }
+	const UWorld* World = GetWorld();
+	if (!EnvironmentId.IsNone() && World && !World->bIsTearingDown)
+	{
+		if (AArenaEnvironment* Env = AArenaEnvironment::Find(this))
+		{
+			Env->ApplyArenaLook();
+			Env->SetArenaDressingVisible(true);
+			Env->SetFloorSurface(EArenaSurface::Concrete, FLinearColor(0.8f, 0.8f, 0.82f));
+		}
+	}
+	EnvironmentId = NAME_None;
 }
 
 // =============================================================================== objectives
@@ -1097,6 +1164,10 @@ void AStoryDirector::PlayCutscene(const TArray<FStoryShot>& InShots, const FText
 		{
 			CC->FocusSettings.FocusMethod = ECameraFocusMethod::Disable;
 			CC->SetCurrentFocalLength(35.f);
+			// Vison's per-chapter camera package (filmback, lens, aperture, manual physical exposure).
+			const UArenaGameUserSettings* GUS = UArenaGameUserSettings::GetArenaSettings();
+			const bool bDOF = !GUS || GUS->bCinematicDOF;
+			if (!LightingKey.IsNone()) { ContribLighting::ApplyCamera(CC, LightingKey, bDOF); }
 		}
 		PC->SetViewTargetWithBlend(Cam, 0.6f);
 	}
@@ -1333,7 +1404,14 @@ void AStoryDirector::UpdateCamera(float Alpha)
 		Rot.Roll += FMath::Sin(T * 1.3f) * 0.6f;
 	}
 	Cam->SetActorLocationAndRotation(Pos, Rot);
-	if (UCineCameraComponent* CC = Cam->GetCineCameraComponent()) { CC->SetCurrentFocalLength(CamFocal); }
+	if (UCineCameraComponent* CC = Cam->GetCineCameraComponent())
+	{
+		CC->SetCurrentFocalLength(CamFocal);
+		if (CC->FocusSettings.FocusMethod == ECameraFocusMethod::Manual)
+		{
+			CC->FocusSettings.ManualFocusDistance = FMath::Max(50.f, FVector::Dist(Pos, ShotLookAt));
+		}
+	}
 }
 
 void AStoryDirector::TickCutscene(float DeltaSeconds)

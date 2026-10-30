@@ -1,0 +1,2859 @@
+{
+  "version": 1,
+  "colorSpace": "linear",
+  "source": "ironman-3d/contrib/suits.json (32 suits); hex colours there are sRGB",
+  "targetMaterials": {
+    "paint": "/Game/Realism/Materials/M_CarPaint (Clear Coat shading model)",
+    "glow": "/Game/Realism/Materials/M_ArcGlow (unlit)"
+  },
+  "schema": {
+    "suits.<id>.name": "display name from suits.json",
+    "layers.{primary,secondary,accent}": {
+      "finish": "short text description of the surface",
+      "baseColorLinear": "[r,g,b] linear 0-1 -> M_CarPaint \"Color\". Painted layers = exact sRGB->linear of the suit hex, clamped to albedo 0.02-0.82; metal layers = measured F0 reflectance (gold 1.0/0.766/0.336, iron/steel 0.56, chrome 0.55, aluminium 0.91, silver 0.96, titanium 0.54/0.50/0.45) tinted 0-35% (gold-titanium 15%) toward the suit hex at equal luminance.",
+      "metallic": "0-1 -> \"Metallic\"",
+      "roughness": "0-1 -> \"Roughness\" (base layer)",
+      "clearcoat": "0-1 -> \"ClearCoat\"",
+      "clearcoatRoughness": "0-1 -> \"ClearCoatRoughness\"",
+      "metalFlake": "0-1 -> \"FlakeAmount\"",
+      "flakeScale": "-> \"FlakeScale\": flake cells per cm of local position (cell size = 1/flakeScale cm; M_CarPaint default 1.2). Higher = finer flake."
+    },
+    "wear": {
+      "edgeWear": "0-1 -> \"EdgeWear\"",
+      "scorch": "0-1 -> \"Scorch\"",
+      "dirt": "0-1 grime/dust in crevices. M_CarPaint has no Dirt parameter yet: suggested use = darken base up to 30% and add up to +0.25 roughness via an AO/cavity mask, or feed a decal layer.",
+      "substrateColorLinear": "linear [r,g,b] of bare metal exposed by edge wear -> \"WearColor\""
+    },
+    "emissive.{eyes,reactor,repulsors}": "{colorLinear [r,g,b] linear normalised so the max channel = 1, intensity, optional coreWhite 0-1 (M_ArcGlow \"CoreWhite\"), optional note} or null when the suit has no such light source (Mark I repulsors, Arachnid reactor). Game code should skip a null channel or fall back to no glow.",
+    "emissiveIntensityUnit": "Unreal emissive multiplier = M_ArcGlow / M_CarPaint \"EmissiveStrength\" scalar (Emissive = colorLinear * intensity, linear HDR, before exposure). Matches SuitRig.cpp conventions (eyes 20-25, reactor 25). These are idle/steady values; firing flashes multiply on top. Values assume the project's default auto-exposure in daylight; with fixed physical exposure (EV100 ~10+) scale up roughly x10-50 or drive point lights instead.",
+    "panelLineDepth": "groove depth of panel seams in cm (Unreal units, 1 uu = 1 cm). Typical 0.04 (nano, near-seamless) to 0.35 (Mark I welded plates). For a normal-map bake/height-to-normal, normal strength ~= depth_cm * 4 is a reasonable starting point.",
+    "look": "reference film appearance in one or two sentences",
+    "emissiveNotes": "why an emissive channel deviates from the input emissive hex or is null",
+    "extras": "flameColorLinear (Mark I), muzzleFlashColorLinear (War Machine): input emissive hex reused for weapon effects"
+  },
+  "notes": [
+    "All colours are linear RGB (sRGB EOTF applied: c<=0.04045 ? c/12.92 : ((c+0.055)/1.055)^2.4). Do NOT tick sRGB when feeding these as vector params.",
+    "Red/gold classics (Mark III-VII, XLII-XLVII): metallic hot-rod car paint (metallic 0.7, flake 0.4, roughness ~0.3) under a clearcoat of 1.0 with clearcoat roughness 0.04; gold-titanium secondary metallic 1, roughness ~0.24 under a thin 0.8 clearcoat.",
+    "Eyes/reactors use film-accurate cool white-blue unless the film suit differs (Ultron red; Mark I dim). Where the input emissive hex is warm it is kept for eyes only on industrial House Party suits (Striker, Igor) and Midas/Hot Rod warm whites, as per the game data.",
+    "Wear scales with how battered the suit is on screen: Mark I 0.6, Mark XLII/XLVI ~0.3, Igor/Striker 0.45-0.5, nano suits 0.04-0.06.",
+    "Params map 1:1 to M_CarPaint in Content/Python/build_realism_materials.py; the existing SuitRig::ApplyColors heuristics can be replaced by a lookup into this file."
+  ],
+  "suits": {
+    "mark-i": {
+      "name": "Mark I",
+      "layers": {
+        "primary": {
+          "finish": "raw hot-rolled iron plate, hammered, unsealed",
+          "baseColorLinear": [
+            0.5572,
+            0.5706,
+            0.5825
+          ],
+          "metallic": 0.9,
+          "roughness": 0.68,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "blackened forged iron / mill scale",
+          "baseColorLinear": [
+            0.19,
+            0.19,
+            0.195
+          ],
+          "metallic": 0.6,
+          "roughness": 0.78,
+          "clearcoat": 0,
+          "clearcoatRoughness": 0.5,
+          "metalFlake": 0,
+          "flakeScale": 2
+        },
+        "accent": {
+          "finish": "rust bloom and brass/bronze scrap fittings",
+          "baseColorLinear": [
+            0.2542,
+            0.1022,
+            0.0242
+          ],
+          "metallic": 0.15,
+          "roughness": 0.85,
+          "clearcoat": 0,
+          "clearcoatRoughness": 0.5,
+          "metalFlake": 0,
+          "flakeScale": 2
+        }
+      },
+      "wear": {
+        "edgeWear": 0.6,
+        "scorch": 0.55,
+        "dirt": 0.7,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            1.0,
+            0.4342,
+            0.162
+          ],
+          "intensity": 0.5,
+          "note": "dim interior bleed through eye slits, no true eye lights"
+        },
+        "reactor": {
+          "colorLinear": [
+            0.4793,
+            0.7758,
+            1.0
+          ],
+          "intensity": 12,
+          "coreWhite": 0.5,
+          "note": "early palladium arc reactor, dimmer and bluer than later units"
+        },
+        "repulsors": null
+      },
+      "panelLineDepth": 0.35,
+      "look": "Iron Man (2008) cave suit: welded, riveted scrap iron, grey-brown, sooty, scorched by its own flamethrowers, desert dust in every seam.",
+      "emissiveNotes": "repulsors null: Mark I has flamethrowers, no palm repulsors. Input emissive #ffb347 is treated as flamethrower/pilot-light colour (flameColorLinear).",
+      "flameColorLinear": [
+        1.0,
+        0.4508,
+        0.063
+      ]
+    },
+    "mark-ii": {
+      "name": "Mark II",
+      "layers": {
+        "primary": {
+          "finish": "polished bare aluminum-alloy skin, fine directional brushing",
+          "baseColorLinear": [
+            0.9101,
+            0.9224,
+            0.9285
+          ],
+          "metallic": 1.0,
+          "roughness": 0.16,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "brushed stainless steel",
+          "baseColorLinear": [
+            0.5551,
+            0.5706,
+            0.588
+          ],
+          "metallic": 1.0,
+          "roughness": 0.3,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "dark anodised joints / undersuit mechanics",
+          "baseColorLinear": [
+            0.295,
+            0.3108,
+            0.3369
+          ],
+          "metallic": 0.9,
+          "roughness": 0.45,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.1,
+        "scorch": 0.08,
+        "dirt": 0.03,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.521,
+            0.8632,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man (2008) prototype: unpainted mirror-ish silver aluminium with brushed panels, very clean workshop finish (light icing after the high-altitude test).",
+      "emissiveNotes": ""
+    },
+    "mark-iii": {
+      "name": "Mark III",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.4397,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9733,
+            0.7321,
+            0.3506
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "pale champagne gold-titanium detail, polished",
+          "baseColorLinear": [
+            0.9954,
+            0.8354,
+            0.512
+          ],
+          "metallic": 1.0,
+          "roughness": 0.16,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.1,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.15,
+        "scorch": 0.12,
+        "dirt": 0.1,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.521,
+            0.8632,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man (2008) Gulmira/Stark Expo-era: deep hot-rod red flake paint, gold-titanium arms/face/thighs, glossy and showroom-like with light battle scuffs.",
+      "emissiveNotes": ""
+    },
+    "mark-iv": {
+      "name": "Mark IV",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.3916,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.97,
+            0.7329,
+            0.3522
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "pale champagne gold-titanium detail, polished",
+          "baseColorLinear": [
+            0.9771,
+            0.8393,
+            0.5267
+          ],
+          "metallic": 1.0,
+          "roughness": 0.16,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.1,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.08,
+        "scorch": 0.05,
+        "dirt": 0.04,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.5647,
+            0.8963,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man 2: refined Mark III look, slightly darker candy red, cleaner panel breaks, pristine Stark Expo shine.",
+      "emissiveNotes": ""
+    },
+    "mark-v": {
+      "name": "Mark V",
+      "layers": {
+        "primary": {
+          "finish": "brushed silver aluminium, visible brush grain",
+          "baseColorLinear": [
+            0.911,
+            0.9222,
+            0.9281
+          ],
+          "metallic": 1.0,
+          "roughness": 0.3,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "satin red paint stripes",
+          "baseColorLinear": [
+            0.3419,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.5,
+          "roughness": 0.38,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.12,
+          "metalFlake": 0.3,
+          "flakeScale": 1.6
+        },
+        "accent": {
+          "finish": "polished aluminium trim",
+          "baseColorLinear": [
+            0.9122,
+            0.9221,
+            0.9254
+          ],
+          "metallic": 1.0,
+          "roughness": 0.14,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.15,
+        "scorch": 0.1,
+        "dirt": 0.08,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.521,
+            0.8632,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.1,
+      "look": "Iron Man 2 Monaco \"suitcase\" suit: mostly brushed silver with red panels, thin lightweight plates, scuffed from the racetrack fight.",
+      "emissiveNotes": ""
+    },
+    "mark-vi": {
+      "name": "Mark VI",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.4508,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9715,
+            0.7325,
+            0.3526
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "polished silver detailing (input accent was pure white; mapped to bright aluminium F0)",
+          "baseColorLinear": [
+            0.913,
+            0.922,
+            0.924
+          ],
+          "metallic": 1.0,
+          "roughness": 0.18,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.12,
+        "scorch": 0.15,
+        "dirt": 0.08,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.807,
+            0.9647,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man 2 finale: classic red/gold with new triangular reactor, glossy paint, scorch from the drone battle.",
+      "emissiveNotes": ""
+    },
+    "mark-vii": {
+      "name": "Mark VII",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.552,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9688,
+            0.7329,
+            0.3564
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "pale champagne gold-titanium detail, polished",
+          "baseColorLinear": [
+            0.9672,
+            0.8402,
+            0.5472
+          ],
+          "metallic": 1.0,
+          "roughness": 0.16,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.1,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.2,
+        "scorch": 0.25,
+        "dirt": 0.15,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6867,
+            0.9216,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "The Avengers: brighter red, deeper gold, heavier plating; battle-worn after the Battle of New York (scorch, concrete dust, chipped edges).",
+      "emissiveNotes": ""
+    },
+    "mark-xv-sneaky": {
+      "name": "Mark XV \"Sneaky\"",
+      "layers": {
+        "primary": {
+          "finish": "matte radar-absorbent grey-charcoal coating",
+          "baseColorLinear": [
+            0.0685,
+            0.0762,
+            0.0887
+          ],
+          "metallic": 0.35,
+          "roughness": 0.6,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.5,
+          "metalFlake": 0.05,
+          "flakeScale": 3
+        },
+        "secondary": {
+          "finish": "matte black RAM undercoat",
+          "baseColorLinear": [
+            0.0232,
+            0.0262,
+            0.0307
+          ],
+          "metallic": 0.3,
+          "roughness": 0.65,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.5,
+          "metalFlake": 0.0,
+          "flakeScale": 3
+        },
+        "accent": {
+          "finish": "satin steel trim",
+          "baseColorLinear": [
+            0.3542,
+            0.371,
+            0.3975
+          ],
+          "metallic": 0.9,
+          "roughness": 0.45,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.06,
+        "scorch": 0.02,
+        "dirt": 0.05,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.2122,
+            0.6584,
+            1.0
+          ],
+          "intensity": 10
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 6,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 8,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.08,
+      "look": "Iron Man 3 \"Sneaky\": stealth suit, flat dark grey with low-reflectance coating; reactor and eyes masked down for stealth.",
+      "emissiveNotes": ""
+    },
+    "mark-xvi-nightclub": {
+      "name": "Mark XVI \"Nightclub\"",
+      "layers": {
+        "primary": {
+          "finish": "satin black stealth coating (input #121316 floored to albedo 0.022)",
+          "baseColorLinear": [
+            0.022,
+            0.023,
+            0.026
+          ],
+          "metallic": 0.2,
+          "roughness": 0.55,
+          "clearcoat": 0.15,
+          "clearcoatRoughness": 0.4,
+          "metalFlake": 0.03,
+          "flakeScale": 3
+        },
+        "secondary": {
+          "finish": "dark satin charcoal metal",
+          "baseColorLinear": [
+            0.0242,
+            0.0273,
+            0.0331
+          ],
+          "metallic": 0.5,
+          "roughness": 0.5,
+          "clearcoat": 0.1,
+          "clearcoatRoughness": 0.4,
+          "metalFlake": 0.05,
+          "flakeScale": 3
+        },
+        "accent": {
+          "finish": "blued steel trim",
+          "baseColorLinear": [
+            0.3505,
+            0.3707,
+            0.4111
+          ],
+          "metallic": 0.9,
+          "roughness": 0.4,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.05,
+        "scorch": 0.02,
+        "dirt": 0.04,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.159,
+            0.4793,
+            1.0
+          ],
+          "intensity": 10
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 6,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 8,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.08,
+      "look": "Iron Man 3 \"Nightclub\": near-black satin stealth armour with faint blue-steel trim, minimal reflections.",
+      "emissiveNotes": ""
+    },
+    "mark-xvii-heartbreaker": {
+      "name": "Mark XVII \"Heartbreaker\"",
+      "layers": {
+        "primary": {
+          "finish": "red metallic car paint under clearcoat",
+          "baseColorLinear": [
+            0.3763,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "silver aluminium plating",
+          "baseColorLinear": [
+            0.9134,
+            0.9219,
+            0.9238
+          ],
+          "metallic": 1.0,
+          "roughness": 0.25,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9643,
+            0.7343,
+            0.3559
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.25,
+        "scorch": 0.2,
+        "dirt": 0.15,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.7913,
+            0.956,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 30,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.14,
+      "look": "Iron Man 3 \"Heartbreaker\": red with silver plating and an oversized circular reactor; worn from the Norco fight.",
+      "emissiveNotes": ""
+    },
+    "mark-xx-python": {
+      "name": "Mark XX \"Python\"",
+      "layers": {
+        "primary": {
+          "finish": "dark red metallic paint",
+          "baseColorLinear": [
+            0.2705,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "metallic blue paint",
+          "baseColorLinear": [
+            0.0437,
+            0.159,
+            0.4678
+          ],
+          "metallic": 0.75,
+          "roughness": 0.28,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.45,
+          "flakeScale": 1.6
+        },
+        "accent": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9528,
+            0.7369,
+            0.3642
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.1,
+        "scorch": 0.08,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.3916,
+            0.7913,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.1,
+      "look": "Iron Man 3 \"Python\": long-range suit, deep red with blue panels and gold trim, clean gloss.",
+      "emissiveNotes": ""
+    },
+    "mark-xxi-midas": {
+      "name": "Mark XXI \"Midas\"",
+      "layers": {
+        "primary": {
+          "finish": "polished solid-gold look, mirror-like",
+          "baseColorLinear": [
+            1.0,
+            0.7619,
+            0.3071
+          ],
+          "metallic": 1.0,
+          "roughness": 0.12,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "deeper satin gold",
+          "baseColorLinear": [
+            0.8901,
+            0.6247,
+            0.2342
+          ],
+          "metallic": 1.0,
+          "roughness": 0.25,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "bright pale gold highlights",
+          "baseColorLinear": [
+            0.9535,
+            0.8423,
+            0.5672
+          ],
+          "metallic": 1.0,
+          "roughness": 0.1,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.05,
+        "scorch": 0.04,
+        "dirt": 0.03,
+        "substrateColorLinear": [
+          0.5776,
+          0.3613,
+          0.0685
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            1.0,
+            0.9216,
+            0.6724
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.1,
+      "look": "Iron Man 3 \"Midas\": all-gold, polished metal (no paint), warm reflections; very clean.",
+      "emissiveNotes": ""
+    },
+    "mark-xxii-hot-rod": {
+      "name": "Mark XXII \"Hot Rod\"",
+      "layers": {
+        "primary": {
+          "finish": "brilliant candy red, heavy flake, deep clearcoat",
+          "baseColorLinear": [
+            0.6376,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.28,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.03,
+          "metalFlake": 0.6,
+          "flakeScale": 1.2
+        },
+        "secondary": {
+          "finish": "deep maroon candy",
+          "baseColorLinear": [
+            0.1946,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.6,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.5,
+          "flakeScale": 1.2
+        },
+        "accent": {
+          "finish": "bright yellow-gold trim",
+          "baseColorLinear": [
+            1.0,
+            0.7593,
+            0.2768
+          ],
+          "metallic": 1.0,
+          "roughness": 0.2,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.12,
+        "scorch": 0.1,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            1.0,
+            0.6939,
+            0.3916
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.6867,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man 3 \"Hot Rod\": the most saturated, flake-heavy paint job of the House Party suits; glossy show-car finish.",
+      "emissiveNotes": ""
+    },
+    "mark-xxiii-shades": {
+      "name": "Mark XXIII \"Shades\"",
+      "layers": {
+        "primary": {
+          "finish": "heat-resistant red ceramic-metallic paint",
+          "baseColorLinear": [
+            0.3515,
+            0.02,
+            0.0242
+          ],
+          "metallic": 0.7,
+          "roughness": 0.32,
+          "clearcoat": 0.85,
+          "clearcoatRoughness": 0.06,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "heat-treated silver titanium",
+          "baseColorLinear": [
+            0.5254,
+            0.4995,
+            0.4734
+          ],
+          "metallic": 1.0,
+          "roughness": 0.3,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "dark smoked heat-shield trim",
+          "baseColorLinear": [
+            0.0232,
+            0.0284,
+            0.0369
+          ],
+          "metallic": 0.6,
+          "roughness": 0.4,
+          "clearcoat": 0.2,
+          "clearcoatRoughness": 0.2,
+          "metalFlake": 0.0,
+          "flakeScale": 2
+        }
+      },
+      "wear": {
+        "edgeWear": 0.15,
+        "scorch": 0.3,
+        "dirt": 0.08,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.4793,
+            0.8714,
+            1.0
+          ],
+          "intensity": 14
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man 3 \"Shades\": heat-resistant suit, red with silver, darkened eye slits; heat tint and scorch on the plates.",
+      "emissiveNotes": ""
+    },
+    "mark-xxv-striker": {
+      "name": "Mark XXV \"Striker\"",
+      "layers": {
+        "primary": {
+          "finish": "industrial heavy steel, grit-blasted",
+          "baseColorLinear": [
+            0.5578,
+            0.5703,
+            0.583
+          ],
+          "metallic": 1.0,
+          "roughness": 0.42,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "safety-orange industrial enamel",
+          "baseColorLinear": [
+            0.7454,
+            0.1946,
+            0.0137
+          ],
+          "metallic": 0.1,
+          "roughness": 0.45,
+          "clearcoat": 0.3,
+          "clearcoatRoughness": 0.25,
+          "metalFlake": 0.0,
+          "flakeScale": 2
+        },
+        "accent": {
+          "finish": "dark gunmetal hydraulics",
+          "baseColorLinear": [
+            0.2967,
+            0.3106,
+            0.3335
+          ],
+          "metallic": 0.9,
+          "roughness": 0.5,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.45,
+        "scorch": 0.2,
+        "dirt": 0.4,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            1.0,
+            0.6308,
+            0.2542
+          ],
+          "intensity": 18
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 20,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 12,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.22,
+      "look": "Iron Man 3 \"Striker\": construction/demolition suit, steel and orange like heavy machinery, hydraulic fists, dirty and chipped.",
+      "emissiveNotes": ""
+    },
+    "mark-xxvii-disco": {
+      "name": "Mark XXVII \"Disco\"",
+      "layers": {
+        "primary": {
+          "finish": "fine-flake blue-grey adaptive camo paint",
+          "baseColorLinear": [
+            0.2016,
+            0.2542,
+            0.305
+          ],
+          "metallic": 0.75,
+          "roughness": 0.32,
+          "clearcoat": 0.7,
+          "clearcoatRoughness": 0.06,
+          "metalFlake": 0.55,
+          "flakeScale": 3.0
+        },
+        "secondary": {
+          "finish": "darker slate blue-grey",
+          "baseColorLinear": [
+            0.0497,
+            0.0704,
+            0.0931
+          ],
+          "metallic": 0.7,
+          "roughness": 0.4,
+          "clearcoat": 0.5,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.3,
+          "flakeScale": 3.0
+        },
+        "accent": {
+          "finish": "pale silver-blue trim",
+          "baseColorLinear": [
+            0.8914,
+            0.9256,
+            0.9522
+          ],
+          "metallic": 1.0,
+          "roughness": 0.2,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.08,
+        "scorch": 0.04,
+        "dirt": 0.04,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.3467,
+            0.7454,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.1,
+      "look": "Iron Man 3 \"Disco\": chameleon camouflage suit, cool blue-grey with fine iridescent flake, light wear.",
+      "emissiveNotes": ""
+    },
+    "mark-xxxiii-silver-centurion": {
+      "name": "Mark XXXIII \"Silver Centurion\"",
+      "layers": {
+        "primary": {
+          "finish": "silver metallic car paint under clearcoat",
+          "baseColorLinear": [
+            0.7776,
+            0.8003,
+            0.8241
+          ],
+          "metallic": 0.9,
+          "roughness": 0.28,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.5,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "crimson metallic car paint",
+          "baseColorLinear": [
+            0.3663,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "accent": {
+          "finish": "polished bright aluminium",
+          "baseColorLinear": [
+            0.9126,
+            0.922,
+            0.9248
+          ],
+          "metallic": 1.0,
+          "roughness": 0.1,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.12,
+        "scorch": 0.1,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6724,
+            0.9301,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            1.0,
+            0.147,
+            0.147
+          ],
+          "intensity": 15,
+          "coreWhite": 0.4
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man 3 \"Silver Centurion\": comics homage, bright silver metallic paint with crimson panels and polished trim.",
+      "emissiveNotes": "Eyes/reactor use film-accurate cool white-blue; the input red emissive #ff6b6b is kept for the repulsors as a stylised nod to the comics Centurion."
+    },
+    "mark-xxxviii-igor": {
+      "name": "Mark XXXVIII \"Igor\"",
+      "layers": {
+        "primary": {
+          "finish": "industrial yellow-gold heavy-lift armour, worn paint",
+          "baseColorLinear": [
+            0.895,
+            0.6243,
+            0.2237
+          ],
+          "metallic": 0.85,
+          "roughness": 0.45,
+          "clearcoat": 0.25,
+          "clearcoatRoughness": 0.2,
+          "metalFlake": 0.1,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "heavy grey structural steel",
+          "baseColorLinear": [
+            0.5531,
+            0.5707,
+            0.5931
+          ],
+          "metallic": 0.95,
+          "roughness": 0.5,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "dark hydraulic steel",
+          "baseColorLinear": [
+            0.2968,
+            0.3103,
+            0.3359
+          ],
+          "metallic": 0.9,
+          "roughness": 0.55,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.5,
+        "scorch": 0.25,
+        "dirt": 0.45,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            1.0,
+            0.624,
+            0.1946
+          ],
+          "intensity": 18
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 20,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 12,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.25,
+      "look": "Iron Man 3 \"Igor\": hulking heavy-lifter, industrial yellow-gold over grey steel, like mining equipment; scraped and filthy.",
+      "emissiveNotes": ""
+    },
+    "mark-xl-shotgun": {
+      "name": "Mark XL \"Shotgun\"",
+      "layers": {
+        "primary": {
+          "finish": "silver racing metallic paint, high gloss",
+          "baseColorLinear": [
+            0.7796,
+            0.8001,
+            0.8206
+          ],
+          "metallic": 0.9,
+          "roughness": 0.26,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.03,
+          "metalFlake": 0.45,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "racing blue metallic",
+          "baseColorLinear": [
+            0.02,
+            0.0762,
+            0.2623
+          ],
+          "metallic": 0.75,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.5,
+          "flakeScale": 1.6
+        },
+        "accent": {
+          "finish": "red racing stripe",
+          "baseColorLinear": [
+            0.5271,
+            0.02,
+            0.0262
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        }
+      },
+      "wear": {
+        "edgeWear": 0.08,
+        "scorch": 0.12,
+        "dirt": 0.04,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6105,
+            0.855,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.08,
+      "look": "Iron Man 3 \"Shotgun\": hypervelocity suit, silver with blue racing livery and red accents, sleek and glossy, faint heat from speed.",
+      "emissiveNotes": ""
+    },
+    "mark-xli-bones": {
+      "name": "Mark XLI \"Bones\"",
+      "layers": {
+        "primary": {
+          "finish": "satin skeletal titanium",
+          "baseColorLinear": [
+            0.5352,
+            0.4981,
+            0.4584
+          ],
+          "metallic": 1.0,
+          "roughness": 0.3,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "dark gunmetal frame",
+          "baseColorLinear": [
+            0.2983,
+            0.3103,
+            0.3324
+          ],
+          "metallic": 0.9,
+          "roughness": 0.45,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "red paint accents",
+          "baseColorLinear": [
+            0.5457,
+            0.02,
+            0.0232
+          ],
+          "metallic": 0.6,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        }
+      },
+      "wear": {
+        "edgeWear": 0.15,
+        "scorch": 0.1,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.521,
+            0.8632,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.1,
+      "look": "Iron Man 3 \"Bones\": skeletal, lightweight, exposed silver-grey frame with dark gunmetal and small red accents.",
+      "emissiveNotes": ""
+    },
+    "mark-xlii": {
+      "name": "Mark XLII",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.4342,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.32,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9701,
+            0.7331,
+            0.3506
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "pale champagne gold-titanium detail, polished",
+          "baseColorLinear": [
+            0.9668,
+            0.84,
+            0.5501
+          ],
+          "metallic": 1.0,
+          "roughness": 0.16,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.1,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.3,
+        "scorch": 0.3,
+        "dirt": 0.25,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6724,
+            0.9301,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Iron Man 3 \"Prodigal Son\": gold-dominant colour split (gold on chest, arms and legs); heavily battered over the film (dents, scorch, scrapes, lost segments).",
+      "emissiveNotes": ""
+    },
+    "mark-xliii": {
+      "name": "Mark XLIII",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.5395,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9675,
+            0.7337,
+            0.3523
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "pale champagne gold-titanium detail, polished",
+          "baseColorLinear": [
+            0.966,
+            0.84,
+            0.5529
+          ],
+          "metallic": 1.0,
+          "roughness": 0.16,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.1,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.25,
+        "scorch": 0.3,
+        "dirt": 0.2,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.7379,
+            0.9387,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Avengers: Age of Ultron: brighter fire-engine red, more gold, chunkier; shows Sokovia battle soot and chips.",
+      "emissiveNotes": ""
+    },
+    "mark-xlv": {
+      "name": "Mark XLV",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.4621,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9523,
+            0.7375,
+            0.3595
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "pale champagne gold-titanium detail, polished",
+          "baseColorLinear": [
+            0.9683,
+            0.8401,
+            0.5449
+          ],
+          "metallic": 1.0,
+          "roughness": 0.16,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.1,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.12,
+        "scorch": 0.12,
+        "dirt": 0.08,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.7454,
+            0.9387,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Age of Ultron finale: deeper red, champagne-gold, sleek angular helmet; fresh paint with light battle scuffs.",
+      "emissiveNotes": ""
+    },
+    "mark-xlvi": {
+      "name": "Mark XLVI",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.3916,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.9672,
+            0.7334,
+            0.3556
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "silver titanium accents",
+          "baseColorLinear": [
+            0.9137,
+            0.9218,
+            0.9236
+          ],
+          "metallic": 1.0,
+          "roughness": 0.22,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.35,
+        "scorch": 0.3,
+        "dirt": 0.25,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.7758,
+            0.9473,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Captain America: Civil War: darker oxblood red with muted gold and silver accents; Siberia fight damage (dents, scorch, scrapes).",
+      "emissiveNotes": ""
+    },
+    "mark-xlvii": {
+      "name": "Mark XLVII",
+      "layers": {
+        "primary": {
+          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "baseColorLinear": [
+            0.4793,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.7,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.4,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "baseColorLinear": [
+            0.964,
+            0.7343,
+            0.3566
+          ],
+          "metallic": 1.0,
+          "roughness": 0.24,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.15,
+          "flakeScale": 2.4
+        },
+        "accent": {
+          "finish": "silver accents",
+          "baseColorLinear": [
+            0.9103,
+            0.9224,
+            0.9283
+          ],
+          "metallic": 1.0,
+          "roughness": 0.2,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.1,
+        "scorch": 0.08,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.7913,
+            0.956,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 25,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 15,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.12,
+      "look": "Spider-Man: Homecoming: classic Mark III-style red/gold with silver bits, repainted and clean.",
+      "emissiveNotes": ""
+    },
+    "mark-l": {
+      "name": "Mark L",
+      "layers": {
+        "primary": {
+          "finish": "nano-metal red, fine liquid-metal sheen",
+          "baseColorLinear": [
+            0.3916,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.75,
+          "roughness": 0.24,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.02,
+          "metalFlake": 0.25,
+          "flakeScale": 4.0
+        },
+        "secondary": {
+          "finish": "nano gold-titanium",
+          "baseColorLinear": [
+            1.0,
+            0.726,
+            0.3031
+          ],
+          "metallic": 1.0,
+          "roughness": 0.2,
+          "clearcoat": 0.9,
+          "clearcoatRoughness": 0.03,
+          "metalFlake": 0.1,
+          "flakeScale": 4.0
+        },
+        "accent": {
+          "finish": "black nano under-layer / joints",
+          "baseColorLinear": [
+            0.2976,
+            0.3103,
+            0.3337
+          ],
+          "metallic": 0.95,
+          "roughness": 0.35,
+          "clearcoat": 0.4,
+          "clearcoatRoughness": 0.08,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.04,
+        "scorch": 0.08,
+        "dirt": 0.04,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6308,
+            0.9047,
+            1.0
+          ],
+          "intensity": 22
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 30,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 18,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.04,
+      "look": "Avengers: Infinity War \"Bleeding Edge\" nano suit: deep red with fine gold, smooth near-seamless liquid-metal surfaces, dark nano joints; minimal wear (self-repairing), Titan scorch only.",
+      "emissiveNotes": ""
+    },
+    "mark-lxxxv": {
+      "name": "Mark LXXXV",
+      "layers": {
+        "primary": {
+          "finish": "nano-metal burgundy-red, liquid sheen",
+          "baseColorLinear": [
+            0.3419,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.75,
+          "roughness": 0.24,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.02,
+          "metalFlake": 0.25,
+          "flakeScale": 4.0
+        },
+        "secondary": {
+          "finish": "nano gold-titanium, more gold coverage",
+          "baseColorLinear": [
+            1.0,
+            0.7278,
+            0.2922
+          ],
+          "metallic": 1.0,
+          "roughness": 0.2,
+          "clearcoat": 0.9,
+          "clearcoatRoughness": 0.03,
+          "metalFlake": 0.1,
+          "flakeScale": 4.0
+        },
+        "accent": {
+          "finish": "pale champagne gold-titanium detail, polished",
+          "baseColorLinear": [
+            0.985,
+            0.8371,
+            0.5258
+          ],
+          "metallic": 1.0,
+          "roughness": 0.14,
+          "clearcoat": 0.9,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.1,
+          "flakeScale": 2.4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.06,
+        "scorch": 0.12,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6724,
+            0.9301,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 30,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 18,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.05,
+      "look": "Avengers: Endgame Mark 85: darker burgundy red, much more gold, rounder classic shapes; smooth nano finish, low wear apart from final-battle scorch.",
+      "emissiveNotes": "Eyes use film cool white (input #fff4d8 warm white kept as nano-gauntlet glow if needed)."
+    },
+    "war-machine": {
+      "name": "War Machine",
+      "layers": {
+        "primary": {
+          "finish": "satin gunmetal-grey military armour",
+          "baseColorLinear": [
+            0.297,
+            0.3105,
+            0.3339
+          ],
+          "metallic": 0.9,
+          "roughness": 0.42,
+          "clearcoat": 0.2,
+          "clearcoatRoughness": 0.35,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "dark parkerised steel",
+          "baseColorLinear": [
+            0.1875,
+            0.1904,
+            0.1988
+          ],
+          "metallic": 0.85,
+          "roughness": 0.5,
+          "clearcoat": 0.1,
+          "clearcoatRoughness": 0.4,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "bare machined steel / weapon metal",
+          "baseColorLinear": [
+            0.5569,
+            0.5704,
+            0.5849
+          ],
+          "metallic": 1.0,
+          "roughness": 0.35,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        }
+      },
+      "wear": {
+        "edgeWear": 0.4,
+        "scorch": 0.3,
+        "dirt": 0.3,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6724,
+            0.9301,
+            1.0
+          ],
+          "intensity": 18
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 20,
+          "coreWhite": 0.5
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 12,
+          "coreWhite": 0.4
+        }
+      },
+      "panelLineDepth": 0.18,
+      "look": "Iron Man 2 / Civil War War Machine: heavy dark gunmetal satin armour, military markings, worn edges, gun-smoke and carbon from the shoulder minigun.",
+      "emissiveNotes": "Film eyes are white/pale blue; input #ffe2a0 used as muzzleFlashColorLinear.",
+      "muzzleFlashColorLinear": [
+        1.0,
+        0.7605,
+        0.3515
+      ]
+    },
+    "iron-patriot": {
+      "name": "Iron Patriot",
+      "layers": {
+        "primary": {
+          "finish": "red painted armour, glossy clearcoat",
+          "baseColorLinear": [
+            0.4508,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.55,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.3,
+          "flakeScale": 1.6
+        },
+        "secondary": {
+          "finish": "white painted armour, glossy clearcoat (albedo capped 0.8)",
+          "baseColorLinear": [
+            0.8,
+            0.8,
+            0.8
+          ],
+          "metallic": 0.1,
+          "roughness": 0.32,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.05,
+          "flakeScale": 1.6
+        },
+        "accent": {
+          "finish": "navy blue metallic with star",
+          "baseColorLinear": [
+            0.02,
+            0.0497,
+            0.2747
+          ],
+          "metallic": 0.6,
+          "roughness": 0.3,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.35,
+          "flakeScale": 1.6
+        }
+      },
+      "wear": {
+        "edgeWear": 0.22,
+        "scorch": 0.18,
+        "dirt": 0.15,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.6867,
+            0.8388,
+            1.0
+          ],
+          "intensity": 18
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 22,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 14,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.16,
+      "look": "Iron Man 3 / Age of Ultron Iron Patriot: patriotic red-white-blue paint over War Machine armour, glossy PR finish, some combat scuffs.",
+      "emissiveNotes": ""
+    },
+    "rescue": {
+      "name": "Rescue",
+      "layers": {
+        "primary": {
+          "finish": "blue-violet metallic nano paint",
+          "baseColorLinear": [
+            0.035,
+            0.12,
+            0.42
+          ],
+          "metallic": 0.8,
+          "roughness": 0.26,
+          "clearcoat": 1.0,
+          "clearcoatRoughness": 0.03,
+          "metalFlake": 0.5,
+          "flakeScale": 3.0
+        },
+        "secondary": {
+          "finish": "polished silver nano-metal",
+          "baseColorLinear": [
+            0.9553,
+            0.95,
+            0.9323
+          ],
+          "metallic": 1.0,
+          "roughness": 0.18,
+          "clearcoat": 0.8,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.0,
+          "flakeScale": 3.0
+        },
+        "accent": {
+          "finish": "cyan light-strip trim (emissive-backed)",
+          "baseColorLinear": [
+            0.2122,
+            0.6308,
+            1.0
+          ],
+          "metallic": 0.3,
+          "roughness": 0.15,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.05,
+          "metalFlake": 0.0,
+          "flakeScale": 3
+        }
+      },
+      "wear": {
+        "edgeWear": 0.05,
+        "scorch": 0.12,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.521,
+            0.8714,
+            1.0
+          ],
+          "intensity": 20
+        },
+        "reactor": {
+          "colorLinear": [
+            0.5776,
+            0.8714,
+            1.0
+          ],
+          "intensity": 28,
+          "coreWhite": 0.6
+        },
+        "repulsors": {
+          "colorLinear": [
+            0.3467,
+            0.7454,
+            1.0
+          ],
+          "intensity": 18,
+          "coreWhite": 0.5
+        }
+      },
+      "panelLineDepth": 0.05,
+      "look": "Avengers: Endgame Rescue: Pepper's nano suit, metallic blue-purple with silver, sleek and nearly seamless, low wear.",
+      "emissiveNotes": ""
+    },
+    "arachnid": {
+      "name": "Arachnid (Iron Spider)",
+      "layers": {
+        "primary": {
+          "finish": "red nano-metal, high metallic",
+          "baseColorLinear": [
+            0.4508,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.95,
+          "roughness": 0.2,
+          "clearcoat": 0.7,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.15,
+          "flakeScale": 4.0
+        },
+        "secondary": {
+          "finish": "gold nano-metal",
+          "baseColorLinear": [
+            1.0,
+            0.7519,
+            0.2725
+          ],
+          "metallic": 1.0,
+          "roughness": 0.2,
+          "clearcoat": 0.6,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.0,
+          "flakeScale": 4.0
+        },
+        "accent": {
+          "finish": "black nano-metal webbing lines",
+          "baseColorLinear": [
+            0.025,
+            0.025,
+            0.025
+          ],
+          "metallic": 0.6,
+          "roughness": 0.35,
+          "clearcoat": 0.3,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 4
+        }
+      },
+      "wear": {
+        "edgeWear": 0.05,
+        "scorch": 0.08,
+        "dirt": 0.06,
+        "substrateColorLinear": [
+          0.542,
+          0.497,
+          0.449
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            0.9047,
+            0.9387,
+            1.0
+          ],
+          "intensity": 4,
+          "note": "reflective white lenses, faint glow only"
+        },
+        "reactor": null,
+        "repulsors": {
+          "colorLinear": [
+            1.0,
+            0.6445,
+            0.1946
+          ],
+          "intensity": 12,
+          "coreWhite": 0.5,
+          "note": "waldo/laser emitter glow, not palm repulsors"
+        }
+      },
+      "panelLineDepth": 0.04,
+      "look": "Avengers: Infinity War Iron Spider: metallic red and gold nanotech with black web lines, smooth glossy finish, white lenses.",
+      "emissiveNotes": "reactor null: no arc reactor on the suit."
+    },
+    "ultron": {
+      "name": "Ultron Suit",
+      "layers": {
+        "primary": {
+          "finish": "mirror chrome vibranium-alloy",
+          "baseColorLinear": [
+            0.5489,
+            0.5561,
+            0.5558
+          ],
+          "metallic": 1.0,
+          "roughness": 0.07,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "secondary": {
+          "finish": "dark gunmetal undershell",
+          "baseColorLinear": [
+            0.2962,
+            0.3105,
+            0.3364
+          ],
+          "metallic": 1.0,
+          "roughness": 0.35,
+          "clearcoat": 0.0,
+          "clearcoatRoughness": 0.1,
+          "metalFlake": 0.0,
+          "flakeScale": 2.0
+        },
+        "accent": {
+          "finish": "red detailing (emissive-adjacent)",
+          "baseColorLinear": [
+            0.6376,
+            0.02,
+            0.02
+          ],
+          "metallic": 0.4,
+          "roughness": 0.3,
+          "clearcoat": 0.5,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.1,
+          "flakeScale": 1.6
+        }
+      },
+      "wear": {
+        "edgeWear": 0.15,
+        "scorch": 0.15,
+        "dirt": 0.08,
+        "substrateColorLinear": [
+          0.56,
+          0.57,
+          0.58
+        ]
+      },
+      "emissive": {
+        "eyes": {
+          "colorLinear": [
+            1.0,
+            0.0232,
+            0.0232
+          ],
+          "intensity": 30,
+          "coreWhite": 0.3
+        },
+        "reactor": {
+          "colorLinear": [
+            1.0,
+            0.0232,
+            0.0232
+          ],
+          "intensity": 20,
+          "coreWhite": 0.4,
+          "note": "red power core (no arc reactor)"
+        },
+        "repulsors": {
+          "colorLinear": [
+            1.0,
+            0.0232,
+            0.0232
+          ],
+          "intensity": 18,
+          "coreWhite": 0.4
+        }
+      },
+      "panelLineDepth": 0.15,
+      "look": "Avengers: Age of Ultron: Ultron Prime look, mirror chrome over dark gunmetal, menacing red eyes, mouth and core glow.",
+      "emissiveNotes": ""
+    }
+  }
+}

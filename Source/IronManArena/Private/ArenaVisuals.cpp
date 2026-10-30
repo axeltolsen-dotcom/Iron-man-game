@@ -9,9 +9,20 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/PackageName.h"
 #include "UObject/UObjectGlobals.h"
+#include "HAL/IConsoleManager.h"
+
+static TAutoConsoleVariable<float> CVarEmissiveNitsPerUnit(
+	TEXT("ima.EmissiveNitsPerUnit"), 1000.f,
+	TEXT("cd/m2 per emissive unit for every project glow (physical exposure). Applies to newly painted parts."),
+	ECVF_Default);
 
 namespace ArenaVisuals
 {
+	float EmissiveToNits(float EmissiveUnits)
+	{
+		return EmissiveUnits * FMath::Max(0.f, CVarEmissiveNitsPerUnit.GetValueOnGameThread());
+	}
+
 	const FLinearColor SuitRed   = FLinearColor(0.55f, 0.02f, 0.02f);
 	const FLinearColor SuitGold  = FLinearColor(0.85f, 0.55f, 0.08f);
 	const FLinearColor ArcBlue   = FLinearColor(0.35f, 0.9f, 1.0f);
@@ -67,9 +78,129 @@ namespace ArenaVisuals
 		return LoadObject<UMaterialInterface>(nullptr, BasicMaterialObject);
 	}
 
+	// ------------------------------------------------------------------ realistic surfaces
+
+	static const TCHAR* SurfaceAssetName(EArenaSurface Surface)
+	{
+		switch (Surface)
+		{
+		case EArenaSurface::SuitPaint:    return TEXT("MI_SuitHotRod");
+		case EArenaSurface::SuitGold:     return TEXT("MI_SuitGold");
+		case EArenaSurface::RobotMetal:   return TEXT("MI_RobotMetal");
+		case EArenaSurface::Glass:        return TEXT("M_Glass");
+		case EArenaSurface::Glow:         return TEXT("M_ArcGlow");
+		case EArenaSurface::HeatHaze:     return TEXT("M_HeatHaze");
+		case EArenaSurface::GarageFloor:  return TEXT("MI_GarageFloor");
+		case EArenaSurface::Asphalt:      return TEXT("MI_Asphalt");
+		case EArenaSurface::AsphaltWet:   return TEXT("MI_Asphalt_Wet");
+		case EArenaSurface::Concrete:     return TEXT("MI_Concrete");
+		case EArenaSurface::ConcreteWet:  return TEXT("MI_Concrete_Wet");
+		case EArenaSurface::BlockWall:    return TEXT("MI_BlockWall");
+		case EArenaSurface::Brick:        return TEXT("MI_Brick");
+		case EArenaSurface::BrickWet:     return TEXT("MI_Brick_Wet");
+		case EArenaSurface::MetalPlate:   return TEXT("MI_MetalPlate");
+		case EArenaSurface::RustyMetal:   return TEXT("MI_RustyMetal");
+		case EArenaSurface::Rubble:       return TEXT("MI_Rubble");
+		case EArenaSurface::BurnedGround: return TEXT("MI_BurnedGround");
+		case EArenaSurface::Smoke:        return TEXT("M_Smoke");
+		case EArenaSurface::Facade:       return TEXT("M_Facade");
+		default: return nullptr;
+		}
+	}
+
+	bool HasRealismMaterials()
+	{
+		static int32 Cached = -1;
+		if (Cached < 0)
+		{
+			Cached = FPackageName::DoesPackageExist(TEXT("/Game/Realism/Materials/M_CarPaint")) ? 1 : 0;
+			UE_LOG(LogIronManArena, Log, TEXT("Realism materials %s (/Game/Realism/Materials)"), Cached ? TEXT("found") : TEXT("missing - using flat fallback"));
+		}
+		return Cached == 1;
+	}
+
+	UMaterialInterface* GetSurfaceMaterial(EArenaSurface Surface)
+	{
+		static TMap<uint8, TWeakObjectPtr<UMaterialInterface>> Cache;
+		const TCHAR* Name = SurfaceAssetName(Surface);
+		if (!Name || !HasRealismMaterials()) { return GetParentMaterial(); }
+		if (const TWeakObjectPtr<UMaterialInterface>* Found = Cache.Find(uint8(Surface)))
+		{
+			if (Found->IsValid()) { return Found->Get(); }
+		}
+		const FString Package = FString(TEXT("/Game/Realism/Materials/")) + Name;
+		UMaterialInterface* M = nullptr;
+		if (FPackageName::DoesPackageExist(Package))
+		{
+			M = LoadObject<UMaterialInterface>(nullptr, *(Package + TEXT(".") + Name));
+		}
+		if (!M) { M = GetParentMaterial(); }
+		Cache.Add(uint8(Surface), M);
+		return M;
+	}
+
+	EArenaSurface ResolveSurface(const FArenaPaintedPart& Part)
+	{
+		if (Part.Surface != EArenaSurface::Auto) { return Part.Surface; }
+		if (Part.Emissive > 0.f) { return EArenaSurface::Glow; }
+		if (Part.Role != ESuitPaintRole::Fixed) { return EArenaSurface::SuitPaint; }
+		return EArenaSurface::RobotMetal;
+	}
+
+	void SetScalarOnAll(TArray<FArenaPaintedPart>& Parts, FName Param, float Value)
+	{
+		for (FArenaPaintedPart& Part : Parts)
+		{
+			if (Part.MID) { Part.MID->SetScalarParameterValue(Param, Value); }
+		}
+	}
+
+	UStaticMeshComponent* AddRuntimePart(AActor* Owner, USceneComponent* Parent, EArenaShape Shape,
+		const FVector& Location, const FVector& Scale, const FRotator& Rotation, const FLinearColor& Color,
+		float Emissive, EArenaSurface Surface, bool bSolid, TArray<FArenaPaintedPart>& OutParts)
+	{
+		if (!Owner) { return nullptr; }
+		UStaticMeshComponent* Comp = NewObject<UStaticMeshComponent>(Owner);
+		Comp->SetMobility(EComponentMobility::Movable);
+		if (UStaticMesh* Mesh = GetShapeMesh(Shape)) { Comp->SetStaticMesh(Mesh); }
+		if (Parent) { Comp->SetupAttachment(Parent); }
+		Comp->SetRelativeLocation(Location);
+		Comp->SetRelativeRotation(Rotation);
+		Comp->SetRelativeScale3D(Scale);
+		Comp->CastShadow = (Emissive <= 0.f) && Surface != EArenaSurface::Glass && Surface != EArenaSurface::HeatHaze && Surface != EArenaSurface::Smoke;
+		if (bSolid)
+		{
+			Comp->SetCollisionProfileName(TEXT("BlockAll"));
+			Comp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		}
+		else
+		{
+			Comp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+		Comp->SetGenerateOverlapEvents(false);
+		Comp->SetCanEverAffectNavigation(false);
+		Comp->RegisterComponent();
+		Owner->AddInstanceComponent(Comp);
+
+		FArenaPaintedPart Part;
+		Part.Component = Comp;
+		Part.Color = Color;
+		Part.Emissive = Emissive;
+		Part.Surface = Surface;
+		if (UMaterialInterface* Mat = GetSurfaceMaterial(ResolveSurface(Part)))
+		{
+			Part.MID = UMaterialInstanceDynamic::Create(Mat, Owner);
+			Part.MID->SetVectorParameterValue(ColorParam, Color);
+			Part.MID->SetScalarParameterValue(EmissiveParam, EmissiveToNits(Emissive));
+			Comp->SetMaterial(0, Part.MID);
+		}
+		OutParts.Add(Part);
+		return Comp;
+	}
+
 	UStaticMeshComponent* AddPart(AActor* Owner, USceneComponent* Parent, FName Name,
 		EArenaShape Shape, const FVector& Location, const FVector& Scale, const FRotator& Rotation,
-		const FLinearColor& Color, float Emissive, TArray<FArenaPaintedPart>& OutParts)
+		const FLinearColor& Color, float Emissive, TArray<FArenaPaintedPart>& OutParts, EArenaSurface Surface)
 	{
 		check(Owner);
 		UStaticMeshComponent* Comp = Owner->CreateDefaultSubobject<UStaticMeshComponent>(Name);
@@ -91,6 +222,7 @@ namespace ArenaVisuals
 		Part.Component = Comp;
 		Part.Color = Color;
 		Part.Emissive = Emissive;
+		Part.Surface = Surface;
 		OutParts.Add(Part);
 		return Comp;
 	}
@@ -99,16 +231,16 @@ namespace ArenaVisuals
 	{
 		if (!MID) { return; }
 		MID->SetVectorParameterValue(ColorParam, Color);
-		MID->SetScalarParameterValue(EmissiveParam, Emissive); // ignored by BasicShapeMaterial
+		MID->SetScalarParameterValue(EmissiveParam, EmissiveToNits(Emissive)); // ignored by BasicShapeMaterial
 	}
 
 	void PaintAll(UObject* Outer, TArray<FArenaPaintedPart>& Parts)
 	{
-		UMaterialInterface* Parent = GetParentMaterial();
-		if (!Parent) { return; }
 		for (FArenaPaintedPart& Part : Parts)
 		{
 			if (!Part.Component) { continue; }
+			UMaterialInterface* Parent = GetSurfaceMaterial(ResolveSurface(Part));
+			if (!Parent) { continue; }
 			Part.MID = UMaterialInstanceDynamic::Create(Parent, Outer);
 			ApplyColor(Part.MID, Part.Color, Part.Emissive);
 			Part.Component->SetMaterial(0, Part.MID);
@@ -131,14 +263,15 @@ namespace ArenaVisuals
 
 	void SetPartGlow(FArenaPaintedPart& Part, float Emissive)
 	{
-		if (Part.MID) { Part.MID->SetScalarParameterValue(EmissiveParam, Emissive); }
+		if (Part.MID) { Part.MID->SetScalarParameterValue(EmissiveParam, EmissiveToNits(Emissive)); }
 	}
 
 	UMaterialInstanceDynamic* PaintComponent(UObject* Outer, UStaticMeshComponent* Comp,
-		const FLinearColor& Color, float Emissive)
+		const FLinearColor& Color, float Emissive, EArenaSurface Surface)
 	{
 		if (!Comp) { return nullptr; }
-		UMaterialInterface* Parent = GetParentMaterial();
+		if (Surface == EArenaSurface::Auto) { Surface = Emissive > 0.f ? EArenaSurface::Glow : EArenaSurface::Plain; }
+		UMaterialInterface* Parent = GetSurfaceMaterial(Surface);
 		if (!Parent) { return nullptr; }
 		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Parent, Outer);
 		ApplyColor(MID, Color, Emissive);

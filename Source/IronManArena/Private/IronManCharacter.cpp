@@ -1003,6 +1003,27 @@ void AIronManCharacter::TickEnergy(float DeltaSeconds)
 	else if (HFrac > 0.5f) { bWarnedLowHealth = false; }
 }
 
+void AIronManCharacter::TickSuitWear(float DeltaSeconds)
+{
+	SuitWearTimer -= DeltaSeconds;
+	if (SuitWearTimer > 0.f) { return; }
+	SuitWearTimer = 0.2f;
+	const float Damage = MaxHealth > 0.f ? FMath::Clamp(1.f - Health / MaxHealth, 0.f, 1.f) * 0.8f : 0.f;
+	const float Heat = Reactor ? FMath::Clamp((Reactor->GetHeatFraction() - 0.6f) / 0.4f, 0.f, 1.f) : 0.f;
+	if (FMath::Abs(Damage - ShownSuitDamage) > 0.02f)
+	{
+		ShownSuitDamage = Damage;
+		ArenaVisuals::SetScalarOnAll(Parts, TEXT("Damage"), Damage);
+		ArenaVisuals::SetScalarOnAll(FPParts, TEXT("Damage"), Damage);
+	}
+	if (FMath::Abs(Heat - ShownSuitHeat) > 0.02f)
+	{
+		ShownSuitHeat = Heat;
+		ArenaVisuals::SetScalarOnAll(Parts, TEXT("HeatGlow"), Heat);
+		ArenaVisuals::SetScalarOnAll(FPParts, TEXT("HeatGlow"), Heat);
+	}
+}
+
 void AIronManCharacter::TickBoundary()
 {
 	UCharacterMovementComponent* Move = GetCharacterMovement();
@@ -1042,6 +1063,7 @@ void AIronManCharacter::Tick(float DeltaSeconds)
 		TickHulkbuster(DeltaSeconds);
 		TickEffects(DeltaSeconds);
 		TickBoundary();
+		TickSuitWear(DeltaSeconds);
 	}
 	TickVisuals(DeltaSeconds);
 	TickFirstPerson(DeltaSeconds);

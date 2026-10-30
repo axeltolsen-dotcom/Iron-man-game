@@ -14,6 +14,8 @@ Builds the PBR master materials + instances the C++ uses for realistic rendering
       M_ArcGlow       unlit emissive with fresnel core + pulse (arc reactor, repulsors, eyes)
       M_HeatHaze      refraction shimmer for reactor vents / thrusters
       M_ScorchDecal   deferred decal for blaster impacts (Opacity param fades it out)
+      M_Smoke         soft lit translucent puffs (smoke / dust columns from basic spheres)
+      M_Facade        procedural tower facade: wall bands + glossy windows, random lit windows at night
       MI_SuitHotRod / MI_SuitGold / MI_RobotMetal / MI_<texture set> / MI_<set>_Wet
 
 Every master keeps the "Color" + "EmissiveStrength" parameters, so the existing paint / flash
@@ -131,10 +133,10 @@ def build_car_paint():
     lp = local_position(mat, -1400, 900)
     wear_n = expr(mat, unreal.MaterialExpressionNoise, -1100, 900, scale=0.035, levels=4,
                   output_min=0.0, output_max=1.0, turbulence=True)
-    link(lp, wear_n, "Position")
+    link(lp, wear_n, "")  # first input = Position
     scorch_n = expr(mat, unreal.MaterialExpressionNoise, -1100, 1050, scale=0.012, levels=5,
                     output_min=0.0, output_max=1.0, turbulence=False)
-    link(lp, scorch_n, "Position")
+    link(lp, scorch_n, "")
     ins = ["Color", "WearColor", "P", "FlakeScale", "FlakeAmount", "WearN", "EdgeWear", "ScorchN",
            "Scorch", "Damage", "Metallic", "Roughness", "ClearCoat", "HeatGlow", "Emissive"]
     common = """
@@ -166,12 +168,17 @@ return Color * Emissive + float3(1.0, 0.28, 0.04) * ember * HeatGlow * 20.0;
         link(p["Scorch"], c, "Scorch"); link(p["Damage"], c, "Damage"); link(p["Metallic"], c, "Metallic")
         link(p["Roughness"], c, "Roughness"); link(p["ClearCoat"], c, "ClearCoat")
         link(p["HeatGlow"], c, "HeatGlow"); link(p["EmissiveStrength"], c, "Emissive")
-    prop(base, MP.MP_BASE_COLOR)
-    prop(mask(mat, surf, -400, 50, r=True), MP.MP_METALLIC)
-    prop(mask(mat, surf, -400, 150, g=True), MP.MP_ROUGHNESS)
-    prop(mask(mat, surf, -400, 250, b=True), MP.MP_CUSTOM_DATA0)       # clear coat
-    prop(p["ClearCoatRoughness"], MP.MP_CUSTOM_DATA1)                  # clear coat roughness
-    prop(emis, MP.MP_EMISSIVE_COLOR)
+    # Clear coat pins (CustomData0/1) are hidden from Python, so feed everything through
+    # Make Material Attributes, which exposes ClearCoat / ClearCoatRoughness by name.
+    mat.set_editor_property("use_material_attributes", True)
+    mma = expr(mat, unreal.MaterialExpressionMakeMaterialAttributes, -150, 0)
+    link(base, mma, "BaseColor")
+    link(mask(mat, surf, -400, 50, r=True), mma, "Metallic")
+    link(mask(mat, surf, -400, 150, g=True), mma, "Roughness")
+    link(mask(mat, surf, -400, 250, b=True), mma, "ClearCoat")
+    link(p["ClearCoatRoughness"], mma, "ClearCoatRoughness")
+    link(emis, mma, "EmissiveColor")
+    prop(mma, MP.MP_MATERIAL_ATTRIBUTES)
     finish(mat, MAT_DIR + "/" + name)
     return mat
 
@@ -285,7 +292,7 @@ def build_arc_glow():
     mat = fresh(name, unreal.Material, unreal.MaterialFactoryNew())
     mat.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
     color = vector(mat, "Color", (0.35, 0.9, 1.0), -800, -200)
-    es = scalar(mat, "EmissiveStrength", 8.0, -800, 0)
+    es = scalar(mat, "EmissiveStrength", 8000.0, -800, 0)  # nits (ArenaVisuals::EmissiveToNits)
     pulse = scalar(mat, "PulseSpeed", 2.2, -800, 100)
     core = scalar(mat, "CoreWhite", 0.6, -800, 200)
     t = expr(mat, unreal.MaterialExpressionTime, -800, 300)
@@ -356,6 +363,79 @@ return float3(1.0, 0.35, 0.05) * saturate(1.0 - r * 2.2) * Glow;
     finish(mat, MAT_DIR + "/" + name)
 
 
+def build_smoke():
+    """Soft lit translucent puffs for smoke / dust columns (basic spheres): opacity fades to the
+    silhouette edge so a sphere reads as a soft blob, with a slow noise break-up."""
+    name = "M_Smoke"
+    mat = fresh(name, unreal.Material, unreal.MaterialFactoryNew())
+    mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    mat.set_editor_property("translucency_lighting_mode", unreal.TranslucencyLightingMode.TLM_VOLUMETRIC_NON_DIRECTIONAL)
+    color = vector(mat, "Color", (0.3, 0.29, 0.28), -800, -200)
+    op = scalar(mat, "Opacity", 0.35, -800, 0)
+    es = scalar(mat, "EmissiveStrength", 0.0, -800, 100)
+    fres = expr(mat, unreal.MaterialExpressionFresnel, -800, 200, exponent=1.0, base_reflect_fraction=0.0)
+    wp = expr(mat, unreal.MaterialExpressionWorldPosition, -800, 300)
+    t = expr(mat, unreal.MaterialExpressionTime, -800, 400)
+    o = custom(mat, """
+float3 q = WP * 0.004 + float3(0, 0, -T * 0.15);
+float n = 0.65 + 0.35 * sin(q.x * 5.1 + sin(q.y * 3.7 + q.z * 2.9)) * sin(q.z * 4.3 + q.x * 1.3);
+float edge = saturate(1.0 - F);
+return saturate(edge * edge * n * Op);
+""", ["WP", "T", "F", "Op"], -400, 0, out=unreal.CustomMaterialOutputType.CMOT_FLOAT1, desc="Smoke opacity")
+    for n, e in (("WP", wp), ("T", t), ("F", fres), ("Op", op)):
+        link(e, o, n)
+    emis = expr(mat, unreal.MaterialExpressionMultiply, -400, 200)
+    link(color, emis, "A"); link(es, emis, "B")
+    prop(color, MP.MP_BASE_COLOR); prop(o, MP.MP_OPACITY); prop(emis, MP.MP_EMISSIVE_COLOR)
+    finish(mat, MAT_DIR + "/" + name)
+
+
+def build_facade():
+    """Procedural office-tower facade for one-box buildings: concrete / brick bands with glass
+    windows (glossy, reflect the sky through Lumen) and, at night, a random share of lit windows."""
+    name = "M_Facade"
+    mat = fresh(name, unreal.Material, unreal.MaterialFactoryNew())
+    wall = vector(mat, "Color", (0.35, 0.34, 0.33), -1000, -300)
+    win = vector(mat, "WindowColor", (1.0, 0.78, 0.5), -1000, -150)
+    lit = scalar(mat, "LitFraction", 0.35, -1000, 0)
+    es = scalar(mat, "EmissiveStrength", 0.0, -1000, 100)
+    fh = scalar(mat, "FloorHeight", 380.0, -1000, 200)
+    ww = scalar(mat, "WindowWidth", 260.0, -1000, 300)
+    wp = expr(mat, unreal.MaterialExpressionWorldPosition, -1000, 400)
+    n = expr(mat, unreal.MaterialExpressionVertexNormalWS, -1000, 500)
+    common = """
+float side = 1.0 - saturate(abs(N.z) * 4.0);              // no windows on roofs
+float u = abs(N.x) > abs(N.y) ? WP.y : WP.x;
+float2 g = float2(u / WW, WP.z / FH);
+float2 f = frac(g);
+float window = side * step(0.12, f.x) * step(f.x, 0.88) * step(0.22, f.y) * step(f.y, 0.86);
+float2 cell = floor(g);
+float h = frac(sin(dot(cell, float2(127.1, 311.7))) * 43758.5453);
+float on = step(1.0 - Lit, h);
+"""
+    ins = ["WP", "N", "WW", "FH", "Lit", "Wall", "Win", "Strength"]
+    base = custom(mat, common + """
+float grime = 0.85 + 0.15 * frac(sin(dot(floor(WP.xz / 90.0), float2(12.9898, 78.233))) * 43758.5453);
+return lerp(Wall * grime, float3(0.02, 0.025, 0.03), window);
+""", ins, -500, -200, desc="Facade colour")
+    surf = custom(mat, common + """
+return float3(lerp(0.0, 0.2, window), lerp(0.75, 0.04, window), lerp(0.5, 1.0, window)); // metal, rough, specular
+""", ins, -500, 50, desc="Facade surface")
+    em = custom(mat, common + """
+float flicker = 0.75 + 0.25 * h;
+return Win * window * on * flicker * Strength;
+""", ins, -500, 300, desc="Facade lit windows")
+    for c in (base, surf, em):
+        link(wp, c, "WP"); link(n, c, "N"); link(ww, c, "WW"); link(fh, c, "FH"); link(lit, c, "Lit")
+        link(wall, c, "Wall"); link(win, c, "Win"); link(es, c, "Strength")
+    prop(base, MP.MP_BASE_COLOR)
+    prop(mask(mat, surf, -250, 0, r=True), MP.MP_METALLIC)
+    prop(mask(mat, surf, -250, 100, g=True), MP.MP_ROUGHNESS)
+    prop(mask(mat, surf, -250, 200, b=True), MP.MP_SPECULAR)
+    prop(em, MP.MP_EMISSIVE_COLOR)
+    finish(mat, MAT_DIR + "/" + name)
+
+
 # ----------------------------------------------------------------------------- instances
 def make_mi(name, parent, scalars=None, vectors=None, textures=None):
     mi = fresh(name, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
@@ -396,7 +476,8 @@ def main():
         log("texture import crashed:\n" + traceback.format_exc())
     LOG.append("== materials ==")
     steps = [("car paint", build_car_paint), ("glass", build_glass), ("arc glow", build_arc_glow),
-             ("heat haze", build_heat_haze), ("scorch decal", build_scorch_decal)]
+             ("heat haze", build_heat_haze), ("scorch decal", build_scorch_decal),
+             ("smoke", build_smoke), ("facade", build_facade)]
     for label, fn in steps:
         try:
             fn()

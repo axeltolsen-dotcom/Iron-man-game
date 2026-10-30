@@ -19,6 +19,9 @@ import unreal
 CLASS_DIR = "/Game/Audio/Classes"
 MASTER = "SC_Master"
 CHILDREN = ["SC_SFX", "SC_Voice", "SC_Music"]
+# Baseline class volumes (the settings sliders scale relative to these; C++ VoiceClassBaseVolume
+# in ArenaGameUserSettings.cpp must match SC_Voice).
+BASE_VOLUME = {"SC_Voice": 0.7}
 VOICE_ROOTS = ["/Game/Audio", "/Game/StoryAudio"]
 
 eal = unreal.EditorAssetLibrary
@@ -46,6 +49,11 @@ def setup_classes():
             children.append(kid)
             # One child per edit: SoundClass::PostEditChangeProperty parents only the first new child it finds.
             master.set_editor_property("child_classes", children)
+    for name, vol in BASE_VOLUME.items():
+        props = kids[name].get_editor_property("properties")
+        props.set_editor_property("volume", vol)
+        kids[name].set_editor_property("properties", props)
+        unreal.log("Sound class %s volume %.2f" % (name, vol))
     for asset in [master] + list(kids.values()):
         eal.save_loaded_asset(asset, False)
     for name, kid in kids.items():

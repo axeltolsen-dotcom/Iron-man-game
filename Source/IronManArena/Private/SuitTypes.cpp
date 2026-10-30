@@ -1,4 +1,9 @@
 #include "SuitTypes.h"
+#include "Dom/JsonObject.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
 namespace
 {
@@ -19,6 +24,37 @@ namespace
 		return Out;
 	}
 
+	/** Single source of truth for HUD colours: Content/UI/hud_layout.json "personas" (keyed by the
+	 *  audio folder name: JARVIS, FRIDAY, EDITH, ULTRON, WARMACHINE). primary.linear -> HudTint. */
+	void ApplyHudLayoutPalettes(TArray<FAIPersonaDef>& Personas)
+	{
+		const FString Path = FPaths::ProjectContentDir() / TEXT("UI/hud_layout.json");
+		FString Text;
+		TSharedPtr<FJsonObject> Root;
+		if (!FFileHelper::LoadFileToString(Text, *Path)
+			|| !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Root) || !Root.IsValid()) { return; }
+		const TSharedPtr<FJsonObject>* Palettes = nullptr;
+		if (!Root->TryGetObjectField(TEXT("personas"), Palettes) || !Palettes) { return; }
+		auto ReadLinear = [](const TSharedPtr<FJsonObject>& Entry, const TCHAR* Field, FLinearColor& Out) -> bool
+		{
+			const TSharedPtr<FJsonObject>* C = nullptr;
+			const TSharedPtr<FJsonObject>* Lin = nullptr;
+			if (!Entry.IsValid() || !Entry->TryGetObjectField(Field, C) || !C || !(*C)->TryGetObjectField(TEXT("linear"), Lin) || !Lin) { return false; }
+			double R = 0, G = 0, B = 0;
+			if (!(*Lin)->TryGetNumberField(TEXT("R"), R) || !(*Lin)->TryGetNumberField(TEXT("G"), G) || !(*Lin)->TryGetNumberField(TEXT("B"), B)) { return false; }
+			Out = FLinearColor(float(R), float(G), float(B), 1.f);
+			return true;
+		};
+		for (FAIPersonaDef& D : Personas)
+		{
+			const TSharedPtr<FJsonObject>* Entry = nullptr;
+			if (!(*Palettes)->TryGetObjectField(D.AudioFolder, Entry) || !Entry) { continue; }
+			ReadLinear(*Entry, TEXT("primary"), D.HudTint);
+			FLinearColor Sub;
+			if (ReadLinear(*Entry, TEXT("subtitle"), Sub)) { D.SubtitleColor = Sub; }
+		}
+	}
+
 	TArray<FAIPersonaDef> BuildPersonaTable()
 	{
 		TArray<FAIPersonaDef> Out;
@@ -36,9 +72,11 @@ namespace
 		// Order must match EAIPersona.
 		Add(EAIPersona::Jarvis,     TEXT("JARVIS"),         FLinearColor(0.55f, 0.85f, 1.f),  FLinearColor(0.35f, 0.8f, 1.f),   TEXT("JARVIS"),     TEXT("British male, dry butler wit"));
 		Add(EAIPersona::Friday,     TEXT("FRIDAY"),         FLinearColor(1.f, 0.75f, 0.45f),  FLinearColor(1.f, 0.62f, 0.3f),   TEXT("FRIDAY"),     TEXT("Irish-ish female, warm and quick"));
-		Add(EAIPersona::Edith,      TEXT("EDITH"),          FLinearColor(0.7f, 1.f, 0.75f),   FLinearColor(0.45f, 1.f, 0.6f),   TEXT("EDITH"),      TEXT("Crisp tactical female"));
+		// EDITH is purple (matches the browser build and Edith's hud_layout.json palette).
+		Add(EAIPersona::Edith,      TEXT("EDITH"),          FLinearColor(0.7231f, 0.4508f, 1.f), FLinearColor(0.5711f, 0.2051f, 1.f), TEXT("EDITH"),      TEXT("Crisp tactical female"));
 		Add(EAIPersona::Ultron,     TEXT("ULTRON"),         FLinearColor(1.f, 0.25f, 0.2f),   FLinearColor(1.f, 0.12f, 0.08f),  TEXT("ULTRON"),     TEXT("Deep, menacing, pitched down"));
 		Add(EAIPersona::WarMachine, TEXT("WAR MACHINE OS"), FLinearColor(0.85f, 0.88f, 0.9f), FLinearColor(0.75f, 0.8f, 0.82f), TEXT("WARMACHINE"), TEXT("Clipped US military"));
+		ApplyHudLayoutPalettes(Out);
 		return Out;
 	}
 }

@@ -71,7 +71,7 @@ public:
 	float SfxVolume = 1.f;
 
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
-	float VoiceVolume = 1.f;
+	float VoiceVolume = 0.7f;
 
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
 	float MusicVolume = 0.8f;

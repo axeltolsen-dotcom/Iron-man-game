@@ -33,6 +33,8 @@ class ACineCameraActor;
 class UCinematicOverlayWidget;
 class UAudioComponent;
 class AStoryBeacon;
+class AChapterSet;
+struct FEnvironmentPreset;
 class AStoryAlly;
 class UStoryNamePromptWidget;
 
@@ -189,6 +191,18 @@ protected:
 
 	// ---- flow
 	void BeginChapter(int32 Index, bool bSkipIntro);
+
+	/** Swaps the procedural chapter set + lighting/fog/post look. SetName "arena" = free-play look. */
+	void ApplyEnvironment(FName SetName, const FEnvironmentPreset& Preset);
+	void ClearEnvironment();
+
+public:
+	/** The current chapter set (tests). */
+	AChapterSet* GetChapterSet() const { return ChapterSet; }
+	FName GetEnvironmentId() const { return EnvironmentId; }
+	FName GetLightingKey() const { return LightingKey; }
+
+protected:
 	void StartSuitUp();
 	void StartObjective(int32 Index);
 	void CompleteObjective();
@@ -269,6 +283,13 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AStoryBeacon> Beacon;
+
+	UPROPERTY()
+	TObjectPtr<AChapterSet> ChapterSet;
+
+	FName EnvironmentId;
+	/** lighting_presets.json key of the current look (NAME_None = C++ preset only). */
+	FName LightingKey;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AStoryAlly> Ally;

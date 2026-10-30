@@ -19,6 +19,7 @@ public class IronManArena : ModuleRules
 			"SlateCore",       // FSlateFontInfo, FSlateColor, FCoreStyle
 			"CinematicCamera", // ACineCameraActor for the suit-up cinematics
 			"Json",            // FJsonObject: Content/Story/story.json + morgan.json
+			"JsonUtilities",   // FJsonObjectConverter: contrib lighting presets -> component properties
 			"RenderCore"       // IsRayTracingAllowed() for the ray tracing toggle
 		});
 

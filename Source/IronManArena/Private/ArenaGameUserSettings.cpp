@@ -36,7 +36,7 @@ void UArenaGameUserSettings::ApplyGameOptionDefaults()
 	bInvertY = false;
 	MasterVolume = 1.f;
 	SfxVolume = 1.f;
-	VoiceVolume = 1.f;
+	VoiceVolume = 0.7f; // voices sit under SFX by default (matches SC_Voice's 0.7 baseline)
 	MusicVolume = 0.8f;
 	bSubtitles = true;
 	bRayTracing = false;
@@ -160,7 +160,17 @@ void UArenaGameUserSettings::ApplyGameplaySettings(const UObject* WorldContext)
 		}
 	};
 	Override(SfxSoundClass, SfxVolume);
-	Override(VoiceSoundClass, VoiceVolume);
+	// SC_Voice already plays at VoiceClassBaseVolume, so the mix scales relative to it: the slider
+	// value is the absolute voice level (0.7 default = asset baseline, 1.0 = full).
+	{
+		constexpr float VoiceClassBaseVolume = 0.7f;
+		if (USoundClass* Class = LoadSoundClassIfExists(VoiceSoundClass))
+		{
+			const float Base = FMath::Max(0.05f, Class->Properties.Volume > 0.f ? Class->Properties.Volume : VoiceClassBaseVolume);
+			UGameplayStatics::SetSoundMixClassOverride(World, Mix, Class, FMath::Clamp(VoiceVolume, 0.f, 1.f) / Base, 1.f, 0.f, true);
+			bAnyClass = true;
+		}
+	}
 	Override(MusicSoundClass, MusicVolume);
 	if (bAnyClass)
 	{

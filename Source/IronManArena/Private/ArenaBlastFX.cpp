@@ -61,7 +61,7 @@ void AArenaBlastFX::Tick(float DeltaSeconds)
 	Light->SetIntensity(LightIntensity * (1.f - T));
 	if (MID)
 	{
-		MID->SetScalarParameterValue(TEXT("EmissiveStrength"), 10.f * (1.f - T));
+		MID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(10.f * (1.f - T)));
 		MID->SetVectorParameterValue(TEXT("Color"), Color * (1.f - 0.7f * T));
 	}
 	if (T >= 1.f) { Destroy(); }

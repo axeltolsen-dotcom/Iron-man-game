@@ -10,6 +10,7 @@
 #include "ArenaPlayerController.h"
 #include "ArenaSaveGame.h"
 #include "ArenaEnvironment.h"
+#include "ChapterSet.h"
 #include "DroneEnemy.h"
 #include "TankBot.h"
 #include "BossTitan.h"
@@ -559,6 +560,8 @@ FVector AArenaGameMode::PickSpawnLocation(float MinDist, float MaxDist, float He
 	// Snap to the actual floor if there is one.
 	FHitResult Hit;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ArenaSpawnProbe), false);
+	// Chapter sets (roofs, towers, ruins) must not lift beacons / enemies onto their tops.
+	for (TActorIterator<AChapterSet> It(GetWorld()); It; ++It) { Params.AddIgnoredActor(*It); }
 	if (GetWorld()->LineTraceSingleByObjectType(Hit, Best + FVector(0.f, 0.f, 6000.f), Best - FVector(0.f, 0.f, 6000.f),
 		FCollisionObjectQueryParams(ECC_WorldStatic), Params))
 	{

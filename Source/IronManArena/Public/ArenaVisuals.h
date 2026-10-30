@@ -47,6 +47,40 @@ enum class ESuitPaintRole : uint8
 	Emissive    // eyes, reactor, palms: FSuitDef::EmissiveColor
 };
 
+/**
+ * Physically based surface a part is drawn with. The materials are built headlessly by
+ * Content/Python/build_realism_materials.py into /Game/Realism/Materials; when an asset is
+ * missing the part falls back to M_ArenaEmissive / BasicShapeMaterial, so the game never
+ * depends on them. Auto = car paint for suit parts, arc glow for emissive parts, robot metal
+ * for everything else.
+ */
+UENUM(BlueprintType)
+enum class EArenaSurface : uint8
+{
+	Auto,
+	Plain,          // the old flat emissive material
+	SuitPaint,      // MI_SuitHotRod  (M_CarPaint: clear coat, flakes, edge wear, scorch)
+	SuitGold,       // MI_SuitGold
+	RobotMetal,     // MI_RobotMetal
+	Glass,          // M_Glass
+	Glow,           // M_ArcGlow (unlit, pulsing fresnel core)
+	HeatHaze,       // M_HeatHaze (refraction shimmer)
+	GarageFloor,
+	Asphalt,
+	AsphaltWet,
+	Concrete,
+	ConcreteWet,
+	BlockWall,
+	Brick,
+	BrickWet,
+	MetalPlate,
+	RustyMetal,
+	Rubble,
+	BurnedGround,
+	Smoke,          // M_Smoke (soft lit translucent puffs)
+	Facade          // M_Facade (procedural tower windows; EmissiveStrength lights them at night)
+};
+
 /** One painted placeholder part: the component plus the colour it should get at BeginPlay. */
 USTRUCT(BlueprintType)
 struct IRONMANARENA_API FArenaPaintedPart
@@ -70,6 +104,10 @@ struct IRONMANARENA_API FArenaPaintedPart
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
 	float Shade = 1.f;
 
+	/** Which PBR material to use (Auto picks by role / emissive). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visuals")
+	EArenaSurface Surface = EArenaSurface::Auto;
+
 	/** Runtime material instance (created in ArenaVisuals::PaintAll). */
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> MID = nullptr;
@@ -77,6 +115,16 @@ struct IRONMANARENA_API FArenaPaintedPart
 
 namespace ArenaVisuals
 {
+	/**
+	 * Physical emissive calibration. Code and data write "emissive units" (the suit tables' arc
+	 * reactor = 25, eyes = 20, blast flash = 10 ...); the materials receive cd/m2 (nits), because
+	 * exposure is physical (EV100 ~15.6 on a sunny day, where mid-grey is ~6000 nits; ~4 at night,
+	 * mid-grey ~2 nits). 1 unit = ima.EmissiveNitsPerUnit nits (default 1000), so an arc reactor is
+	 * ~25000 nits: hot against daylight, blooming at night. Practicals that are dim in reality
+	 * (lit windows ~150 nits, screens ~200 nits, exit signs ~200 nits) are given in nits / 1000.
+	 */
+	IRONMANARENA_API float EmissiveToNits(float EmissiveUnits);
+
 	/** Shared colour palette. */
 	IRONMANARENA_API extern const FLinearColor SuitRed;
 	IRONMANARENA_API extern const FLinearColor SuitGold;
@@ -95,6 +143,28 @@ namespace ArenaVisuals
 	/** True if the emissive project material was found. */
 	IRONMANARENA_API bool HasEmissiveMaterial();
 
+	/** The realistic material for a surface, or GetParentMaterial() if it was not built. */
+	IRONMANARENA_API UMaterialInterface* GetSurfaceMaterial(EArenaSurface Surface);
+
+	/** True if /Game/Realism/Materials exist (build_realism_materials.py has been run). */
+	IRONMANARENA_API bool HasRealismMaterials();
+
+	/** Resolves Auto for a part (role / emissive). */
+	IRONMANARENA_API EArenaSurface ResolveSurface(const FArenaPaintedPart& Part);
+
+	/** Sets a scalar parameter (Damage, Scorch, Wetness ...) on every part's material instance. */
+	IRONMANARENA_API void SetScalarOnAll(TArray<FArenaPaintedPart>& Parts, FName Param, float Value);
+
+	/**
+	 * RUNTIME (after BeginPlay): create, register and paint a part immediately. Used by the
+	 * procedural chapter sets. bSolid gives it BlockAll (WorldStatic) collision: it blocks the
+	 * player and projectiles; AArenaGameMode's spawn probes ignore AChapterSet actors, so
+	 * beacons / enemies are never placed on roofs.
+	 */
+	IRONMANARENA_API UStaticMeshComponent* AddRuntimePart(AActor* Owner, USceneComponent* Parent, EArenaShape Shape,
+		const FVector& Location, const FVector& Scale, const FRotator& Rotation, const FLinearColor& Color,
+		float Emissive, EArenaSurface Surface, bool bSolid, TArray<FArenaPaintedPart>& OutParts);
+
 	/**
 	 * CONSTRUCTOR ONLY: create a placeholder part as a default subobject of Owner, attach it to
 	 * Parent and record its colour in OutParts. Basic shapes are 100 uu in size, so Scale (1,1,1)
@@ -102,7 +172,8 @@ namespace ArenaVisuals
 	 */
 	IRONMANARENA_API UStaticMeshComponent* AddPart(AActor* Owner, USceneComponent* Parent, FName Name,
 		EArenaShape Shape, const FVector& Location, const FVector& Scale, const FRotator& Rotation,
-		const FLinearColor& Color, float Emissive, TArray<FArenaPaintedPart>& OutParts);
+		const FLinearColor& Color, float Emissive, TArray<FArenaPaintedPart>& OutParts,
+		EArenaSurface Surface = EArenaSurface::Auto);
 
 	/** BeginPlay: create one dynamic material instance per part and apply its colour. */
 	IRONMANARENA_API void PaintAll(UObject* Outer, TArray<FArenaPaintedPart>& Parts);
@@ -118,5 +189,5 @@ namespace ArenaVisuals
 
 	/** Create a standalone dynamic material for a single runtime component (FX, beam ...). */
 	IRONMANARENA_API UMaterialInstanceDynamic* PaintComponent(UObject* Outer, UStaticMeshComponent* Comp,
-		const FLinearColor& Color, float Emissive);
+		const FLinearColor& Color, float Emissive, EArenaSurface Surface = EArenaSurface::Auto);
 }

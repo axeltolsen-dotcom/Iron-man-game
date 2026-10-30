@@ -129,6 +129,10 @@ namespace SuitRig
 	/** Recolour Parts from Suit (parts must already be painted). */
 	IRONMANARENA_API void ApplyColors(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts);
 
+	/** U's Content/Story/suit_materials.json: is there a PBR entry for this suit (tests)? */
+	IRONMANARENA_API bool HasSuitMaterial(FName SuitId);
+	IRONMANARENA_API int32 GetSuitMaterialCount();
+
 	/**
 	 * Show the body with only Suit's variants (bVisible=false hides everything).
 	 * bHulkbuster shows the Hulkbuster plates.
