@@ -131,6 +131,7 @@ void AStoryAutopilot::Begin()
 
 	if (!SideMission.IsNone())
 	{
+		PC->HideMenu(); // as UStoryMenuWidget does via MenuStartSideMission: unpause, drop the title screen
 		if (!GM->StartSideMission(SideMission, /*bIgnoreAvailability*/ true))
 		{
 			Fail(FString::Printf(TEXT("side mission %s did not start"), *SideMission.ToString()));

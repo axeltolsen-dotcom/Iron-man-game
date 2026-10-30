@@ -15,6 +15,9 @@ asset = unreal.load_asset("/Game/Music/S_FlashbackSwell")
 if asset:
     try:
         asset.set_editor_property("looping", False)
+        music = unreal.load_asset("/Game/Audio/Classes/SC_Music")
+        if music:
+            asset.set_editor_property("sound_class_object", music)  # follows the Music volume slider
         unreal.EditorAssetLibrary.save_loaded_asset(asset)
     except Exception as exc:  # property names differ between versions; the default is non-looping anyway
         unreal.log_warning("[Score] could not set looping: %s" % exc)

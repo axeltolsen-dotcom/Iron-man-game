@@ -67,11 +67,20 @@ next to the font in `SourceAssets/Fonts/<family>/` and copied to `Docs/licenses/
 - `Content/UI/hud_layout.json`, `HelmetHUD*` C++ - EDITH (contrib/edith).
 - `Content/Story/suit_materials.json` - U. `Content/Story/codex.json`, `side_missions.json` - Friday.
 - `contrib/dume/assets.json` (the CC0 asset list above) - Dume.
+- `Content/Story/armor_kit.json` (procedural armour plates, generated at runtime by `SuitArmorKit.cpp`) - U.
+- `Content/UI/Materials/M_HUD_*` / `MI_HUD_*` (made by `contrib/edith/create_hud_materials.py`) - EDITH.
+- `Content/City/city_layout.json` (2738 buildings, 404 roads, 196 blocks, 175 spawn points; built at runtime by `CityLayout.cpp`) - FRIDAY.
+- Perf budget (max 12 active enemies, scalability tiers) - Ultron.
 
 ## Engine content
 
 - UE5 Manny / Quinn mannequins, engine basic shapes and materials: Epic Games, used under the
   Unreal Engine EULA (engine content, redistributable inside Unreal Engine projects).
+
+## Music
+
+- `Content/Music/S_FlashbackSwell` - original, procedurally synthesised (numpy additive pad, no samples) by
+  `Tools/make_flashback_score.py`; released CC0 with this project.
 
 ## Voices
 
