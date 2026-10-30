@@ -225,6 +225,11 @@ void AIronManCharacter::BeginPlay()
 	SetFlying(true); // reference game starts airborne
 }
 
+bool AIronManCharacter::HasPlaidDecal() const
+{
+	return PlaidDecal != nullptr && PlaidDecal->IsVisible();
+}
+
 void AIronManCharacter::ApplyRewards()
 {
 	const AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr;

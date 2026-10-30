@@ -185,6 +185,13 @@ void USettingsWidget::BuildTree()
 	AddHeader(Box, LOCTEXT("Access", "ACCESSIBILITY"));
 	SubtitlesCheck = AddCheck(Box, LOCTEXT("Subtitles", "Subtitles"));
 	ShakeCheck = AddCheck(Box, LOCTEXT("Shake", "Camera shake"));
+	SubtitleScaleSlider = AddSlider(Box, LOCTEXT("SubSize", "Subtitle size"), 0.8f, 1.6f, 0.05f, Tmp); SubtitleScaleValue = Tmp;
+
+	AddHeader(Box, LOCTEXT("HelmetHud", "HELMET HUD"));
+	HudColorBlindCheck = AddCheck(Box, LOCTEXT("HudCB", "Colour-blind safe HUD"));
+	HudReducedMotionCheck = AddCheck(Box, LOCTEXT("HudRM", "Reduced motion"));
+	HudOpacitySlider = AddSlider(Box, LOCTEXT("HudOp", "HUD opacity"), 0.5f, 1.f, 0.05f, Tmp); HudOpacityValue = Tmp;
+	HudScaleSlider = AddSlider(Box, LOCTEXT("HudScale", "HUD scale"), 0.75f, 1.25f, 0.05f, Tmp); HudScaleValue = Tmp;
 
 	UHorizontalBox* Buttons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	auto AddButton = [this, Buttons](const FText& Label) -> UButton*
@@ -248,6 +255,11 @@ void USettingsWidget::RefreshFromSettings()
 	MotionBlurCheck->SetIsChecked(S->bMotionBlur);
 	DofCheck->SetIsChecked(S->bCinematicDOF);
 	ShakeCheck->SetIsChecked(S->bCameraShake);
+	SubtitleScaleSlider->SetValue(S->SubtitleScale);
+	HudColorBlindCheck->SetIsChecked(S->bHudColorBlindSafe);
+	HudReducedMotionCheck->SetIsChecked(S->bHudReducedMotion);
+	HudOpacitySlider->SetValue(S->HudOpacity);
+	HudScaleSlider->SetValue(S->HudScale);
 	UpdateSliderLabels();
 	bRefreshing = false;
 }
@@ -261,6 +273,9 @@ void USettingsWidget::UpdateSliderLabels()
 	Pct(SfxValue, SfxSlider);
 	Pct(VoiceValue, VoiceSlider);
 	Pct(MusicValue, MusicSlider);
+	Pct(HudOpacityValue, HudOpacitySlider);
+	Pct(HudScaleValue, HudScaleSlider);
+	Pct(SubtitleScaleValue, SubtitleScaleSlider);
 }
 
 void USettingsWidget::ApplyLiveOptions()
@@ -279,6 +294,11 @@ void USettingsWidget::ApplyLiveOptions()
 	S->bMotionBlur = MotionBlurCheck->IsChecked();
 	S->bCinematicDOF = DofCheck->IsChecked();
 	S->bCameraShake = ShakeCheck->IsChecked();
+	S->SubtitleScale = SubtitleScaleSlider->GetValue();
+	S->bHudColorBlindSafe = HudColorBlindCheck->IsChecked();
+	S->bHudReducedMotion = HudReducedMotionCheck->IsChecked();
+	S->HudOpacity = HudOpacitySlider->GetValue();
+	S->HudScale = HudScaleSlider->GetValue();
 	S->ApplyGameplaySettings(GetOwningPlayer());
 }
 

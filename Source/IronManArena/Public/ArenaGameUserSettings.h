@@ -95,6 +95,26 @@ public:
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
 	bool bCameraShake = true;
 
+	// ---- helmet HUD (EDITH hud_spec.md sections 13 / 16) ----
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	bool bHudColorBlindSafe = false;
+
+	/** Reduced motion: no visor sway / glitch / parallax in the helmet HUD. */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	bool bHudReducedMotion = false;
+
+	/** Helmet HUD opacity, 0.5..1. */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	float HudOpacity = 1.f;
+
+	/** Helmet HUD scale, 0.75..1.25. */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	float HudScale = 1.f;
+
+	/** Subtitle size, 0.8..1.6. */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	float SubtitleScale = 1.f;
+
 	/** True when the RHI can do ray tracing at all (false on -nullrhi / old GPUs). */
 	static bool IsRayTracingSupported();
 

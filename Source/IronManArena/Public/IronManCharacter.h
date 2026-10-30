@@ -81,7 +81,7 @@ public:
 	 *  repaints the current suit. Called at BeginPlay and by the story director after a reward. */
 	void ApplyRewards();
 
-	bool HasPlaidDecal() const { return PlaidDecal != nullptr && PlaidDecal->IsVisible(); }
+	bool HasPlaidDecal() const;
 
 	/** In-game swap: plays the short (2 s) suit-up cinematic, the new suit's AI takes over. */
 	UFUNCTION(BlueprintCallable, Category = "IronMan|Suits")

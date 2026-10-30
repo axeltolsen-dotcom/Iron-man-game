@@ -384,9 +384,39 @@ void UArenaHUDWidget::TickWheel(const AIronManCharacter* Player)
 	}
 }
 
+void UArenaHUDWidget::SetSubtitleScale(float InScale)
+{
+	SubtitleScale = FMath::Clamp(InScale, 0.8f, 1.6f);
+	if (SubtitleLabel)
+	{
+		FSlateFontInfo F = SubtitleLabel->GetFont();
+		F.Size = FMath::RoundToFloat(16.f * SubtitleScale);
+		SubtitleLabel->SetFont(F);
+	}
+	if (SubtitleLine)
+	{
+		FSlateFontInfo F = SubtitleLine->GetFont();
+		F.Size = FMath::RoundToFloat(20.f * SubtitleScale);
+		SubtitleLine->SetFont(F);
+		SubtitleLine->SetWrapTextAt(900.f * SubtitleScale);
+	}
+}
+
 void UArenaHUDWidget::TickHelmet(const AIronManCharacter* Player)
 {
-	const bool bShow = Player && Player->IsFirstPerson() && !Player->IsHulkbusterActive();
+	const bool bFirstPersonHelmet = Player && Player->IsFirstPerson() && !Player->IsHulkbusterActive();
+	// EDITH's helmet HUD draws its own visor, power/heat and integrity readouts in first person.
+	bGaugesHandedOff = bFirstPersonHelmet && bHelmetHUDPresent;
+	const ESlateVisibility GaugeVis = bGaugesHandedOff ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible;
+	for (UWidget* W : TArray<UWidget*>{ HealthBar, HealthText, EnergyBar, EnergyText, FlightText })
+	{
+		if (W) { W->SetVisibility(GaugeVis); }
+	}
+	if (bGaugesHandedOff)
+	{
+		for (UWidget* W : TArray<UWidget*>{ HeatBar, HeatText, ReactorText }) { if (W) { W->SetVisibility(ESlateVisibility::Collapsed); } }
+	}
+	const bool bShow = bFirstPersonHelmet && !bGaugesHandedOff;
 	FLinearColor Tint = USuitLibrary::GetPersona(Player ? Player->GetSuit().AI : EAIPersona::Jarvis).HudTint;
 	Tint.A = 0.18f + 0.04f * FMath::Sin(Pulse * 2.f);
 	for (UBorder* B : HelmetFrame)

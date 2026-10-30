@@ -43,6 +43,11 @@ void UArenaGameUserSettings::ApplyGameOptionDefaults()
 	bMotionBlur = true;
 	bCinematicDOF = true;
 	bCameraShake = true;
+	bHudColorBlindSafe = false;
+	bHudReducedMotion = false;
+	HudOpacity = 1.f;
+	HudScale = 1.f;
+	SubtitleScale = 1.f;
 	ToggleFullscreenMode = EWindowMode::WindowedFullscreen;
 }
 

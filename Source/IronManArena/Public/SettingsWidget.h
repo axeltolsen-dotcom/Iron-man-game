@@ -72,6 +72,14 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<USlider> MusicSlider;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> MusicValue;
 	UPROPERTY(Transient) TObjectPtr<UCheckBox> SubtitlesCheck;
+	UPROPERTY(Transient) TObjectPtr<UCheckBox> HudColorBlindCheck;
+	UPROPERTY(Transient) TObjectPtr<UCheckBox> HudReducedMotionCheck;
+	UPROPERTY(Transient) TObjectPtr<USlider> HudOpacitySlider;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> HudOpacityValue;
+	UPROPERTY(Transient) TObjectPtr<USlider> HudScaleSlider;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> HudScaleValue;
+	UPROPERTY(Transient) TObjectPtr<USlider> SubtitleScaleSlider;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> SubtitleScaleValue;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> StatusText;
 
 	TArray<FIntPoint> Resolutions;

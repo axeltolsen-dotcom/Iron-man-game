@@ -8,6 +8,7 @@
 #include "ArenaPlayerController.generated.h"
 
 class UArenaHUDWidget;
+class UHelmetHUDWidget;
 class UJarvisComponent;
 class USuitSelectWidget;
 class USettingsWidget;
@@ -58,10 +59,14 @@ public:
 
 	UJarvisComponent* GetJarvis() const { return Jarvis; }
 	UArenaHUDWidget* GetHUDWidget() const { return HUDWidget; }
+	UHelmetHUDWidget* GetHelmetHUD() const { return HelmetHUD; }
 
 	/** Override with Blueprint children if you want to restyle them. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|UI")
 	TSubclassOf<UArenaHUDWidget> HUDWidgetClass;
+	/** EDITH's first-person helmet HUD (hud_spec.md), one Z above the arena HUD. Null class = off. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|UI")
+	TSubclassOf<UHelmetHUDWidget> HelmetHUDClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|UI")
 	TSubclassOf<UMainMenuWidget> MenuWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|UI")
@@ -85,6 +90,10 @@ protected:
 	TObjectPtr<UJarvisComponent> Jarvis;
 
 	UPROPERTY(Transient) TObjectPtr<UArenaHUDWidget> HUDWidget;
+	UPROPERTY(Transient) TObjectPtr<UHelmetHUDWidget> HelmetHUD;
+	/** Pushes the HUD accessibility settings to both HUDs when they change. */
+	void SyncHUDSettings();
+	uint32 LastHUDSettingsHash = 0;
 	UPROPERTY(Transient) TObjectPtr<UMainMenuWidget> MenuWidget;
 	UPROPERTY(Transient) TObjectPtr<USuitSelectWidget> SuitSelectWidget;
 	UPROPERTY(Transient) TObjectPtr<USettingsWidget> SettingsWidget;

@@ -1,6 +1,7 @@
 #include "ArenaPlayerController.h"
 
 #include "ArenaHUDWidget.h"
+#include "HelmetHUDWidget.h"
 #include "MainMenuWidget.h"
 #include "SuitSelectWidget.h"
 #include "SettingsWidget.h"
@@ -18,6 +19,7 @@
 AArenaPlayerController::AArenaPlayerController()
 {
 	HUDWidgetClass = UArenaHUDWidget::StaticClass();
+	HelmetHUDClass = UHelmetHUDWidget::StaticClass();
 	MenuWidgetClass = UMainMenuWidget::StaticClass();
 	SuitSelectWidgetClass = USuitSelectWidget::StaticClass();
 	SettingsWidgetClass = USettingsWidget::StaticClass();
@@ -37,6 +39,12 @@ void AArenaPlayerController::BeginPlay()
 		HUDWidget = CreateWidget<UArenaHUDWidget>(this, HUDWidgetClass);
 		if (HUDWidget) { HUDWidget->AddToViewport(0); }
 	}
+	if (*HelmetHUDClass)
+	{
+		HelmetHUD = CreateWidget<UHelmetHUDWidget>(this, HelmetHUDClass);
+		if (HelmetHUD) { HelmetHUD->AddToViewport(1); } // Z+1: over the arena HUD
+	}
+	SyncHUDSettings();
 	if (*MenuWidgetClass) { MenuWidget = CreateWidget<UMainMenuWidget>(this, MenuWidgetClass); }
 
 	// Volumes, FOV and mouse settings from GameUserSettings.ini. The pawn may be possessed a
@@ -56,12 +64,42 @@ void AArenaPlayerController::BeginPlay()
 void AArenaPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+	SyncHUDSettings();
 	// In game input the keys never reach a widget, so check them here (the engine's own
 	// F11 / Alt+Enter handling is disabled in DefaultInput.ini so it cannot double-toggle).
 	if (WasInputKeyJustPressed(EKeys::F11)
 		|| (WasInputKeyJustPressed(EKeys::Enter) && (IsInputKeyDown(EKeys::LeftAlt) || IsInputKeyDown(EKeys::RightAlt))))
 	{
 		ToggleFullscreen();
+	}
+}
+
+void AArenaPlayerController::SyncHUDSettings()
+{
+	const UArenaGameUserSettings* S = UArenaGameUserSettings::GetArenaSettings();
+	if (!S) { return; }
+	const float Opacity = FMath::Clamp(S->HudOpacity, 0.5f, 1.f);
+	const float HudScaleValue = FMath::Clamp(S->HudScale, 0.75f, 1.25f);
+	const float SubScale = FMath::Clamp(S->SubtitleScale, 0.8f, 1.6f);
+	uint32 Hash = GetTypeHash(S->bHudColorBlindSafe);
+	Hash = HashCombine(Hash, GetTypeHash(S->bHudReducedMotion));
+	Hash = HashCombine(Hash, GetTypeHash(Opacity));
+	Hash = HashCombine(Hash, GetTypeHash(HudScaleValue));
+	Hash = HashCombine(Hash, GetTypeHash(SubScale));
+	Hash = HashCombine(Hash, GetTypeHash(HelmetHUD.Get()));
+	Hash = HashCombine(Hash, GetTypeHash(HUDWidget.Get()));
+	if (Hash == LastHUDSettingsHash) { return; }
+	LastHUDSettingsHash = Hash;
+	if (HelmetHUD)
+	{
+		HelmetHUD->SetAccessibility(S->bHudColorBlindSafe, S->bHudReducedMotion, Opacity, SubScale);
+		HelmetHUD->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+		HelmetHUD->SetRenderScale(FVector2D(HudScaleValue, HudScaleValue));
+	}
+	if (HUDWidget)
+	{
+		HUDWidget->SetHelmetHUDPresent(HelmetHUD != nullptr);
+		HUDWidget->SetSubtitleScale(SubScale);
 	}
 }
 

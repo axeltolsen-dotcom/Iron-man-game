@@ -163,7 +163,7 @@ namespace
 		}
 	}
 
-	FName GetName(const TSharedPtr<FJsonObject>& O, const TCHAR* Key)
+	FName JsonName(const TSharedPtr<FJsonObject>& O, const TCHAR* Key)
 	{
 		const FString S = GetStr(O, Key);
 		return S.IsEmpty() ? NAME_None : FName(*S);
@@ -298,13 +298,13 @@ bool UStoryLibrary::ParseSideMissions(const TSharedPtr<FJsonObject>& Root, TArra
 		ParseChapter(M, Ch);
 		if (Ch.Id.IsNone()) { continue; }
 		Ch.bSideMission = true;
-		Ch.AvailableFrom = GetName(M, TEXT("availableFrom"));
-		Ch.AvailableUntil = GetName(M, TEXT("availableUntil"));
+		Ch.AvailableFrom = JsonName(M, TEXT("availableFrom"));
+		Ch.AvailableUntil = JsonName(M, TEXT("availableUntil"));
 		if (const TSharedPtr<FJsonObject> R = GetObj(M, TEXT("reward")))
 		{
-			Ch.RewardCodex = GetName(R, TEXT("codex"));
-			Ch.RewardUpgrade = GetName(R, TEXT("upgrade"));
-			Ch.RewardCosmetic = GetName(R, TEXT("cosmetic"));
+			Ch.RewardCodex = JsonName(R, TEXT("codex"));
+			Ch.RewardUpgrade = JsonName(R, TEXT("upgrade"));
+			Ch.RewardCosmetic = JsonName(R, TEXT("cosmetic"));
 		}
 		Out.Add(MoveTemp(Ch));
 	}
@@ -321,12 +321,12 @@ bool UStoryLibrary::ParseCodex(const TSharedPtr<FJsonObject>& Root, TArray<FStor
 		const TSharedPtr<FJsonObject> E = V.IsValid() ? V->AsObject() : nullptr;
 		if (!E.IsValid()) { continue; }
 		FStoryCodexEntry Entry;
-		Entry.Id = GetName(E, TEXT("id"));
+		Entry.Id = JsonName(E, TEXT("id"));
 		if (Entry.Id.IsNone()) { continue; }
 		Entry.Title = GetStr(E, TEXT("title"));
-		Entry.Category = GetName(E, TEXT("category"));
-		Entry.UnlockChapter = GetName(E, TEXT("unlockChapter"));
-		Entry.UnlockedBy = GetName(E, TEXT("unlockedBy"));
+		Entry.Category = JsonName(E, TEXT("category"));
+		Entry.UnlockChapter = JsonName(E, TEXT("unlockChapter"));
+		Entry.UnlockedBy = JsonName(E, TEXT("unlockedBy"));
 		Entry.Body = GetStr(E, TEXT("body"));
 		if (const TArray<TSharedPtr<FJsonValue>>* Suits = GetArr(E, TEXT("suits")))
 		{

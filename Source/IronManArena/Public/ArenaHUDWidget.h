@@ -27,6 +27,19 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	void BuildTree();
+
+public:
+	/** The EDITH helmet HUD exists: in first person (no Hulkbuster) it owns the frame and the gauges. */
+	void SetHelmetHUDPresent(bool bPresent) { bHelmetHUDPresent = bPresent; }
+	/** Subtitle size (settings, 0.8..1.6). */
+	void SetSubtitleScale(float InScale);
+	/** True while the old helmet frame + gauges are collapsed for the helmet HUD (tests). */
+	bool AreGaugesHandedOff() const { return bGaugesHandedOff; }
+
+protected:
+	bool bHelmetHUDPresent = false;
+	bool bGaugesHandedOff = false;
+	float SubtitleScale = 1.f;
 	UTextBlock* AddText(UCanvasPanel* Root, const FText& Text, int32 Size, const FLinearColor& Color,
 		const FVector2D& Anchor, const FVector2D& Alignment, const FVector2D& Position);
 	UProgressBar* AddBar(UCanvasPanel* Root, const FLinearColor& Fill, const FVector2D& Anchor,

@@ -237,8 +237,12 @@ namespace HelmetHUDJson
 			{
 				FVector2D AMin = D.AnchorMin, AMax = D.AnchorMax;
 				float V0 = AMin.X, V1 = AMin.Y, V2 = AMax.X, V3 = AMax.Y;
-				const bool bOk = Num(An, TEXT("minX"), V0, 0.f, 1.f, Ctx) & Num(An, TEXT("minY"), V1, 0.f, 1.f, Ctx)
-					& Num(An, TEXT("maxX"), V2, 0.f, 1.f, Ctx) & Num(An, TEXT("maxY"), V3, 0.f, 1.f, Ctx);
+				// Read all four (each one logs its own problem), then combine.
+				const bool bMinX = Num(An, TEXT("minX"), V0, 0.f, 1.f, Ctx);
+				const bool bMinY = Num(An, TEXT("minY"), V1, 0.f, 1.f, Ctx);
+				const bool bMaxX = Num(An, TEXT("maxX"), V2, 0.f, 1.f, Ctx);
+				const bool bMaxY = Num(An, TEXT("maxY"), V3, 0.f, 1.f, Ctx);
+				const bool bOk = bMinX && bMinY && bMaxX && bMaxY;
 				if (bOk && V0 <= V2 && V1 <= V3)
 				{
 					D.AnchorMin = FVector2D(V0, V1);
