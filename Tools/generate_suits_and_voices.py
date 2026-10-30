@@ -14,16 +14,15 @@ Outputs (relative to the project root):
     SourceAudio/Audio/<PERSONA>/<LineId>.wav                 (unless --no-audio)
     SourceAudio/Audio/lines.csv                                  id,persona,event,context,file,text
 
-Audio uses piper (offline neural TTS). Voices (download from https://huggingface.co/rhasspy/piper-voices):
-    JARVIS      en_GB-alan-medium
-    FRIDAY      en_GB-alba-medium                (closest offline Celtic-accented female voice)
-    EDITH       en_US-amy-medium
-    ULTRON      en_US-ryan-medium, pitched down ~18% + slight echo (numpy; sox not required)
-    WARMACHINE  en_US-joe-medium
-If piper is missing, espeak-ng is used as a fallback.
+Audio uses Kokoro-82M (Apache-2.0, stock voices only - no cloning) via kokoro-onnx on CPU, light ffmpeg
+"in-helmet" FX, and loudness normalisation to -20 LUFS / -3 dBTP. Voice blends (see VOICE_PROFILES):
+    JARVIS      bm_george+bm_lewis, slower           FRIDAY  bf_emma+bf_isabella, brisker
+    EDITH       af_heart+af_kore, crisp              ULTRON  am_onyx+bm_fable, pitched down, chorus/metallic
+    WARMACHINE  am_michael+am_fenrir, clipped, compressed
+Run with the venv that has kokoro-onnx:  /workspace/kokoro-venv/bin/python Tools/generate_suits_and_voices.py
 
 Usage:
-    python3 Tools/generate_suits_and_voices.py [--data DIR] [--voices-dir DIR] [--no-audio] [--force]
+    python3 Tools/generate_suits_and_voices.py [--data DIR] [--voices-dir DIR] [--no-audio] [--force] [--only PERSONA] [--no-codegen]
 Then import the WAVs into the editor with Content/Python/import_jarvis_audio.py.
 """
 import argparse, csv, io, json, os, re, shutil, subprocess, sys, unicodedata, wave
@@ -224,61 +223,179 @@ def build_lines(voices, intros):
 
 
 # ---------------------------------------------------------------- audio
-def ultron_fx(frames, rate):
-    """Pitch down ~18% (resample, keeps the original rate) and add a short metallic echo."""
+# Natural neural TTS: Kokoro-82M (Apache-2.0) through kokoro-onnx (MIT) on CPU, stock voices only
+# (no cloning, no reference clips). Light ffmpeg "in-helmet" FX, then every line is loudness-
+# normalised to TARGET_LUFS with true peak <= TARGET_TP_DB. This module is also imported by
+# Tools/generate_story_audio.py so both scripts share one engine.
+#
+#   python deps (venv):  pip install kokoro-onnx soundfile pyloudnorm scipy numpy
+#   model files:         <voices-dir>/kokoro/kokoro-v1.0.onnx + voices-v1.0.bin
+#                        (https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0)
+#   system:              ffmpeg (with rubberband + chorus filters)
+TARGET_LUFS = -20.0
+TARGET_TP_DB = -3.0
+LEAD_SILENCE = 0.12   # avoids clipped first syllables in some players
+TAIL_SILENCE = 0.15   # lets the short reverb ring out
+
+# voice: a Kokoro stock voice or a blend "a:0.7,b:0.3"; speed >1 = faster; fx: chain name below.
+VOICE_PROFILES = {
+    # suit AIs
+    "JARVIS":     dict(voice="bm_george:0.75,bm_lewis:0.25", lang="en-gb", speed=0.92, fx="suit"),
+    "FRIDAY":     dict(voice="bf_emma:0.8,bf_isabella:0.2", lang="en-gb", speed=1.06, fx="suit"),
+    "EDITH":      dict(voice="af_heart:0.6,af_kore:0.4", lang="en-us", speed=1.04, fx="suit_crisp"),
+    "ULTRON":     dict(voice="am_onyx:0.65,bm_fable:0.35", lang="en-us", speed=0.9, fx="ultron"),
+    "WARMACHINE": dict(voice="am_michael:0.7,am_fenrir:0.3", lang="en-us", speed=1.1, fx="suit_military"),
+    # story speakers
+    "TONY":       dict(voice="am_fenrir:0.6,am_eric:0.4", lang="en-us", speed=1.03, fx="clean"),
+    "PEPPER":     dict(voice="af_bella", lang="en-us", speed=1.0, fx="clean"),
+    "MORGAN":     dict(voice="af_sky:0.7,af_nova:0.3", lang="en-us", speed=1.06, fx="radio", pitch=1.04),
+    "PLAYER":     dict(voice="am_puck:0.75,am_echo:0.25", lang="en-us", speed=1.04, fx="clean", pitch=1.04),  # Harley, teen
+    "VISON":      dict(voice="bm_daniel:0.6,bm_lewis:0.4", lang="en-gb", speed=0.88, fx="vision"),
+    "OBSIDIAN_TITAN": dict(voice="am_onyx", lang="en-us", speed=0.85, fx="titan"),
+}
+DEFAULT_PROFILE = "PLAYER"
+
+_COMMON_TAIL = "highpass=f=70,deesser=i=0.35,treble=g=-2.5:f=7000:t=s"  # soften sibilance / harsh highs
+FX_CHAINS = {
+    "clean": _COMMON_TAIL,
+    # very light in-helmet AI: gentle low cut, small presence lift, tiny early reflections, faint chorus
+    "suit": "highpass=f=110,equalizer=f=2800:t=o:w=1.4:g=1.2,"
+            "aecho=0.92:0.9:13|27:0.07|0.045,chorus=0.97:0.97:24:0.06:0.25:1.2," + _COMMON_TAIL,
+    "suit_crisp": "highpass=f=130,equalizer=f=3600:t=o:w=1.2:g=1.5,"
+                  "aecho=0.93:0.9:11|23:0.06|0.04,chorus=0.97:0.97:20:0.05:0.3:1.0," + _COMMON_TAIL,
+    "suit_military": "highpass=f=140,equalizer=f=1700:t=o:w=1.5:g=2,acompressor=threshold=0.12:ratio=3:attack=5:release=80,"
+                     "aecho=0.92:0.9:9|19:0.07|0.05,chorus=0.97:0.97:22:0.05:0.3:1.0," + _COMMON_TAIL,
+    # Ultron: deeper (pitch -1.3 semitone, formants kept human), metallic short comb + slap, wider chorus
+    "ultron": "rubberband=pitch=0.93:formant=preserved,equalizer=f=160:t=o:w=1.2:g=2.5,"
+              "chorus=0.9:0.9:28|41:0.22|0.16:0.22|0.31:1.8|2.4,"
+              "aecho=0.9:0.85:6|47|90:0.2|0.1|0.06,asoftclip=type=tanh:threshold=0.9," + _COMMON_TAIL,
+    # Morgan's comms from the workshop: light radio band-limit, still easy to understand
+    "radio": "highpass=f=260,lowpass=f=4800,equalizer=f=1800:t=o:w=1.5:g=2,"
+             "acompressor=threshold=0.1:ratio=3:attack=5:release=60," + _COMMON_TAIL,
+    "vision": "aecho=0.9:0.88:35|62:0.1|0.07,chorus=0.97:0.97:30:0.06:0.2:1.0," + _COMMON_TAIL,
+    "titan": "rubberband=pitch=0.82,chorus=0.9:0.9:30|45:0.25|0.2:0.2|0.3:2|2.5,"
+             "aecho=0.85:0.8:8|80:0.25|0.12," + _COMMON_TAIL,
+}
+
+_SPOKEN = [
+    (r"\bDUM-E\b", "Dummy"), (r"\bDum-E\b", "Dummy"), (r"\bWARMACHINE\b", "War Machine"),
+    (r"\bMark III\b", "Mark three"), (r"\bMark VII\b", "Mark seven"), (r"\bMark 85\b", "Mark eighty-five"),
+    (r"\bOS\b", "O.S."), (r"\bHUD\b", "hud"),
+]
+
+
+def spoken_text(text):
+    """Caption text -> what the TTS should say (names in caps read as words, not letters)."""
+    t = ascii_text(text)
+    for pat, rep in _SPOKEN:
+        t = re.sub(pat, rep, t)
+    t = re.sub(r"\b(JARVIS|FRIDAY|EDITH|ULTRON|MORGAN|PEPPER|TONY|VISION)\b", lambda m: m.group(1).title(), t)
+    return t
+
+
+def run_fx(samples, rate, chain, pitch=1.0):
     import numpy as np
-    x = np.frombuffer(frames, dtype=np.int16).astype(np.float32)
-    factor = 0.82
-    n = int(len(x) / factor)
-    y = np.interp(np.arange(n) * factor, np.arange(len(x)), x)
-    for delay_s, gain in ((0.045, 0.35), (0.11, 0.18)):
-        d = int(rate * delay_s)
-        y[d:] += gain * y[:-d].copy()
-    y *= 30000.0 / max(1.0, float(np.max(np.abs(y))))
-    return y.astype(np.int16).tobytes()
+    af = chain
+    if abs(pitch - 1.0) > 1e-3:
+        af = "rubberband=pitch=%.3f:formant=preserved,%s" % (pitch, af)
+    pad = "apad=pad_dur=%.2f" % TAIL_SILENCE
+    cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "f32le", "-ar", str(rate), "-ac", "1", "-i", "-",
+           "-af", pad + "," + af, "-f", "f32le", "-ar", str(rate), "-ac", "1", "-"]
+    out = subprocess.run(cmd, input=np.asarray(samples, dtype=np.float32).tobytes(), capture_output=True, check=True).stdout
+    return np.frombuffer(out, dtype=np.float32).copy()
+
+
+def true_peak_db(x, rate):
+    import numpy as np
+    from scipy.signal import resample_poly
+    if len(x) == 0:
+        return -120.0
+    up = resample_poly(x, 4, 1)
+    return 20.0 * np.log10(max(1e-9, float(np.max(np.abs(up)))))
+
+
+def normalise(x, rate, target=TARGET_LUFS, tp=TARGET_TP_DB):
+    """Integrated loudness -> target LUFS, then pull down if the 4x-oversampled true peak exceeds tp."""
+    import numpy as np
+    import pyloudnorm as pyln
+    if len(x) == 0 or float(np.max(np.abs(x))) < 1e-6:
+        return x
+    meter = pyln.Meter(rate)
+    probe = x if len(x) >= int(0.45 * rate) else np.concatenate([x, x, x])
+    try:
+        lufs = meter.integrated_loudness(probe)
+    except Exception:
+        lufs = float("-inf")
+    if not np.isfinite(lufs):  # extremely short / quiet: fall back to RMS
+        lufs = 20.0 * np.log10(max(1e-9, float(np.sqrt(np.mean(x ** 2))))) - 0.7
+    y = x * (10.0 ** ((target - lufs) / 20.0))
+    peak = true_peak_db(y, rate)
+    if peak > tp:  # tame the few transient peaks with a gentle limiter instead of turning the whole line down
+        lim = 10.0 ** ((tp - 0.6) / 20.0)
+        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "f32le", "-ar", str(rate), "-ac", "1", "-i", "-",
+               "-af", "alimiter=limit=%.4f:attack=3:release=50:level=disabled:asc=1" % lim,
+               "-f", "f32le", "-ar", str(rate), "-ac", "1", "-"]
+        y = np.frombuffer(subprocess.run(cmd, input=y.astype(np.float32).tobytes(), capture_output=True,
+                                         check=True).stdout, dtype=np.float32).copy()
+        peak = true_peak_db(y, rate)
+    if peak > tp:
+        y = y * (10.0 ** ((tp - peak - 0.1) / 20.0))
+    return y
+
+
+def write_wav(path, x, rate):
+    import numpy as np
+    import soundfile as sf
+    x = np.concatenate([np.zeros(int(rate * LEAD_SILENCE), dtype=np.float32), np.asarray(x, dtype=np.float32)])
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    sf.write(path, np.clip(x, -1.0, 1.0), rate, subtype="PCM_16")
 
 
 class Synth:
-    def __init__(self, voices_dir):
-        self.voices_dir = voices_dir
-        self.cache = {}
-        try:
-            from piper import PiperVoice, SynthesisConfig  # noqa
-            self.piper = True
-        except Exception:
-            self.piper = False
-        self.espeak = shutil.which("espeak-ng") or shutil.which("espeak")
-        if not self.piper and not self.espeak:
-            raise RuntimeError("Neither piper (pip install piper-tts) nor espeak-ng is available")
+    """Kokoro-82M (onnx) voice engine shared by both generator scripts."""
 
-    def say(self, persona, text, path):
-        model = os.path.join(self.voices_dir, PERSONAS[persona][2] + ".onnx")
-        if self.piper and os.path.exists(model):
-            from piper import PiperVoice, SynthesisConfig
-            if model not in self.cache:
-                self.cache[model] = PiperVoice.load(model)
-            buf = io.BytesIO()
-            with wave.open(buf, "wb") as w:
-                self.cache[model].synthesize_wav(text, w, syn_config=SynthesisConfig(length_scale=LENGTH_SCALE[persona]))
-            buf.seek(0)
-            with wave.open(buf, "rb") as r:
-                rate, width, ch, frames = r.getframerate(), r.getsampwidth(), r.getnchannels(), r.readframes(r.getnframes())
-        elif self.espeak:
-            warnings.append("espeak fallback for %s" % persona)
-            pitch = "20" if persona == "ULTRON" else "50"
-            data = subprocess.run([self.espeak, "-v", PERSONAS[persona][3], "-s", "165", "-p", pitch, "--stdout", text],
-                                  check=True, capture_output=True).stdout
-            with wave.open(io.BytesIO(data), "rb") as r:
-                rate, width, ch, frames = r.getframerate(), r.getsampwidth(), r.getnchannels(), r.readframes(r.getnframes())
-        else:
-            raise RuntimeError("voice model missing: " + model)
-        if persona == "ULTRON" and width == 2 and ch == 1:
-            frames = ultron_fx(frames, rate)
-        # 120 ms of leading silence avoids clipped first syllables in some players.
-        frames = b"\x00" * int(rate * 0.12) * width * ch + frames
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with wave.open(path, "wb") as w:
-            w.setnchannels(ch); w.setsampwidth(width); w.setframerate(rate); w.writeframes(frames)
+    def __init__(self, voices_dir):
+        try:
+            from kokoro_onnx import Kokoro
+        except Exception as e:
+            raise RuntimeError("kokoro-onnx missing: run with /workspace/kokoro-venv/bin/python "
+                               "(pip install kokoro-onnx soundfile pyloudnorm scipy)") from e
+        kdir = os.path.join(voices_dir, "kokoro")
+        model, voices = os.path.join(kdir, "kokoro-v1.0.onnx"), os.path.join(kdir, "voices-v1.0.bin")
+        for p in (model, voices):
+            if not os.path.exists(p):
+                raise RuntimeError("Kokoro model file missing: " + p)
+        if not shutil.which("ffmpeg"):
+            raise RuntimeError("ffmpeg is required for the voice FX")
+        self.k = Kokoro(model, voices)
+        self.styles = {}
+
+    def style(self, spec):
+        if spec not in self.styles:
+            parts = [(p.split(":")[0], float(p.split(":")[1]) if ":" in p else 1.0) for p in spec.split(",")]
+            tot = sum(w for _, w in parts)
+            self.styles[spec] = sum(self.k.get_voice_style(n) * (w / tot) for n, w in parts) if len(parts) > 1 else parts[0][0]
+        return self.styles[spec]
+
+    def render(self, profile_name, text):
+        prof = VOICE_PROFILES.get(profile_name)
+        if prof is None:
+            warnings.append("no voice profile for %s (using %s)" % (profile_name, DEFAULT_PROFILE))
+            prof = VOICE_PROFILES[DEFAULT_PROFILE]
+        samples, rate = self.k.create(spoken_text(text), voice=self.style(prof["voice"]), speed=prof["speed"], lang=prof["lang"])
+        y = run_fx(samples, rate, FX_CHAINS[prof["fx"]], prof.get("pitch", 1.0))
+        return normalise(y, rate), rate
+
+    def say(self, profile_name, text, path):
+        y, rate = self.render(profile_name, text)
+        write_wav(path, y, rate)
+
+
+def write_if_changed(path, text):
+    if os.path.exists(path) and open(path).read() == text:
+        return False
+    open(path, "w").write(text)
+    return True
 
 
 def main():
@@ -287,6 +404,9 @@ def main():
     ap.add_argument("--voices-dir", default=os.environ.get("PIPER_VOICES", "/workspace/tts-voices"))
     ap.add_argument("--no-audio", action="store_true")
     ap.add_argument("--force", action="store_true", help="re-synthesise WAVs that already exist")
+    ap.add_argument("--no-codegen", action="store_true", help="do not touch Source/.../Generated/*.inl")
+    ap.add_argument("--only", default="", help="only synthesise this persona folder (e.g. ULTRON)")
+    ap.add_argument("--shard", default="0/1", help="i/n: synthesise every n-th line starting at i (parallel runs)")
     a = ap.parse_args()
 
     suits = load_json(os.path.join(a.data, "suits.json"))
@@ -302,8 +422,9 @@ def main():
     os.makedirs(GEN_DIR, exist_ok=True)
     suit_inl, intros = build_suits(suits)
     line_inl, lines = build_lines(voices, intros)
-    open(os.path.join(GEN_DIR, "SuitTable.inl"), "w").write(suit_inl)
-    open(os.path.join(GEN_DIR, "AIVoiceLines.inl"), "w").write(line_inl)
+    if not a.no_codegen:  # only rewrites a .inl whose content actually changed
+        for name, text in (("SuitTable.inl", suit_inl), ("AIVoiceLines.inl", line_inl)):
+            print("%s: %s" % (name, "updated" if write_if_changed(os.path.join(GEN_DIR, name), text) else "unchanged"))
     print("suits: %d, lines: %d" % (suit_inl.count("Out.Add(S)"), len(lines)))
 
     os.makedirs(AUDIO_DIR, exist_ok=True)
@@ -317,10 +438,15 @@ def main():
     if not a.no_audio:
         synth = Synth(a.voices_dir)
         done = 0
-        for l in lines:
+        si, sn = (int(v) for v in a.shard.split("/"))
+        for n, l in enumerate(lines):
+            if n % sn != si:
+                continue
             path = os.path.join(AUDIO_DIR, PERSONAS[l["persona"]][1], l["id"] + ".wav")
+            if a.only and PERSONAS[l["persona"]][1] != a.only.upper():
+                continue
             if a.force or not os.path.exists(path):
-                synth.say(l["persona"], ascii_text(l["text"]), path)
+                synth.say(l["persona"], l["text"], path)
             done += 1
             if done % 50 == 0:
                 print("  audio %d / %d" % (done, len(lines)), flush=True)
