@@ -38,6 +38,10 @@ public:
 	 */
 	static AStoryAutopilot* Launch(UWorld* World, int32 FirstChapter, int32 LastChapter, bool bFullStory, bool bQuitWhenDone);
 
+	/** Plays one side mission (side_missions.json id) and checks objectives, comms and that the
+	 *  reward (codex + upgrade / cosmetic) lands in the save. Ignores the availability window. */
+	static AStoryAutopilot* LaunchSideMission(UWorld* World, FName MissionId, bool bQuitWhenDone);
+
 	virtual void Tick(float DeltaSeconds) override;
 
 	bool IsFinished() const { return bFinished; }
@@ -78,6 +82,7 @@ protected:
 
 	int32 FirstChapter = 0;
 	int32 LastChapter = 0;
+	FName SideMission;
 	bool bFullStory = false;
 	bool bQuitWhenDone = false;
 

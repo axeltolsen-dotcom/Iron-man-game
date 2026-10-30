@@ -1,4 +1,7 @@
 #include "StoryAutopilot.h"
+#include "ChapterSet.h"
+#include "SuitRig.h"
+#include "ArenaSaveGame.h"
 
 #include "IronManArena.h"
 #include "ArenaGameMode.h"
@@ -71,6 +74,23 @@ AStoryAutopilot* AStoryAutopilot::Launch(UWorld* World, int32 InFirst, int32 InL
 	return A;
 }
 
+AStoryAutopilot* AStoryAutopilot::LaunchSideMission(UWorld* World, FName MissionId, bool bInQuit)
+{
+	if (!World || !UStoryLibrary::GetStory().FindSideMission(MissionId))
+	{
+		UE_LOG(LogIronManArena, Error, TEXT("StoryTest: unknown side mission '%s'"), *MissionId.ToString());
+		return nullptr;
+	}
+	FActorSpawnParameters SP;
+	SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AStoryAutopilot* A = World->SpawnActor<AStoryAutopilot>(AStoryAutopilot::StaticClass(), FTransform::Identity, SP);
+	if (!A) { return nullptr; }
+	A->SideMission = MissionId;
+	A->bQuitWhenDone = bInQuit;
+	UE_LOG(LogIronManArena, Log, TEXT("StoryTest: autopilot launched for side mission %s"), *MissionId.ToString());
+	return A;
+}
+
 AStoryDirector* AStoryAutopilot::GetDirector() const
 {
 	const AArenaGameMode* GM = GetGM();
@@ -109,7 +129,19 @@ void AStoryAutopilot::Begin()
 	if (UGameplayStatics::DoesSaveGameExist(AutopilotSlot, 0)) { UGameplayStatics::DeleteGameInSlot(AutopilotSlot, 0); }
 	UGameplayStatics::SetGlobalTimeDilation(this, TimeDilation);
 
-	PC->MenuStartStory(FirstChapter, bFullStory);
+	if (!SideMission.IsNone())
+	{
+		if (!GM->StartSideMission(SideMission, /*bIgnoreAvailability*/ true))
+		{
+			Fail(FString::Printf(TEXT("side mission %s did not start"), *SideMission.ToString()));
+			Finish(TEXT("setup"));
+			return;
+		}
+	}
+	else
+	{
+		PC->MenuStartStory(FirstChapter, bFullStory);
+	}
 	if (AStoryDirector* D = GetDirector())
 	{
 		SavedEnergySeconds = D->EnergyObjectiveSeconds;
@@ -170,7 +202,11 @@ void AStoryAutopilot::Drive(float DeltaSeconds)
 
 	// Done?
 	const bool bPastLast = D->GetChapterIndex() > LastChapter;
-	if (bFullStory)
+	if (!SideMission.IsNone())
+	{
+		if (D->WasSideRewardGranted()) { Finish(TEXT("side mission complete")); return; }
+	}
+	else if (bFullStory)
 	{
 		if (D->WasStoryCompleted()) { Finish(TEXT("story complete")); return; }
 	}
@@ -299,7 +335,8 @@ void AStoryAutopilot::Finish(const FString& Reason)
 
 	if (Errors.Num() == 0)
 	{
-		UE_LOG(LogIronManArena, Log, TEXT("StoryTest: RESULT PASS (chapters %d..%d%s)"), FirstChapter + 1, LastChapter + 1, bFullStory ? TEXT(", prologue + finale") : TEXT(""));
+		if (!SideMission.IsNone()) { UE_LOG(LogIronManArena, Log, TEXT("StoryTest: RESULT PASS (side mission %s)"), *SideMission.ToString()); }
+		else { UE_LOG(LogIronManArena, Log, TEXT("StoryTest: RESULT PASS (chapters %d..%d%s)"), FirstChapter + 1, LastChapter + 1, bFullStory ? TEXT(", prologue + finale") : TEXT("")); }
 	}
 	else
 	{
@@ -338,9 +375,39 @@ void AStoryAutopilot::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AStoryAutopilot::Evaluate()
 {
-	const FStoryBook& Story = UStoryLibrary::GetStory();
 	const AStoryDirector* D = GetDirector();
 	if (!D) { Fail(TEXT("no director to evaluate")); return; }
+	const bool bSide = !SideMission.IsNone();
+	const FStoryBook& Story = bSide ? D->GetBook() : UStoryLibrary::GetStory();
+	if (bSide)
+	{
+		if (!D->IsSideMission() || D->GetSideMissionId() != SideMission) { Fail(TEXT("director is not running the side mission")); return; }
+		if (!D->WasSideRewardGranted()) { Fail(TEXT("side mission reward was not granted")); }
+		const FStoryChapter& M = Story.Chapters[0];
+		const UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(AutopilotSlot);
+		if (!Save) { Fail(TEXT("no save to check the reward")); }
+		else
+		{
+			if (!Save->SideMissionsDone.Contains(M.Id)) { Fail(TEXT("save: mission not marked done")); }
+			if (!M.RewardCodex.IsNone() && !Save->CodexGranted.Contains(M.RewardCodex)) { Fail(TEXT("save: codex reward missing")); }
+			if (!M.RewardUpgrade.IsNone() && !Save->HasUpgrade(M.RewardUpgrade)) { Fail(TEXT("save: upgrade reward missing")); }
+			if (!M.RewardCosmetic.IsNone() && !Save->Cosmetics.Contains(M.RewardCosmetic)) { Fail(TEXT("save: cosmetic reward missing")); }
+			if (Save->StoryChapterReached != 0) { Fail(FString::Printf(TEXT("side mission moved main progress to %d"), Save->StoryChapterReached)); }
+			const FString Line = FString::Printf(TEXT("side %s reward: codex %s upgrade %s cosmetic %s (saved)"), *M.Id.ToString(),
+				*M.RewardCodex.ToString(), *M.RewardUpgrade.ToString(), *M.RewardCosmetic.ToString());
+			Summary.Add(Line);
+			UE_LOG(LogIronManArena, Log, TEXT("StoryTest: %s"), *Line);
+		}
+		if (const AIronManCharacter* P = GetPlayer())
+		{
+			const UReactorComponent* R = P->GetReactor();
+			if (M.RewardUpgrade == ArenaRewards::CapacitorBank() && R && R->GetPermanentCapacityBonus() <= 0.f) { Fail(TEXT("capacitor bank not applied to the reactor")); }
+			if (M.RewardUpgrade == ArenaRewards::HeatSinkFins() && R && R->GetPermanentCoolingBonus() <= 0.f) { Fail(TEXT("heat-sink fins not applied to the reactor")); }
+			if (M.RewardCosmetic == ArenaRewards::WhiteTrim() && !SuitRig::IsWhiteTrim()) { Fail(TEXT("white trim not applied")); }
+			if (M.RewardCosmetic == ArenaRewards::PodLighting() && !AChapterSet::bHallPodLighting) { Fail(TEXT("pod lighting flag not set")); }
+		}
+		FirstChapter = LastChapter = 0;
+	}
 	const TArray<FStoryChapterReport>& Reports = D->GetChapterReports();
 	if (Reports.Num() != Story.Chapters.Num())
 	{

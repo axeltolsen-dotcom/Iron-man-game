@@ -316,7 +316,7 @@ def build_heat_haze():
     mat.set_editor_property("two_sided", True)
     color = vector(mat, "Color", (1.0, 0.45, 0.12), -800, -200)
     strength = scalar(mat, "Strength", 1.0, -800, 0)
-    es = scalar(mat, "EmissiveStrength", 0.4, -800, 100)
+    es = scalar(mat, "EmissiveStrength", 400.0, -800, 100)  # nits
     wp = expr(mat, unreal.MaterialExpressionWorldPosition, -800, 200)
     t = expr(mat, unreal.MaterialExpressionTime, -800, 300)
     fres = expr(mat, unreal.MaterialExpressionFresnel, -800, 400, exponent=1.5, base_reflect_fraction=0.0)
@@ -360,6 +360,39 @@ return float3(1.0, 0.35, 0.05) * saturate(1.0 - r * 2.2) * Glow;
     link(uv, em, "UV"); link(glow, em, "Glow")
     rough = expr(mat, unreal.MaterialExpressionConstant, -400, 300, r=0.92)
     prop(color, MP.MP_BASE_COLOR); prop(m, MP.MP_OPACITY); prop(rough, MP.MP_ROUGHNESS); prop(em, MP.MP_EMISSIVE_COLOR)
+    finish(mat, MAT_DIR + "/" + name)
+
+
+def build_plaid_decal():
+    """Cosmetic reward garage-plaid-decal: a worn red/black flannel patch (procedural tartan)."""
+    name = "M_PlaidDecal"
+    mat = fresh(name, unreal.Material, unreal.MaterialFactoryNew())
+    mat.set_editor_property("material_domain", unreal.MaterialDomain.MD_DEFERRED_DECAL)
+    mat.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    red = vector(mat, "ColorA", (0.32, 0.018, 0.015), -800, -300)
+    dark = vector(mat, "ColorB", (0.012, 0.012, 0.014), -800, -150)
+    op = scalar(mat, "Opacity", 0.95, -800, 0)
+    uv = expr(mat, unreal.MaterialExpressionTextureCoordinate, -800, 150)
+    base = custom(mat, """
+float2 p = UV * 6.0;
+float bx = step(0.5, frac(p.x)) ;
+float by = step(0.5, frac(p.y));
+float fine = step(0.92, frac(p.x * 4.0)) + step(0.92, frac(p.y * 4.0));
+float t = (bx + by) * 0.5;
+float3 c = lerp(A, B, t);
+c = lerp(c, float3(0.35, 0.3, 0.22), saturate(fine) * 0.35);
+float wear = frac(sin(dot(floor(UV * 64.0), float2(12.9898, 78.233))) * 43758.5453);
+return c * (0.85 + 0.15 * wear);
+""", ["UV", "A", "B"], -400, -100, desc="Tartan")
+    link(uv, base, "UV"); link(red, base, "A"); link(dark, base, "B")
+    m = custom(mat, """
+float2 d = abs(UV - 0.5) * 2.0;
+float edge = max(d.x, d.y);
+return saturate((0.96 - edge) * 25.0) * Op;
+""", ["UV", "Op"], -400, 150, out=unreal.CustomMaterialOutputType.CMOT_FLOAT1, desc="Patch mask")
+    link(uv, m, "UV"); link(op, m, "Op")
+    rough = expr(mat, unreal.MaterialExpressionConstant, -400, 300, r=0.85)
+    prop(base, MP.MP_BASE_COLOR); prop(m, MP.MP_OPACITY); prop(rough, MP.MP_ROUGHNESS)
     finish(mat, MAT_DIR + "/" + name)
 
 
@@ -477,7 +510,7 @@ def main():
     LOG.append("== materials ==")
     steps = [("car paint", build_car_paint), ("glass", build_glass), ("arc glow", build_arc_glow),
              ("heat haze", build_heat_haze), ("scorch decal", build_scorch_decal),
-             ("smoke", build_smoke), ("facade", build_facade)]
+             ("smoke", build_smoke), ("facade", build_facade), ("plaid decal", build_plaid_decal)]
     for label, fn in steps:
         try:
             fn()

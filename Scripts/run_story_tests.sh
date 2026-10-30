@@ -1,7 +1,7 @@
 #!/bin/bash
 # Headless story tests (no GPU / audio needed).
 #   Scripts/run_story_tests.sh [Filter] [LogFile]
-# Filter defaults to IronManArena.Story (Data + Chapter.1..9 + FullRun).
+# Filter defaults to IronManArena.Story (Data, SideData, LightingPresets, Chapter.1..9, SideMission.1..5, FullRun).
 # Needs a built editor (IronManArenaEditor Development). UE_ROOT defaults to /home/box/UnrealEngine/5.8.
 UE_ROOT=${UE_ROOT:-/home/box/UnrealEngine/5.8}
 PROJECT=${PROJECT:-$(cd "$(dirname "$0")/.." && pwd)/IronManArena.uproject}

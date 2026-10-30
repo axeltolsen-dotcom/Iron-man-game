@@ -110,7 +110,7 @@ namespace
 		const float EvShift = FMath::Log2(FMath::Max(LuxScale, 1e-12f));
 		for (const auto& Pair : Obj->Values)
 		{
-			const FString& Key = Pair.Key;
+			const FString Key(*Pair.Key);
 			if (Key.StartsWith(TEXT("_")) || Special.Contains(Key) || !Pair.Value.IsValid()) { continue; }
 			FProperty* Prop = FindProp(Struct, Key);
 			if (!Prop || !WriteValue(Prop, Container, Pair.Value))

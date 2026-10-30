@@ -16,6 +16,8 @@
 #include "ArenaGameMode.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "ContribLighting.h"
+#include "ArenaSaveGame.h"
 
 namespace StoryTests
 {
@@ -125,6 +127,115 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStoryFullRunTest, "IronManArena.Story.FullRun"
 bool FStoryFullRunTest::RunTest(const FString& Parameters)
 {
 	return StoryTests::Launch(this, 0, 8, true, 1800.0);
+}
+
+// ---- side missions + codex data (Friday's side_missions.json / codex.json) and their unlock rules
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStorySideDataTest, "IronManArena.Story.SideData",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FStorySideDataTest::RunTest(const FString& Parameters)
+{
+	const FStoryBook& Story = UStoryLibrary::GetStory();
+	TestEqual(TEXT("side mission count"), Story.SideMissions.Num(), 5);
+	TestEqual(TEXT("codex entry count"), Story.Codex.Num(), 44);
+	const TArray<FName> Rewards = { ArenaRewards::CapacitorBank(), ArenaRewards::HeatSinkFins(), ArenaRewards::WhiteTrim(),
+		ArenaRewards::PlaidDecal(), ArenaRewards::PodLighting() };
+	TArray<FName> Seen;
+	for (const FStoryChapter& M : Story.SideMissions)
+	{
+		const FString Tag = M.Id.ToString();
+		TestTrue(Tag + TEXT(" is flagged side"), M.bSideMission);
+		TestTrue(Tag + TEXT(" has objectives"), M.Objectives.Num() > 0);
+		for (const FStoryObjective& O : M.Objectives)
+		{
+			TestTrue(FString::Printf(TEXT("%s objective type '%s' known"), *Tag, *O.TypeName), O.Type != EStoryObjectiveType::Unknown);
+		}
+		const int32 From = UStoryLibrary::ChapterOrder(Story, M.AvailableFrom);
+		const int32 Until = UStoryLibrary::ChapterOrder(Story, M.AvailableUntil);
+		TestTrue(Tag + TEXT(" window is a real chapter range"), From >= 0 && From <= Until && Until < Story.Chapters.Num());
+		if (From >= 0 && From <= Until && Until < Story.Chapters.Num())
+		{
+			TestFalse(Tag + TEXT(" locked before its window"), From > 0 && UStoryLibrary::IsSideMissionAvailable(Story, M, From - 1, false));
+			TestTrue(Tag + TEXT(" open at the window start"), UStoryLibrary::IsSideMissionAvailable(Story, M, From, false));
+			TestTrue(Tag + TEXT(" open at the window end"), UStoryLibrary::IsSideMissionAvailable(Story, M, Until, false));
+			if (Until + 1 < Story.Chapters.Num())
+			{
+				TestFalse(Tag + TEXT(" closed after its window"), UStoryLibrary::IsSideMissionAvailable(Story, M, Until + 1, false));
+			}
+			TestTrue(Tag + TEXT(" open after the story is complete"), UStoryLibrary::IsSideMissionAvailable(Story, M, Until + 1, true));
+		}
+		if (!M.RewardCodex.IsNone())
+		{
+			const bool bFound = Story.Codex.ContainsByPredicate([&M](const FStoryCodexEntry& E) { return E.Id == M.RewardCodex; });
+			TestTrue(Tag + TEXT(" codex reward exists"), bFound);
+		}
+		const FName Reward = M.RewardUpgrade.IsNone() ? M.RewardCosmetic : M.RewardUpgrade;
+		TestTrue(Tag + TEXT(" reward is a known upgrade / cosmetic"), Rewards.Contains(Reward));
+		Seen.AddUnique(Reward);
+	}
+	TestEqual(TEXT("all five rewards are handed out"), Seen.Num(), Rewards.Num());
+
+	// Codex unlocks: nothing before the story, everything chapter-gated by the end, side entries only by grant.
+	int32 AtStart = 0, AtEnd = 0, GrantOnly = 0, GrantOnlyAtEnd = 0, Granted = 0;
+	const TArray<FName> None;
+	for (const FStoryCodexEntry& E : Story.Codex)
+	{
+		TestFalse(E.Id.ToString() + TEXT(" has a body"), E.Body.IsEmpty());
+		AtStart += UStoryLibrary::IsCodexUnlocked(Story, E, 0, false, false, None) ? 1 : 0;
+		const bool bEnd = UStoryLibrary::IsCodexUnlocked(Story, E, Story.Chapters.Num(), true, true, None);
+		AtEnd += bEnd ? 1 : 0;
+		if (!E.UnlockedBy.IsNone())
+		{
+			++GrantOnly;
+			GrantOnlyAtEnd += bEnd ? 1 : 0;
+			const TArray<FName> G = { E.Id };
+			Granted += UStoryLibrary::IsCodexUnlocked(Story, E, 0, false, false, G) ? 1 : 0;
+		}
+	}
+	AddInfo(FString::Printf(TEXT("codex: %d unlocked at start, %d at story end, %d side-mission-only (%d unlock when granted)"), AtStart, AtEnd, GrantOnly, Granted));
+	TestTrue(TEXT("codex: some entries locked at the start"), AtStart < Story.Codex.Num());
+	TestEqual(TEXT("codex: everything but side-mission entries unlocked at story end"), AtEnd, Story.Codex.Num() - GrantOnly + GrantOnlyAtEnd);
+	TestEqual(TEXT("codex: side-mission entries stay locked without the grant"), GrantOnlyAtEnd, 0);
+	TestEqual(TEXT("codex: granting unlocks the side-mission entries"), Granted, GrantOnly);
+	return true;
+}
+
+// ---- play each side mission start to finish (autopilot) and check its reward lands in the save
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FStorySideMissionTest, "IronManArena.Story.SideMission",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+void FStorySideMissionTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	const FStoryBook& Story = UStoryLibrary::GetStory();
+	for (int32 i = 0; i < Story.SideMissions.Num(); ++i)
+	{
+		OutBeautifiedNames.Add(FString::Printf(TEXT("%d_%s"), i + 1, *Story.SideMissions[i].Id.ToString()));
+		OutTestCommands.Add(Story.SideMissions[i].Id.ToString());
+	}
+}
+bool FStorySideMissionTest::RunTest(const FString& Parameters)
+{
+	UWorld* World = StoryTests::FindGameWorld();
+	if (!World) { AddError(TEXT("no game world with AArenaGameMode - run with -game")); return false; }
+	AStoryAutopilot* Pilot = AStoryAutopilot::LaunchSideMission(World, FName(*Parameters), false);
+	if (!Pilot) { AddError(TEXT("could not spawn the side-mission autopilot")); return false; }
+	ADD_LATENT_AUTOMATION_COMMAND(StoryTests::FWaitForAutopilot(this, Pilot, 600.0));
+	return true;
+}
+
+// ---- Vison's lighting presets: 11 looks, every story environment maps onto one
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightingPresetsTest, "IronManArena.Story.LightingPresets",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FLightingPresetsTest::RunTest(const FString& Parameters)
+{
+	TestEqual(TEXT("lighting_presets.json preset count"), ContribLighting::GetNumPresets(), 11);
+	const TCHAR* Env[] = { TEXT("workshop"), TEXT("workshop_night"), TEXT("rooftops_dusk"), TEXT("rooftops_storm"), TEXT("city_day"),
+		TEXT("city_night"), TEXT("city_overcast"), TEXT("ruins"), TEXT("battlefield"), TEXT("finale_dawn") };
+	for (const TCHAR* Id : Env)
+	{
+		const FName Key = ContribLighting::PresetKeyFor(FName(Id));
+		TestTrue(FString::Printf(TEXT("%s maps to a preset (%s)"), Id, *Key.ToString()), !Key.IsNone() && ContribLighting::HasPreset(Key));
+	}
+	TestTrue(TEXT("free-play arena keeps the project look"), ContribLighting::PresetKeyFor(FName(TEXT("arena"))).IsNone());
+	return true;
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
