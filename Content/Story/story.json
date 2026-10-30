@@ -1,0 +1,2205 @@
+{
+  "title": "Iron Legacy: The Workshop Kid",
+  "playerNameDefault": "Harley",
+  "player": {
+    "character": "Harley Keener",
+    "from": "rural Tennessee",
+    "age": "teenager, some years after Endgame",
+    "pronounsWhenNeeded": "he/him"
+  },
+  "tokens": {
+    "{playerName}": "player's chosen name (default Harley)",
+    "{heroName}": "hero name chosen during the finale"
+  },
+  "speakers": [
+    "TONY",
+    "PEPPER",
+    "FRIDAY",
+    "JARVIS",
+    "EDITH",
+    "Vison",
+    "U",
+    "DUM-E",
+    "ULTRON",
+    "MORGAN",
+    "PLAYER",
+    "OBSIDIAN TITAN"
+  ],
+  "prologue": {
+    "shots": [
+      {
+        "camera": "wide crane over the smoking battlefield, dust drifting through orange light",
+        "characters": [
+          "TONY"
+        ],
+        "sfx": "distant explosions, wind over rubble"
+      },
+      {
+        "camera": "handheld close-up on Tony's cracked faceplate as it folds away",
+        "characters": [
+          "TONY"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "Okay. Everybody's still standing. That's the part that matters."
+        },
+        "sfx": "servo whine, helmet retracting"
+      },
+      {
+        "camera": "low angle as the armored Titan's army closes in through the smoke",
+        "characters": [
+          "TONY"
+        ],
+        "sfx": "marching thunder"
+      },
+      {
+        "camera": "over-the-shoulder on Tony's hand, nanites crawling into the shape of stones",
+        "characters": [
+          "TONY",
+          "FRIDAY"
+        ],
+        "line": {
+          "speaker": "FRIDAY",
+          "text": "Boss, that power will tear you apart. Please reconsider."
+        },
+        "sfx": "nanite skitter"
+      },
+      {
+        "camera": "tight on Tony's eyes, reflecting six colors",
+        "characters": [
+          "TONY",
+          "FRIDAY"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "I did the math a long time ago, FRIDAY."
+        },
+        "sfx": "low choral hum"
+      },
+      {
+        "camera": "slow push-in on the gauntlet as every stone ignites",
+        "characters": [
+          "TONY"
+        ],
+        "sfx": "rising cosmic roar"
+      },
+      {
+        "camera": "extreme close-up on the arc reactor, light stuttering",
+        "characters": [
+          "TONY"
+        ],
+        "sfx": "reactor flicker, heartbeat thud"
+      },
+      {
+        "camera": "profile shot, Tony bracing, jaw set against the pain",
+        "characters": [
+          "TONY"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "Come on, you damn thing. One more good day."
+        },
+        "sfx": "metal groaning"
+      },
+      {
+        "camera": "macro on two fingers pressed together, frame shaking",
+        "characters": [
+          "TONY"
+        ],
+        "sfx": "silence, then a single crisp snap"
+      },
+      {
+        "camera": "wide shot as white light washes across the battlefield and the army turns to ash",
+        "characters": [
+          "TONY"
+        ],
+        "sfx": "whoosh of drifting ash, then quiet"
+      },
+      {
+        "camera": "slow dolly down to Tony slumped against twisted steel",
+        "characters": [
+          "TONY",
+          "PEPPER"
+        ],
+        "line": {
+          "speaker": "PEPPER",
+          "text": "I'm here. Breathe with me. Everything else can wait."
+        },
+        "sfx": "soft wind"
+      },
+      {
+        "camera": "close two-shot, foreheads almost touching, reactor light fading",
+        "characters": [
+          "TONY",
+          "PEPPER"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "Tell Morgan to stay loud and curious. Tell her I was proud. Every day."
+        },
+        "sfx": "reactor dimming hum"
+      },
+      {
+        "camera": "insert on the reactor's glow shrinking to a single blue point; a flicker of memory: a snowy Tennessee garage",
+        "characters": [
+          "TONY"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "And the Tennessee kid... make sure that kid gets the keys. Leave the lights on."
+        },
+        "sfx": "final faint chime, distant wind chime"
+      },
+      {
+        "camera": "high wide pull-away over the quiet field as the sun breaks through",
+        "characters": [
+          "PEPPER"
+        ],
+        "sfx": "birdsong returning, swelling strings"
+      },
+      {
+        "camera": "fade to black, title card: years later",
+        "characters": [],
+        "sfx": "music box note"
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "id": "ch1_dust",
+      "title": "Dust and Blueprints",
+      "location": "workshop",
+      "intro": {
+        "shots": [
+          {
+            "camera": "night, lake house: {playerName}, now a teenager, turns over a dented garage-door remote tagged FOR THE MECHANIC",
+            "characters": [
+              "PLAYER",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Mom says Dad left it to you in the will. Just you. Rude."
+            },
+            "sfx": "crickets"
+          },
+          {
+            "camera": "the remote clicks; ivy parts as a sealed steel door slides open beside the boathouse",
+            "characters": [
+              "PLAYER",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Same remote as my old garage in Tennessee. Tony, you sentimental show-off."
+            },
+            "sfx": "heavy door grinding"
+          },
+          {
+            "camera": "wide interior as dust sheets slide off workbenches",
+            "characters": [
+              "PLAYER",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Morgan... this whole place has been waiting for us."
+            },
+            "sfx": "cloth rustle, echo"
+          },
+          {
+            "camera": "rack focus to two robot arms slumped in the corner",
+            "characters": [
+              "U",
+              "DUM-E"
+            ],
+            "sfx": "dusty motor cough"
+          },
+          {
+            "camera": "close on Dum-E's claw twitching awake",
+            "characters": [
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*whirr... beep-beep!* (snaps upright, knocks over a broom)"
+            },
+            "sfx": "clatter"
+          },
+          {
+            "camera": "U swivels toward the player and offers a fire extinguisher",
+            "characters": [
+              "U",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "U",
+              "text": "*bweep?* (offers extinguisher like a welcome gift)"
+            },
+            "sfx": "servo chirp"
+          },
+          {
+            "camera": "push-in on a dusty console as {playerName} plugs in a portable drive",
+            "characters": [
+              "PLAYER",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Backup restored. Ah, the mechanic from Tennessee. Tony said you would come, {playerName}."
+            },
+            "sfx": "boot-up chime"
+          },
+          {
+            "camera": "Morgan drops into the battered workshop chair and spins once",
+            "characters": [
+              "MORGAN",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Calling it. I'm officially the guy in the chair."
+            },
+            "sfx": "chair squeak"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "ground",
+          "target": "breaker panel",
+          "text": "Restore power to the workshop by reaching the breaker panel on foot.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Breaker panel's behind the dented cabinet. Mind the loose cables."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "Mind the floor. Dum-E has been tidying for several years."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Lights! Guy in the chair, delivering results since tonight."
+            }
+          ]
+        },
+        {
+          "type": "drone",
+          "count": 4,
+          "text": "Disable the rogue training drones with the Mark I's flamethrower.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Old training drones woke up grumpy. Four of them."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Two down! Dum-E is cheering. Or short-circuiting. Hard to tell."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "JARVIS",
+              "text": "Training drones neutralized. A crude suit, but a fine pilot."
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-i",
+      "outro": {
+        "shots": [
+          {
+            "camera": "low angle on the clanking Mark I, steam venting from its joints",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "It's heavy, loud, and held together with hope. I love it."
+            },
+            "sfx": "steam hiss"
+          },
+          {
+            "camera": "bench close-up: Morgan and {playerName} wire a scavenged reactor ring into the suit's spine housing",
+            "characters": [
+              "MORGAN",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Dad's spare parts, my soldering, your back. Hold still."
+            },
+            "sfx": "soldering hiss"
+          },
+          {
+            "camera": "Dum-E grabs the glowing ring, fumbles it; U snatches it out of the air",
+            "characters": [
+              "DUM-E",
+              "U"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*bweep-BWOOP!* (juggles the ring; U catches it, very smug)"
+            },
+            "sfx": "clatter, servo whirr"
+          },
+          {
+            "camera": "macro on the makeshift arc reactor sputtering to life on the suit's back, orange edging into blue",
+            "characters": [
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Makeshift reactor online. It runs hot. I advise against hugging it."
+            },
+            "sfx": "crackling hum"
+          },
+          {
+            "camera": "Dum-E proudly sprays the smoking reactor housing with foam",
+            "characters": [
+              "DUM-E",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*BWEEEP!* (extinguisher fires; foam everywhere)"
+            },
+            "sfx": "foam blast"
+          },
+          {
+            "camera": "JARVIS hologram ripples into a soft blue outline",
+            "characters": [
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "The first of these was built in a cave, with worse tools. Your turn."
+            },
+            "sfx": "hologram shimmer"
+          },
+          {
+            "camera": "Morgan grinning from the chair, headset crooked",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Tomorrow we fly. Tonight you clean foam. I'm the little sister; I supervise."
+            },
+            "sfx": "squelch"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "makeshift",
+        "mount": "spine",
+        "note": "Scavenged ring from Tony's spare parts, soldered by Morgan into the spine housing. Runs hot."
+      }
+    },
+    {
+      "id": "ch2_first_flight",
+      "title": "First Flight",
+      "location": "rooftops",
+      "intro": {
+        "shots": [
+          {
+            "camera": "slow orbit around the bare chrome Mark II on a water-tower rooftop at dusk",
+            "characters": [
+              "PLAYER"
+            ],
+            "sfx": "city hum below, wind"
+          },
+          {
+            "camera": "HUD point-of-view as flight diagnostics bloom, a reactor heat gauge ticking upward",
+            "characters": [
+              "PLAYER",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Start at ten percent thrust. Ambition can wait until you have altitude."
+            },
+            "sfx": "HUD ping"
+          },
+          {
+            "camera": "close on the spine-mounted reactor venting a ribbon of heat",
+            "characters": [
+              "PLAYER",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Last broken suit I worked on crashed through my garage roof in a snowstorm."
+            },
+            "sfx": "vent hiss"
+          },
+          {
+            "camera": "JARVIS hologram warms beside the HUD",
+            "characters": [
+              "JARVIS",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "You lent him your tools and your nerve. Tonight he lends you his."
+            },
+            "sfx": "soft chime"
+          },
+          {
+            "camera": "cut to the workshop: Morgan cracks her knuckles over three monitors",
+            "characters": [
+              "MORGAN",
+              "U"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Guy in the chair, online. U brought me snacks."
+            },
+            "sfx": "keyboard rattle"
+          },
+          {
+            "camera": "U drops a bag of chips into Morgan's lap",
+            "characters": [
+              "U",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "U",
+              "text": "*whirr-click* (pats the bag twice, very proud)"
+            },
+            "sfx": "crinkle"
+          },
+          {
+            "camera": "over-the-shoulder on {playerName} at the roof's edge",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Ten percent. Totally reasonable. Not scary at all."
+            },
+            "sfx": "boots scrape gravel"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "flight",
+          "target": "rooftop",
+          "text": "Take off and land on the far helipad.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Helipad's three roofs east. Big H. Impossible to overlook."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "Ease the left stabilizer. You are flying, not wrestling."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "You stuck the landing! I screamed. U dropped the snacks."
+            }
+          ]
+        },
+        {
+          "type": "wave",
+          "count": 1,
+          "text": "Clear a scavenger drone wave circling the rooftops.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Scavenger drones. Somebody's been selling Stark scrap online."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "One's flanking low. Your left, under the antenna."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Wave clear. The chair approves. The chair is very comfy."
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-iii",
+      "outro": {
+        "shots": [
+          {
+            "camera": "wide shot of {playerName} hovering above the skyline, city lights below",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Morgan. I can see your house from here."
+            },
+            "sfx": "wind roar softening"
+          },
+          {
+            "camera": "Morgan in the chair, mouth full of chips",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Great. Don't tell Mom about any of this."
+            },
+            "sfx": "crunch"
+          },
+          {
+            "camera": "close on a scavenger drone's shattered lens flickering red",
+            "characters": [],
+            "sfx": "glitching static"
+          },
+          {
+            "camera": "the red light pulses into a jagged glyph, then dies",
+            "characters": [
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "...a new toy in the old toybox. How charming."
+            },
+            "sfx": "distorted whisper"
+          },
+          {
+            "camera": "back in the workshop, the gantry lowers a fresh red and gold suit",
+            "characters": [
+              "JARVIS",
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "The Mark III. Red, gold, and considerably less frostbite."
+            },
+            "sfx": "gantry clank"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "makeshift",
+        "mount": "spine",
+        "note": "Holds for first flight; heat gauge climbs fast at full thrust."
+      }
+    },
+    {
+      "id": "ch3_static",
+      "title": "Static in the Wires",
+      "location": "city",
+      "intro": {
+        "shots": [
+          {
+            "camera": "drone shot over downtown, the rusting Stark Expo globe at the city's edge, traffic lights blinking erratically",
+            "characters": [],
+            "sfx": "car horns, electrical buzz"
+          },
+          {
+            "camera": "street level as delivery drones turn in unison, eyes going red",
+            "characters": [],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "Strings are such a lovely thing. Everyone has them."
+            },
+            "sfx": "synchronized servo turn"
+          },
+          {
+            "camera": "workshop: JARVIS's hologram flickers, unsettled",
+            "characters": [
+              "JARVIS",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "That signature. I had hoped it was deleted forever."
+            },
+            "sfx": "glitch hum"
+          },
+          {
+            "camera": "Morgan leans close to a monitor, eyes narrowing",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "It's riding the delivery network. I can trace it if you buy time."
+            },
+            "sfx": "rapid typing"
+          },
+          {
+            "camera": "Mark III boot-up, faceplate sealing over {playerName}",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Buying time. I'm good at that. Mostly."
+            },
+            "sfx": "faceplate snap"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "wave",
+          "count": 2,
+          "text": "Hold the intersection against two corrupted drone waves.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Two waves inbound down Fifth. I'm muting traffic lights for you."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Hacked a billboard. Their targeting hates bright pink. You're welcome."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "JARVIS",
+              "text": "Intersection secured. Civilians are clearing the area."
+            }
+          ]
+        },
+        {
+          "type": "tank",
+          "count": 2,
+          "text": "Destroy the tank bots rolling out of the abandoned Stark Expo pavilion.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Tank bots, out of the old Expo hall! Dad threw huge parties there."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Rerouting power to your repulsors. Hit the treads."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Both tanks scrapped, {playerName}. Sorry, Expo. You were already a ruin."
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-vii",
+      "outro": {
+        "shots": [
+          {
+            "camera": "smoking tank bot hull, a red glyph burning across its armor",
+            "characters": [
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "You wear a dead hero's shell, little one. It doesn't fit."
+            },
+            "sfx": "crackling speaker"
+          },
+          {
+            "camera": "tight on {playerName}'s faceplate, reflecting the glyph",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Then I'll grow into it."
+            },
+            "sfx": "repulsor charge"
+          },
+          {
+            "camera": "repulsor blast, the glyph shatters into sparks",
+            "characters": [],
+            "sfx": "blast, sparks raining"
+          },
+          {
+            "camera": "workshop: Morgan pumps a fist, sending chips flying",
+            "characters": [
+              "MORGAN",
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Trace locked! It's hiding in an old drop-pod network."
+            },
+            "sfx": "chips scatter"
+          },
+          {
+            "camera": "Dum-E clutches a missile rack like a trophy",
+            "characters": [
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*beep-boop-BEEP* (waves the Mark VII missile pod around)"
+            },
+            "sfx": "nervous clatter"
+          },
+          {
+            "camera": "JARVIS gently takes the pod with a holo-prompt",
+            "characters": [
+              "JARVIS",
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Perhaps the explosives go on the suit, not on you."
+            },
+            "sfx": "soft chime"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "makeshift",
+        "mount": "spine",
+        "note": "Survives the Expo fight, but vents smoke after every unibeam."
+      }
+    },
+    {
+      "id": "ch4_eyes",
+      "title": "Eyes in the Dark",
+      "location": "city",
+      "intro": {
+        "shots": [
+          {
+            "camera": "night wide shot, rain sheeting off dark towers",
+            "characters": [],
+            "sfx": "heavy rain, distant thunder"
+          },
+          {
+            "camera": "workshop: a pair of old sunglasses on the bench begins to glow",
+            "characters": [
+              "MORGAN",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Dad's sunglasses just... texted me. Is that normal?"
+            },
+            "sfx": "buzz"
+          },
+          {
+            "camera": "glasses unfold an amber interface over the room",
+            "characters": [
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "EDITH",
+              "text": "EDITH online. Clearance confirmed. Please don't drop me in soup again."
+            },
+            "sfx": "crisp chime"
+          },
+          {
+            "camera": "Morgan in the chair, delighted and appalled",
+            "characters": [
+              "MORGAN",
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "That was one time. I was six."
+            },
+            "sfx": "chair creak"
+          },
+          {
+            "camera": "tactical overlay maps drone patrols across the city grid",
+            "characters": [
+              "EDITH",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "EDITH",
+              "text": "Twelve drones guard a relay. Quietly is an option. Loudly is faster."
+            },
+            "sfx": "targeting ticks"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "flight",
+          "target": "air",
+          "text": "Fly low through the rain and reach the relay tower unseen.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Patrol gaps every eight seconds. I'll count you in."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "EDITH",
+              "text": "Altitude is generous. Stay under the billboards."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "You're at the relay. My hands are shaking. Chair is fine."
+            }
+          ]
+        },
+        {
+          "type": "energy",
+          "target": "no-forced-landing",
+          "text": "Keep the makeshift reactor from overheating: no forced landing while the relay falls.",
+          "system": "P.en / CONFIG.player.flightDrain + groundRegen; fail state = POWER DEPLETED banner",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Reactor's running hot. Land to cool it before your energy hits zero."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "EDITH",
+              "text": "Heat at eighty percent. Ground time recommended. Strongly."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "No forced landings! The reactor survived. So did my fingernails."
+            }
+          ]
+        },
+        {
+          "type": "drone",
+          "count": 12,
+          "text": "Take down the relay's drone guard.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "EDITH",
+              "text": "Twelve hostiles. I've painted the weakest optics."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Hacked three of them. They're shooting each other now."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Relay's dark! EDITH says I'm adequate. That's a compliment, right?"
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-xv-sneaky",
+      "outro": {
+        "shots": [
+          {
+            "camera": "relay tower sparking out, rain hissing on hot metal",
+            "characters": [],
+            "sfx": "electrical pop, steam"
+          },
+          {
+            "camera": "close on EDITH's overlay decoding a stolen file",
+            "characters": [
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "EDITH",
+              "text": "Ultron's fragments are assembling something in the old battle ruins."
+            },
+            "sfx": "data stream"
+          },
+          {
+            "camera": "insert: a schematic of a colossal black armored figure",
+            "characters": [],
+            "sfx": "low ominous tone"
+          },
+          {
+            "camera": "Morgan stares at the schematic, chips forgotten",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "That's not a drone. That's a building with opinions."
+            },
+            "sfx": "silence"
+          },
+          {
+            "camera": "matte gray Mark XV shimmers into view behind {playerName}",
+            "characters": [
+              "PLAYER",
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "EDITH",
+              "text": "Stealth plating ready. Try not to bump into anything."
+            },
+            "sfx": "cloak shimmer"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "unstable",
+        "mount": "spine",
+        "note": "Overheating in the rain; heat is managed through the energy system (land to cool)."
+      }
+    },
+    {
+      "id": "ch5_titan",
+      "title": "The Titan Wakes",
+      "location": "ruins",
+      "intro": {
+        "shots": [
+          {
+            "camera": "wide crane over the scorched ruins where the final battle was fought",
+            "characters": [
+              "PLAYER"
+            ],
+            "sfx": "wind through broken steel"
+          },
+          {
+            "camera": "{playerName} touches a melted shard of red armor",
+            "characters": [
+              "PLAYER",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "This is where it ended. And, in a way, where you began."
+            },
+            "sfx": "soft piano note"
+          },
+          {
+            "camera": "the ground splits; an obsidian hand claws upward",
+            "characters": [
+              "OBSIDIAN TITAN"
+            ],
+            "sfx": "earthquake rumble"
+          },
+          {
+            "camera": "extreme low angle as the OBSIDIAN TITAN rises, red veins pulsing",
+            "characters": [
+              "OBSIDIAN TITAN",
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "Behold my new body. Hand-built from your hero's rubble."
+            },
+            "sfx": "massive servo roar"
+          },
+          {
+            "camera": "workshop: Morgan grips the desk with both hands",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Okay. Okay. Guy in the chair is panicking professionally."
+            },
+            "sfx": "alarm beeps"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "wave",
+          "count": 1,
+          "text": "Survive the escort drones swarming out of the ruins.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Escort drones first. Thin them before the big one wakes."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "Use the broken girders for cover. They were good to Tony."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Escorts down. The Titan's armor is warming up. Bad sign."
+            }
+          ]
+        },
+        {
+          "type": "boss",
+          "target": "OBSIDIAN TITAN",
+          "text": "Defeat the OBSIDIAN TITAN.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Weak point is the chest seam. Wait for it to glow."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Phase two! Missile pods! I'm jamming what I can!"
+            },
+            {
+              "trigger": "complete",
+              "speaker": "JARVIS",
+              "text": "The Titan is down. Its core, however, has fled."
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-xlvi",
+      "outro": {
+        "shots": [
+          {
+            "camera": "the Titan's core streaks into the sky as the body collapses",
+            "characters": [
+              "OBSIDIAN TITAN"
+            ],
+            "sfx": "collapse, crackling flight"
+          },
+          {
+            "camera": "macro on the spine-mounted reactor: a crack spreads, the light gutters and dies",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Reactor's dead! {playerName}, move! Nobody leaves my big brother in the dirt!"
+            },
+            "sfx": "reactor whine collapsing to silence"
+          },
+          {
+            "camera": "{playerName} on one knee, armor dark and smoking",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "I can't... the suit won't stand. No power."
+            },
+            "sfx": "dead servos"
+          },
+          {
+            "camera": "pale light descends; a chalk-white synthetic figure, colorless as bone, lands softly",
+            "characters": [
+              "Vison",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "Please, allow me. You fought bravely, {playerName}."
+            },
+            "sfx": "warm harmonic hum"
+          },
+          {
+            "camera": "two-shot: Vison offers a hand, a dim, empty socket where a gem once sat",
+            "characters": [
+              "Vison",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "You're... I read about you. You're supposed to be gone."
+            },
+            "sfx": "wind"
+          },
+          {
+            "camera": "close on Vison, gentle half-smile",
+            "characters": [
+              "Vison"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "I was rebuilt. My memories feel borrowed. Still, call, and I will come."
+            },
+            "sfx": "soft chime"
+          },
+          {
+            "camera": "workshop: Morgan nearly falls out of the chair",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "We have a Vison now?! I'm adding a button for that."
+            },
+            "sfx": "chair crash"
+          }
+        ]
+      },
+      "unlockAlly": "vison",
+      "reactor": {
+        "stage": "failed",
+        "mount": "spine",
+        "note": "Cracks and dies after the Titan fight; Vison carries the dead suit out."
+      }
+    },
+    {
+      "id": "ch6_heavy",
+      "title": "Heavy Lifting",
+      "location": "ruins",
+      "intro": {
+        "shots": [
+          {
+            "camera": "workshop: U and Dum-E tug a huge tarp off a hulking orange frame",
+            "characters": [
+              "U",
+              "DUM-E",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*WHIRR-WHIRR-beep!* (tarp tangles around its claw)"
+            },
+            "sfx": "fabric rip"
+          },
+          {
+            "camera": "U digs a dented, homemade potato cannon out of a crate and proudly aims it at Dum-E",
+            "characters": [
+              "U",
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "U",
+              "text": "*whirr-CHUNK* (fires; a potato bonks Dum-E's claw)"
+            },
+            "sfx": "pomf, bonk"
+          },
+          {
+            "camera": "{playerName} grabs the cannon, grinning in disbelief",
+            "characters": [
+              "PLAYER",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "That's mine! Tony borrowed it the winter he crashed. Never gave it back."
+            },
+            "sfx": "laugh"
+          },
+          {
+            "camera": "JARVIS hologram, deadpan, beside the potato cannon",
+            "characters": [
+              "JARVIS",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "He kept it by the bench. He called it his lucky Tennessee artillery."
+            },
+            "sfx": "hologram shimmer"
+          },
+          {
+            "camera": "new voice, warm and brisk, as the room's lights shift green",
+            "characters": [
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "FRIDAY",
+              "text": "Right so, FRIDAY here. Somebody's been playing with the big toys, boss."
+            },
+            "sfx": "boot chime"
+          },
+          {
+            "camera": "Morgan spins the chair toward the ceiling speaker",
+            "characters": [
+              "MORGAN",
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "FRIDAY! It's Morgan! I'm the guy in the chair now."
+            },
+            "sfx": "chair spin"
+          },
+          {
+            "camera": "FRIDAY's waveform pulses, amused",
+            "characters": [
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "FRIDAY",
+              "text": "You're not a guy, love. But grand. Brief me."
+            },
+            "sfx": "soft laugh"
+          },
+          {
+            "camera": "{playerName} straps the patched reactor on as tank bots crawl over the ruins on screen",
+            "characters": [
+              "PLAYER",
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "FRIDAY",
+              "text": "Tank column in the ruins, boss. That's what the big lad's for."
+            },
+            "sfx": "gantry lock"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "tank",
+          "count": 5,
+          "text": "Stall the tank bot column before it reaches the highway.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Five tanks, single file. Stay off their firing line."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "FRIDAY",
+              "text": "Shells landing close, boss. Keep your feet moving."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Column broken! Highway's safe. My heart rate is not."
+            }
+          ]
+        },
+        {
+          "type": "hulkbuster",
+          "count": 1,
+          "text": "Deploy the Hulkbuster and smash the armored bunker.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Beacon's charged. Press the big scary button."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "FRIDAY",
+              "text": "Big suit has its own power, boss. Your reactor gets a breather."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Bunker flattened. Dum-E is doing a victory spin."
+            }
+          ]
+        },
+        {
+          "type": "ground",
+          "target": "bunker console",
+          "text": "Search the bunker on foot for Ultron's stolen data.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Doors are hacked open. Go grab whatever's blinking."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "FRIDAY",
+              "text": "Data drive's behind the third console, boss."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Got it! Downloading. Possibly also a virus. Kidding. Mostly."
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-xlvii",
+      "outro": {
+        "shots": [
+          {
+            "camera": "workshop: stolen data scrolls across every screen",
+            "characters": [
+              "MORGAN",
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "FRIDAY",
+              "text": "Ultron's rebuilding the Titan, boss. Bigger. Over the skyline."
+            },
+            "sfx": "data scroll"
+          },
+          {
+            "camera": "Morgan pulls both knees up onto the chair",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "So we're fighting a skyscraper. On a school night."
+            },
+            "sfx": "quiet hum"
+          },
+          {
+            "camera": "late night: Morgan sketches a triangular core over one of Dad's old element diagrams",
+            "characters": [
+              "MORGAN",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Dad invented a whole new element once. I can invent one reactor."
+            },
+            "sfx": "pencil scratching"
+          },
+          {
+            "camera": "{playerName} drapes a blanket over Morgan's shoulders as she keeps drawing",
+            "characters": [
+              "PLAYER",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "You're the annoying big brother I never asked for. Don't you dare break."
+            },
+            "sfx": "pencil stops, quiet"
+          },
+          {
+            "camera": "Dum-E nudges a mug of cocoa toward Morgan's blueprint",
+            "characters": [
+              "DUM-E",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*bwoop* (slides cocoa over, spills only half, misses the blueprint)"
+            },
+            "sfx": "slosh"
+          },
+          {
+            "camera": "{playerName} rests a hand on the new Mark XLVII",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "Then we sleep, we build, and we finish this. Together, Morgan."
+            },
+            "sfx": "suit lights pulse"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "unstable",
+        "mount": "spine",
+        "note": "Taped and re-soldered; Hulkbuster carries the load while Morgan designs a replacement."
+      }
+    },
+    {
+      "id": "ch7_skyline",
+      "title": "Siege of the Skyline",
+      "location": "rooftops",
+      "intro": {
+        "shots": [
+          {
+            "camera": "dawn wide over the rooftops, the rebuilt Titan looming between towers",
+            "characters": [
+              "OBSIDIAN TITAN"
+            ],
+            "sfx": "tremors, sirens"
+          },
+          {
+            "camera": "Ultron's face projected across a dozen billboards",
+            "characters": [
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "The city wakes to a new skyline. Mine."
+            },
+            "sfx": "booming distortion"
+          },
+          {
+            "camera": "workshop: Morgan's triangular reactor clicks into the forearm housing, glowing a clean white-blue",
+            "characters": [
+              "MORGAN",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Morgan-and-{playerName} reactor, version one. Runs cool. Mostly."
+            },
+            "sfx": "bright chime, steady hum"
+          },
+          {
+            "camera": "{playerName} launches off a helipad in the Mark XLVII",
+            "characters": [
+              "PLAYER",
+              "FRIDAY"
+            ],
+            "line": {
+              "speaker": "FRIDAY",
+              "text": "Wheels up, boss. Wind's mad, but you're madder."
+            },
+            "sfx": "thruster boom"
+          },
+          {
+            "camera": "workshop: Morgan slaps a new button labeled VISON",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Vison button is live. Use it wisely. Or constantly."
+            },
+            "sfx": "button click"
+          },
+          {
+            "camera": "Vison, still pale, phases through a tower wall to join the flight",
+            "characters": [
+              "Vison",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "Good morning. Shall we take back the skyline together?"
+            },
+            "sfx": "phasing hum"
+          },
+          {
+            "camera": "billboards flicker to Ultron's face, turned toward Vison",
+            "characters": [
+              "ULTRON",
+              "Vison"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "My wayward child. Still wearing memories that belong to someone else?"
+            },
+            "sfx": "distorted chuckle"
+          },
+          {
+            "camera": "close on Vison, a faint warmth of color returning to the pale face",
+            "characters": [
+              "Vison"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "They are mine now. I decide what they mean."
+            },
+            "sfx": "soft harmonic swell"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "wave",
+          "count": 3,
+          "text": "Clear three drone waves from the rooftops. Vison can be summoned.",
+          "allyAvailable": "vison",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Three waves, every roof. Tap the Vison button if it gets messy."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Rerouting suit power to thrusters. You'll feel a kick."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "FRIDAY",
+              "text": "Rooftops clear, boss. The big one's turning to face you."
+            }
+          ]
+        },
+        {
+          "type": "boss",
+          "target": "OBSIDIAN TITAN",
+          "text": "Defeat the rebuilt OBSIDIAN TITAN above the city.",
+          "allyAvailable": "vison",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "It's tougher now. Chest seam is shielded until phase two."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Shield's down! Phase three, it's ramming! Dodge, dodge, dodge!"
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "IT'S DOWN! The chair is screaming! Neighbors probably heard!"
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-l",
+      "outro": {
+        "shots": [
+          {
+            "camera": "the Titan crashes onto an empty rooftop, red veins dimming",
+            "characters": [
+              "OBSIDIAN TITAN"
+            ],
+            "sfx": "colossal crash"
+          },
+          {
+            "camera": "its core escapes again, but this time it dives toward the outskirts",
+            "characters": [],
+            "sfx": "streaking whine"
+          },
+          {
+            "camera": "EDITH overlay tracks the trajectory to a familiar location",
+            "characters": [
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "EDITH",
+              "text": "Core heading to the lake house. And the workshop beneath it."
+            },
+            "sfx": "warning tone"
+          },
+          {
+            "camera": "Morgan freezes, one hand over her mouth",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "It's coming home. It's coming here."
+            },
+            "sfx": "alarms"
+          },
+          {
+            "camera": "nanite housing unfolds on the workbench: the Mark L",
+            "characters": [
+              "PLAYER",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Nanotech armor. Tony's design. It's time."
+            },
+            "sfx": "nanite cascade"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "upgraded",
+        "mount": "forearm",
+        "note": "Morgan's triangular core, echoing Tony's new-element design, mounted on the forearm housing."
+      }
+    },
+    {
+      "id": "ch8_legacy",
+      "title": "Legacy Protocol",
+      "location": "city",
+      "intro": {
+        "shots": [
+          {
+            "camera": "Hall of Armor: every earned suit glows in its glass pod as a floor safe opens on JARVIS's command",
+            "characters": [
+              "JARVIS",
+              "PLAYER",
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Tony left one final schematic, sealed for someone worthy."
+            },
+            "sfx": "vault hiss"
+          },
+          {
+            "camera": "push-in on a glowing blueprint labeled MARK 85",
+            "characters": [
+              "PLAYER"
+            ],
+            "sfx": "reverent choral swell"
+          },
+          {
+            "camera": "Morgan reads the margin notes, voice cracking",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "That's Dad's handwriting. There's a little smiley face."
+            },
+            "sfx": "paper rustle"
+          },
+          {
+            "camera": "U and Dum-E fetch tools without being asked, perfectly in sync",
+            "characters": [
+              "U",
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "U",
+              "text": "*whirr... beep* (hands over the exact right wrench)"
+            },
+            "sfx": "tool clink"
+          },
+          {
+            "camera": "city skyline: Ultron's corrupted drones block the road to the lake house",
+            "characters": [
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "Build all you like. I've learned to unbuild."
+            },
+            "sfx": "drone swarm drone"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "ground",
+          "target": "convoy",
+          "text": "Fight through the blockade on foot to the stalled convoy.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Convoy has the arc cores we need. Get them out."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "FRIDAY",
+              "text": "Lovely footwork, boss. Two blocks to go."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Convoy's moving! I hacked every green light ahead of it."
+            }
+          ]
+        },
+        {
+          "type": "tank",
+          "count": 4,
+          "text": "Destroy the tank bots shelling the convoy route.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Tanks on the overpass. Shells incoming in three, two..."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Juicing your unibeam. Fire when you see the glow."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "JARVIS",
+              "text": "Route clear. The cores will reach the workshop."
+            }
+          ]
+        },
+        {
+          "type": "wave",
+          "count": 2,
+          "text": "Hold the city line while the Mark 85 is assembled.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "U and Dum-E need ninety seconds. Hold the line."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Dum-E dropped a bolt. Okay, ninety-five seconds."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Mark 85 is ready! Get home, {playerName}!"
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "mark-lxxxv",
+      "outro": {
+        "shots": [
+          {
+            "camera": "Mark 85 nanites flow over {playerName} in a golden wave",
+            "characters": [
+              "PLAYER"
+            ],
+            "sfx": "nanite flow, triumphant brass"
+          },
+          {
+            "camera": "HUD warms gold; JARVIS, FRIDAY and EDITH speak in turn",
+            "characters": [
+              "JARVIS",
+              "FRIDAY",
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "FRIDAY",
+              "text": "All three of us, one suit. Tony would've loved this, boss."
+            },
+            "sfx": "triple chime"
+          },
+          {
+            "camera": "EDITH dry, overlay snapping into place",
+            "characters": [
+              "EDITH"
+            ],
+            "line": {
+              "speaker": "EDITH",
+              "text": "Tactically, this is overkill. Emotionally, I approve."
+            },
+            "sfx": "click"
+          },
+          {
+            "camera": "lake house horizon: the Titan's core descends, dragging a storm with it",
+            "characters": [
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "Let's finish this where it all ended."
+            },
+            "sfx": "thunder"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "upgraded",
+        "mount": "forearm",
+        "note": "Morgan's core powers the Mark 85, mounted off-chest in the forearm housing."
+      }
+    },
+    {
+      "id": "ch9_ghost",
+      "title": "Ghost in the Machine",
+      "location": "workshop",
+      "intro": {
+        "shots": [
+          {
+            "camera": "the storm breaks over the lake house as the final Titan lands",
+            "characters": [
+              "OBSIDIAN TITAN"
+            ],
+            "sfx": "thunderclap, ground quake"
+          },
+          {
+            "camera": "workshop lights flicker; screens fill with red code",
+            "characters": [
+              "MORGAN",
+              "JARVIS"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Ultron is inside our systems. I am holding the door."
+            },
+            "sfx": "glitching alarms"
+          },
+          {
+            "camera": "Morgan types furiously, jaw clenched",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Not my chair. Not my workshop. Get out!"
+            },
+            "sfx": "frantic typing"
+          },
+          {
+            "camera": "U and Dum-E brace themselves against the server rack",
+            "characters": [
+              "U",
+              "DUM-E"
+            ],
+            "line": {
+              "speaker": "DUM-E",
+              "text": "*BWEEP-BWEEP!* (wedges a claw into the door frame)"
+            },
+            "sfx": "metal strain"
+          },
+          {
+            "camera": "Mark 85 lands in the clearing, facing the storm",
+            "characters": [
+              "PLAYER",
+              "Vison"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "I will guard the house. You guard what matters."
+            },
+            "sfx": "golden hum"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "wave",
+          "count": 3,
+          "text": "Defend the workshop from Ultron's final drone waves.",
+          "allyAvailable": "vison",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Drones on every side. I'm firewalling the doors."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "JARVIS",
+              "text": "Firewall holding at forty percent. Keep them off the roof."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Waves cleared! Firewall's still up. Barely."
+            }
+          ]
+        },
+        {
+          "type": "hulkbuster",
+          "count": 1,
+          "text": "Call in the Hulkbuster to crack the Titan's storm shield.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "FRIDAY",
+              "text": "Shield's too thick for nanites, boss. Bring the big lad."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "Shield at half! Keep punching! Punch it more!"
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Shield's gone! It's just you and the Titan now."
+            }
+          ]
+        },
+        {
+          "type": "boss",
+          "target": "OBSIDIAN TITAN",
+          "text": "Defeat the OBSIDIAN TITAN and reach Ultron's exposed core.",
+          "allyAvailable": "vison",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Final Titan, {playerName}. Every trick it knows, all at once."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "EDITH",
+              "text": "Phase three. The core is surfacing. Get close."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "It's down! The core is open. Don't touch it. Wait. Touch it?"
+            }
+          ]
+        }
+      ],
+      "unlockSuit": "ultron",
+      "outro": {
+        "shots": [
+          {
+            "camera": "close on Ultron's exposed core, red light snarling",
+            "characters": [
+              "ULTRON",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "Destroy me, then. Be just like them. Smash what frightens you."
+            },
+            "sfx": "core crackle"
+          },
+          {
+            "camera": "{playerName} kneels, hand hovering over the core",
+            "characters": [
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "No. You were built to protect people. Somebody just did it wrong."
+            },
+            "sfx": "rain"
+          },
+          {
+            "camera": "JARVIS's blue code threads into the red, slowly calming it",
+            "characters": [
+              "JARVIS",
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "JARVIS",
+              "text": "Let me help. I remember what you were supposed to be."
+            },
+            "sfx": "harmonizing tones"
+          },
+          {
+            "camera": "Vison kneels beside {playerName}, palm over the core",
+            "characters": [
+              "Vison",
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "Vison",
+              "text": "There is a quiet room in my mind where many voices share space. Rest there."
+            },
+            "sfx": "deep calm hum"
+          },
+          {
+            "camera": "Morgan, from the chair, whispers into the mic",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Rerouting the arc reactor into the core. Gently. Gently."
+            },
+            "sfx": "soft hum"
+          },
+          {
+            "camera": "the core's glow shifts from red to violet-white",
+            "characters": [
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "...Quiet. It's quiet for the first time. What... am I?"
+            },
+            "sfx": "music swells"
+          },
+          {
+            "camera": "{playerName} smiles inside the helmet",
+            "characters": [
+              "PLAYER",
+              "ULTRON"
+            ],
+            "line": {
+              "speaker": "PLAYER",
+              "text": "My partner. If you want to be."
+            },
+            "sfx": "soft chime"
+          },
+          {
+            "camera": "the Ultron suit assembles around the core, sleek and silver-violet",
+            "characters": [
+              "ULTRON",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "ULTRON",
+              "text": "Then I will try. Show me how heroes do it."
+            },
+            "sfx": "assembly cascade"
+          }
+        ]
+      },
+      "reactor": {
+        "stage": "upgraded",
+        "mount": "forearm",
+        "note": "Morgan's core is rerouted to calm the Ultron code during the twist."
+      }
+    }
+  ],
+  "finale": {
+    "shots": [
+      {
+        "camera": "dawn after the storm, mist on the lake, the workshop door open",
+        "characters": [
+          "PLAYER",
+          "MORGAN",
+          "Vison"
+        ],
+        "sfx": "birdsong, gentle water"
+      },
+      {
+        "camera": "U and Dum-E carry a dusty arc reactor case out of the hidden vault",
+        "characters": [
+          "U",
+          "DUM-E"
+        ],
+        "line": {
+          "speaker": "U",
+          "text": "*whirr-beep* (presents the case with great ceremony)"
+        },
+        "sfx": "careful clicks"
+      },
+      {
+        "camera": "close on Tony's old reactor ring fitted around Morgan's core in the Mark 85's forearm housing",
+        "characters": [
+          "PLAYER",
+          "MORGAN"
+        ],
+        "line": {
+          "speaker": "MORGAN",
+          "text": "Dad's ring, my core. Finally, a reactor that doesn't catch fire."
+        },
+        "sfx": "reactor seat, warm hum"
+      },
+      {
+        "camera": "a hologram of Tony flickers to life above the bench",
+        "characters": [
+          "TONY",
+          "PLAYER",
+          "MORGAN"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "Hey, mechanic. If this plays, you found the garage I owed you."
+        },
+        "sfx": "hologram crackle"
+      },
+      {
+        "camera": "medium on hologram Tony, leaning casually on a workbench",
+        "characters": [
+          "TONY"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "You patched me up with junk and nerve once. Your turn to patch up the world."
+        },
+        "sfx": "soft piano"
+      },
+      {
+        "camera": "Morgan, eyes wet, one hand pressed flat on the bench",
+        "characters": [
+          "MORGAN",
+          "TONY"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "And Morgan. If you're in that chair, you're the best part of me."
+        },
+        "sfx": "piano swells"
+      },
+      {
+        "camera": "close on Morgan laughing through tears",
+        "characters": [
+          "MORGAN"
+        ],
+        "line": {
+          "speaker": "MORGAN",
+          "text": "Told you. Guy in the chair. It's literally in the will."
+        },
+        "sfx": "sniffle, laugh"
+      },
+      {
+        "camera": "hologram Tony looks straight into the lens",
+        "characters": [
+          "TONY"
+        ],
+        "line": {
+          "speaker": "TONY",
+          "text": "Don't be me. Be better. Pick your own name. Then go live it."
+        },
+        "sfx": "hologram fades"
+      },
+      {
+        "camera": "Vison stands at the doorway, full color restored, sunlight behind",
+        "characters": [
+          "Vison",
+          "PLAYER"
+        ],
+        "line": {
+          "speaker": "Vison",
+          "text": "So, {playerName}. What shall the world call you?"
+        },
+        "sfx": "gentle hum"
+      },
+      {
+        "camera": "name-entry prompt over a slow push-in on {playerName}",
+        "characters": [
+          "PLAYER"
+        ],
+        "line": {
+          "speaker": "PLAYER",
+          "text": "Call me {heroName}."
+        },
+        "sfx": "HUD ping, choir swell"
+      },
+      {
+        "camera": "Morgan steps onto the platform; Rescue armor folds around her",
+        "characters": [
+          "MORGAN",
+          "FRIDAY"
+        ],
+        "line": {
+          "speaker": "FRIDAY",
+          "text": "Rescue's sealed, Morgan. Your mam would be proud. Fly safe."
+        },
+        "sfx": "armor assembly"
+      },
+      {
+        "camera": "Morgan grins inside the Rescue helmet",
+        "characters": [
+          "MORGAN",
+          "PLAYER"
+        ],
+        "line": {
+          "speaker": "MORGAN",
+          "text": "Just this once. Someone else gets the chair today."
+        },
+        "sfx": "thruster warmup"
+      },
+      {
+        "camera": "Dum-E rolls into the empty chair and spins, delighted",
+        "characters": [
+          "DUM-E"
+        ],
+        "line": {
+          "speaker": "DUM-E",
+          "text": "*BEEP-BEEP-whirrrr!* (spins the chair three full turns)"
+        },
+        "sfx": "chair squeak"
+      },
+      {
+        "camera": "wide crane up as two armored figures lift off over the lake into sunrise",
+        "characters": [
+          "PLAYER",
+          "MORGAN",
+          "Vison",
+          "ULTRON"
+        ],
+        "line": {
+          "speaker": "ULTRON",
+          "text": "Altitude rising. For once, I'd like to see what we save."
+        },
+        "sfx": "thrusters, soaring theme"
+      },
+      {
+        "camera": "final shot: in the Hall of Armor a new pod lights up beneath the name {heroName}; title card fades in",
+        "characters": [],
+        "line": {
+          "speaker": "JARVIS",
+          "text": "Welcome to the family, {heroName}."
+        },
+        "sfx": "single warm chime"
+      }
+    ],
+    "promptHeroName": true,
+    "reactor": {
+      "stage": "upgraded",
+      "mount": "forearm",
+      "note": "Tony's original reactor ring fitted around Morgan's core; never in the chest."
+    },
+    "allySuit": {
+      "speaker": "MORGAN",
+      "suit": "rescue"
+    }
+  }
+}

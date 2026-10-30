@@ -1,0 +1,161 @@
+{
+  "persona": "MORGAN",
+  "events": {
+    "start": [
+      "Guy in the chair, reporting for duty. Hi, Harley.",
+      "Comms are hot, Harley. Snacks are hotter. Let's go.",
+      "Morning, tin can. I've got eyes on everything.",
+      "Chair's warm, screens are up. Your move, Harley."
+    ],
+    "suitUp": [
+      "Suit's sealed. You look ridiculous. In a cool way.",
+      "Plates locked, Harley. Try not to dent the paint.",
+      "Armor's on. Dad would've added more lasers, honestly.",
+      "Suited up. Okay, that was kind of epic."
+    ],
+    "suitSwapIn": [
+      "New suit! Give me a sec to learn its quirks.",
+      "Swap done, Harley. Same genius pilot, shinier shell.",
+      "Fresh armor online. I already love this one.",
+      "Suit changed. Don't worry, the chair adapts."
+    ],
+    "lowEnergy": [
+      "Power's dipping, Harley. Grab an arc cell, please.",
+      "You're running on fumes. Land and recharge, hotshot.",
+      "Your reactor's cooking. Feet down before it quits.",
+      "Reactor's overheating, Harley. Land and let it cool."
+    ],
+    "lowHealth": [
+      "Armor's shredded, Harley! Find a repair pack. Now!",
+      "You're hurt. I hate this part. Grab health.",
+      "Hey. Stay with me. Repair pack, two o'clock.",
+      "Health critical! Back off before I come out there."
+    ],
+    "toFlight": [
+      "Wheels up! Try not to hit a pigeon.",
+      "Flight mode. Show-off. I love it.",
+      "Airborne, Harley. Energy drains up there, remember.",
+      "Up you go, tin can. Sky's all yours."
+    ],
+    "toGround": [
+      "Boots down. Energy's recharging.",
+      "Ground combat. Get scrappy, Harley.",
+      "Landed. Nice and gentle. Nobody saw that wobble.",
+      "Feet on the floor. Battery's filling back up."
+    ],
+    "hulkbusterReady": [
+      "Hulkbuster's ready! Press Q. Press it, Harley!",
+      "Big suit's charged. Go be a building.",
+      "Beacon's live. Time to get enormous.",
+      "Hulkbuster online. I've been waiting all day for this."
+    ],
+    "hulkbusterDeploy": [
+      "Here comes the big one! Smash responsibly.",
+      "Twenty seconds of pure chaos. Make them count.",
+      "Hulkbuster deployed! Dum-E is literally applauding.",
+      "You're huge now, Harley. Punch everything."
+    ],
+    "waveStart": [
+      "New wave incoming. I'm tagging targets now.",
+      "Here they come, Harley. Heads up.",
+      "Contacts on the scope. Let's get loud.",
+      "Next wave. You got this. Probably. Definitely."
+    ],
+    "droneSwarm": [
+      "That's a lot of drones. Like, a LOT.",
+      "Swarm incoming! Keep moving, don't let them box you.",
+      "Drones everywhere, Harley. I'll jam what I can.",
+      "It's a drone party and you're the piñata."
+    ],
+    "tankSpotted": [
+      "Tank bot! Shells arc, so strafe sideways.",
+      "Big tracks on the scanner. Hit the treads, Harley.",
+      "Tank spotted. It's slow, you're not. Use that.",
+      "Heavy armor rolling in. Don't stand still."
+    ],
+    "bossIncoming": [
+      "Titan inbound. Okay. Breathe. We trained for this.",
+      "Big boss on radar, Harley. Chest seam's the weak spot.",
+      "The Obsidian Titan's here. Guy in the chair is ready.",
+      "Boss incoming! I'm pulling every scan I've got."
+    ],
+    "bossPhase2": [
+      "Phase two! Missile pods online. Keep moving!",
+      "Armor's cracking, Harley. Missiles incoming, juke them!",
+      "It's angry now. Pods are tracking you.",
+      "Phase two. I'm jamming missile locks. Mostly."
+    ],
+    "bossPhase3": [
+      "Phase three! It's ramming! Dodge, dodge, dodge!",
+      "Core's critical, Harley. Finish it!",
+      "It's charging at you. Sidestep and hit the core!",
+      "Last phase. You've got this. I've got you."
+    ],
+    "bossDefeated": [
+      "IT'S DOWN! The chair is screaming!",
+      "Titan destroyed! Harley, you absolute legend!",
+      "We did it! Okay, you did it. I helped.",
+      "Boss down! Dad would be so proud of you."
+    ],
+    "combo": [
+      "Combo! Keep it rolling, Harley!",
+      "Ooh, chain kills. Show-off.",
+      "You're on fire. Not literally. Hopefully.",
+      "That combo's going in the highlight reel."
+    ],
+    "pickupHealth": [
+      "Armor patched. Much better.",
+      "Repair pack grabbed. Breathe, Harley.",
+      "Health's back up. Stop scaring me.",
+      "Patched up. Go get them."
+    ],
+    "pickupEnergy": [
+      "Arc cell grabbed. Fully juiced.",
+      "Energy's topped off, Harley. Fly free.",
+      "Battery full. Go wild.",
+      "Power restored. Thrusters are happy again."
+    ],
+    "pickupHulkbuster": [
+      "Beacon grabbed! Big suit's ready on Q.",
+      "Hulkbuster beacon! Oh, this is gonna be fun.",
+      "You found a beacon, Harley. Go get huge.",
+      "Beacon secured. Dum-E is warming up the big one."
+    ],
+    "death": [
+      "Harley? Harley! ...Okay. Rebooting. Try again.",
+      "Suit's down. I've got you. Get back up.",
+      "That was bad. We go again, together.",
+      "Ow. Okay. Shake it off, Harley. Round two."
+    ],
+    "highScore": [
+      "New high score! I'm screenshotting this.",
+      "Record broken, Harley! Chair-certified legend.",
+      "Best score ever. I'm telling everyone.",
+      "High score! U is doing a little dance."
+    ],
+    "idle": [
+      "Harley? You napping in there?",
+      "Hello? Chair to tin can, come in.",
+      "Taking a break? I'll just eat your snacks.",
+      "Still here. Still the guy in the chair."
+    ],
+    "hack": [
+      "Door's open. You're welcome.",
+      "Hacked their targeting. They're shooting each other now.",
+      "I'm in. That was way too easy.",
+      "Firewall down. Guy in the chair strikes again."
+    ],
+    "intel": [
+      "Scanning... weak point is the glowing seam.",
+      "Intel says three more behind that building.",
+      "Heads up, Harley. Hostiles flanking left.",
+      "Rerouting power to repulsors. Hit harder now."
+    ],
+    "encourage": [
+      "You're doing amazing, Harley. Seriously.",
+      "Annoying big brother or not, I've got your back.",
+      "Breathe. You've beaten worse. I watched.",
+      "Dad built the suits. You make them heroes."
+    ]
+  }
+}
