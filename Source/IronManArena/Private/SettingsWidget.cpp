@@ -165,6 +165,11 @@ void USettingsWidget::BuildTree()
 	for (int32 Cap : FrameCaps) { FrameCapCombo->AddOption(CapString(Cap)); }
 	QualityCombo = AddCombo(Box, LOCTEXT("Quality", "Graphics quality"));
 	for (const TCHAR* Q : QualityNames) { QualityCombo->AddOption(Q); }
+	RayTracingCheck = AddCheck(Box, UArenaGameUserSettings::IsRayTracingSupported()
+		? LOCTEXT("RT", "Hardware ray tracing (RTX-class GPU)")
+		: LOCTEXT("RTNo", "Hardware ray tracing (not supported on this GPU / RHI)"));
+	MotionBlurCheck = AddCheck(Box, LOCTEXT("MotionBlur", "Motion blur"));
+	DofCheck = AddCheck(Box, LOCTEXT("Dof", "Cinematic depth of field"));
 
 	AddHeader(Box, LOCTEXT("Controls", "CAMERA & CONTROLS"));
 	FovSlider = AddSlider(Box, LOCTEXT("Fov", "Field of view"), 70.f, 120.f, 1.f, Tmp); FovValue = Tmp;
@@ -179,6 +184,7 @@ void USettingsWidget::BuildTree()
 
 	AddHeader(Box, LOCTEXT("Access", "ACCESSIBILITY"));
 	SubtitlesCheck = AddCheck(Box, LOCTEXT("Subtitles", "Subtitles"));
+	ShakeCheck = AddCheck(Box, LOCTEXT("Shake", "Camera shake"));
 
 	UHorizontalBox* Buttons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	auto AddButton = [this, Buttons](const FText& Label) -> UButton*
@@ -238,6 +244,10 @@ void USettingsWidget::RefreshFromSettings()
 	VoiceSlider->SetValue(S->VoiceVolume);
 	MusicSlider->SetValue(S->MusicVolume);
 	SubtitlesCheck->SetIsChecked(S->bSubtitles);
+	RayTracingCheck->SetIsChecked(S->bRayTracing);
+	MotionBlurCheck->SetIsChecked(S->bMotionBlur);
+	DofCheck->SetIsChecked(S->bCinematicDOF);
+	ShakeCheck->SetIsChecked(S->bCameraShake);
 	UpdateSliderLabels();
 	bRefreshing = false;
 }
@@ -265,6 +275,10 @@ void USettingsWidget::ApplyLiveOptions()
 	S->VoiceVolume = VoiceSlider->GetValue();
 	S->MusicVolume = MusicSlider->GetValue();
 	S->bSubtitles = SubtitlesCheck->IsChecked();
+	S->bRayTracing = RayTracingCheck->IsChecked();
+	S->bMotionBlur = MotionBlurCheck->IsChecked();
+	S->bCinematicDOF = DofCheck->IsChecked();
+	S->bCameraShake = ShakeCheck->IsChecked();
 	S->ApplyGameplaySettings(GetOwningPlayer());
 }
 

@@ -79,6 +79,28 @@ public:
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
 	bool bSubtitles = true;
 
+	/** Hardware ray tracing (Lumen HWRT + RT shadows). Needs an RT-capable GPU (RTX-class);
+	 *  ignored where unsupported. Toggled at runtime via r.RayTracing.EnableOnDemand. */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Graphics")
+	bool bRayTracing = false;
+
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Graphics")
+	bool bMotionBlur = true;
+
+	/** Cinematic depth of field in cutscenes / suit-up (CineCamera). */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Graphics")
+	bool bCinematicDOF = true;
+
+	/** Camera shake on hits / explosions / landings (accessibility: can be turned off). */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	bool bCameraShake = true;
+
+	/** True when the RHI can do ray tracing at all (false on -nullrhi / old GPUs). */
+	static bool IsRayTracingSupported();
+
+	/** Pushes bRayTracing / bMotionBlur into the renderer cvars. No world needed. */
+	void ApplyRenderingSettings() const;
+
 	/** Fullscreen flavour F11 / Alt+Enter returns to (WindowedFullscreen by default). */
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Display")
 	TEnumAsByte<EWindowMode::Type> ToggleFullscreenMode = EWindowMode::WindowedFullscreen;

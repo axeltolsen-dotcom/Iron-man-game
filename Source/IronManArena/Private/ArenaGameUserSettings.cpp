@@ -10,6 +10,8 @@
 #include "Sound/SoundClass.h"
 #include "Sound/SoundMix.h"
 #include "Misc/PackageName.h"
+#include "HAL/IConsoleManager.h"
+#include "RenderUtils.h"
 
 namespace
 {
@@ -37,6 +39,10 @@ void UArenaGameUserSettings::ApplyGameOptionDefaults()
 	VoiceVolume = 1.f;
 	MusicVolume = 0.8f;
 	bSubtitles = true;
+	bRayTracing = false;
+	bMotionBlur = true;
+	bCinematicDOF = true;
+	bCameraShake = true;
 	ToggleFullscreenMode = EWindowMode::WindowedFullscreen;
 }
 
@@ -95,8 +101,35 @@ void UArenaGameUserSettings::ToggleFullscreen()
 	SaveSettings();
 }
 
+bool UArenaGameUserSettings::IsRayTracingSupported()
+{
+	// IsRayTracingAllowed(): project has r.RayTracing=1 and the RHI/GPU supports it.
+	return IsRayTracingAllowed();
+}
+
+void UArenaGameUserSettings::ApplyRenderingSettings() const
+{
+	IConsoleManager& CM = IConsoleManager::Get();
+	auto SetInt = [&CM](const TCHAR* Name, int32 Value)
+	{
+		if (IConsoleVariable* V = CM.FindConsoleVariable(Name)) { V->Set(Value, ECVF_SetByGameSetting); }
+	};
+	const bool bRT = bRayTracing && IsRayTracingSupported();
+	SetInt(TEXT("r.RayTracing.Enable"), bRT ? 1 : 0);
+	SetInt(TEXT("r.Lumen.HardwareRayTracing"), bRT ? 1 : 0);
+	SetInt(TEXT("r.RayTracing.Shadows"), bRT ? 1 : 0);
+	// Motion blur: 0 disables it; otherwise leave the scalability group's quality.
+	if (!bMotionBlur) { SetInt(TEXT("r.MotionBlurQuality"), 0); }
+	else if (IConsoleVariable* MB = CM.FindConsoleVariable(TEXT("r.MotionBlurQuality")))
+	{
+		if (MB->GetInt() == 0) { MB->Set(GetPostProcessingQuality() >= 3 ? 4 : 3, ECVF_SetByGameSetting); }
+	}
+}
+
 void UArenaGameUserSettings::ApplyGameplaySettings(const UObject* WorldContext)
 {
+	ApplyRenderingSettings();
+
 	// --- audio: master on the main audio device; categories on our own sources / sound classes ---
 	if (GEngine)
 	{

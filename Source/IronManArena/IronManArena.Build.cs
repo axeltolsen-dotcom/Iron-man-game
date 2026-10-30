@@ -18,7 +18,8 @@ public class IronManArena : ModuleRules
 			"Slate",
 			"SlateCore",       // FSlateFontInfo, FSlateColor, FCoreStyle
 			"CinematicCamera", // ACineCameraActor for the suit-up cinematics
-			"Json"             // FJsonObject: Content/Story/story.json + morgan.json
+			"Json",            // FJsonObject: Content/Story/story.json + morgan.json
+			"RenderCore"       // IsRayTracingAllowed() for the ray tracing toggle
 		});
 
 		// Niagara is intentionally NOT used: all effects are built from engine basic

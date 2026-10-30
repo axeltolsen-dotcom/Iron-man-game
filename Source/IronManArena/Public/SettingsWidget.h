@@ -54,6 +54,10 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UCheckBox> VSyncCheck;
 	UPROPERTY(Transient) TObjectPtr<UComboBoxString> FrameCapCombo;
 	UPROPERTY(Transient) TObjectPtr<UComboBoxString> QualityCombo;
+	UPROPERTY(Transient) TObjectPtr<UCheckBox> RayTracingCheck;
+	UPROPERTY(Transient) TObjectPtr<UCheckBox> MotionBlurCheck;
+	UPROPERTY(Transient) TObjectPtr<UCheckBox> DofCheck;
+	UPROPERTY(Transient) TObjectPtr<UCheckBox> ShakeCheck;
 	UPROPERTY(Transient) TObjectPtr<USlider> FovSlider;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> FovValue;
 	UPROPERTY(Transient) TObjectPtr<USlider> SensSlider;
