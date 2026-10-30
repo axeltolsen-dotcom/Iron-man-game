@@ -1,4 +1,5 @@
 #include "BossTitan.h"
+#include "StoryDirector.h"
 #include "IronManCharacter.h"
 #include "IronProjectile.h"
 #include "ArenaGameMode.h"
@@ -124,6 +125,7 @@ void ABossTitan::EnterPhase(int32 NewPhase)
 
 	if (AArenaGameMode* GM = GetArenaGameMode())
 	{
+		if (AStoryDirector* Director = GM->GetStoryDirector()) { Director->NotifyBossPhase(NewPhase); }
 		const FText Sub = (NewPhase == 2)
 			? NSLOCTEXT("IronManArena", "BossP2", "ARMOR BREACHED - MISSILE PODS ONLINE")
 			: NSLOCTEXT("IronManArena", "BossP3", "CORE CRITICAL - RAMMING SPEED");

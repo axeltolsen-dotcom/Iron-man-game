@@ -1,5 +1,8 @@
 #include "ArenaGameMode.h"
 #include "StoryLibrary.h"
+#include "StoryAutopilot.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Misc/PackageName.h"
 
 #include "IronManArena.h"
@@ -53,6 +56,16 @@ void AArenaGameMode::BeginPlay()
 	BuildArenaIfNeeded();
 	UStoryLibrary::LogStoryStatus();
 	ArenaState = EArenaGameState::Menu;
+
+	// Headless story test: -StoryAutoplay [-StoryAutoplayChapter=N] [-StoryAutoplayQuit] (see StoryAutopilot.h).
+	if (FParse::Param(FCommandLine::Get(), TEXT("StoryAutoplay")))
+	{
+		int32 Chapter = 0;
+		const bool bOne = FParse::Value(FCommandLine::Get(), TEXT("StoryAutoplayChapter="), Chapter);
+		const int32 Last = UStoryLibrary::GetStory().Chapters.Num() - 1;
+		AStoryAutopilot::Launch(GetWorld(), bOne ? Chapter - 1 : 0, bOne ? Chapter - 1 : Last, !bOne,
+			FParse::Param(FCommandLine::Get(), TEXT("StoryAutoplayQuit")));
+	}
 	NextHulkbusterAt = HulkbusterScoreStep;
 	ASuitUpCinematic::OnFinished.AddUObject(this, &AArenaGameMode::HandleSuitUpFinished);
 

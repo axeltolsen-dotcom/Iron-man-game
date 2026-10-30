@@ -167,6 +167,10 @@ void AStoryDirector::StartStory(int32 InChapterIndex, bool bPlayPrologue, bool b
 	}
 
 	LoadProgress();
+	Reports.Reset();
+	Reports.SetNum(Story.Chapters.Num());
+	bFinaleReached = false;
+	bStoryCompleted = false;
 	bHeroPromptShown = false;
 	bInFinale = false;
 	bInPrologue = false;
@@ -296,6 +300,25 @@ void AStoryDirector::BeginChapter(int32 Index, bool bSkipIntro)
 	ApplyChapterSuit(Index, false);
 	SaveProgress(Index, false);
 
+	if (Reports.IsValidIndex(Index))
+	{
+		FStoryChapterReport& Rep = Reports[Index];
+		Rep = FStoryChapterReport();
+		Rep.bStarted = true;
+		Rep.bIntroPlayed = !bSkipIntro && C.Intro.Num() > 0;
+		if (const AIronManCharacter* P = GetPlayer())
+		{
+			if (const UReactorComponent* Core = P->GetReactor())
+			{
+				Rep.bReactorApplied = Core->HasStage();
+				Rep.ReactorStage = Core->GetStage();
+				Rep.ReactorMount = Core->GetMount();
+			}
+			Rep.SuitWorn = P->GetSuit().Id;
+			Rep.bSuitAllowed = P->IsSuitAllowed(P->GetSuitIndex());
+		}
+	}
+
 	if (AArenaGameMode* GM = GetGM()) { GM->SetDifficultyWave(Index + 1); }
 	if (AIronManCharacter* Player = GetPlayer())
 	{
@@ -353,6 +376,14 @@ void AStoryDirector::FinishChapter()
 			if (UReactorComponent* R = Player->GetReactor()) { R->SetCoreDark(true); }
 		}
 	}
+	if (FStoryChapterReport* Rep = CurrentReport())
+	{
+		Rep->bOutroPlayed = C.Outro.Num() > 0;
+		if (const AIronManCharacter* P = GetPlayer())
+		{
+			if (const UReactorComponent* R = P->GetReactor()) { Rep->bCoreDarkAtEnd = R->IsCoreDark(); }
+		}
+	}
 
 	auto Next = [this]()
 	{
@@ -367,6 +398,11 @@ void AStoryDirector::FinishChapter()
 				GM->ShowBanner(LOCTEXT("AllyUnlocked", "ALLY UNLOCKED"),
 					FText::Format(LOCTEXT("AllyUnlockedSub", "{0}  -  press G when the HUD says so"), UStoryLibrary::GetSpeakerLabel(A, PlayerName)), 4.f);
 			}
+		}
+		if (FStoryChapterReport* Rep = CurrentReport())
+		{
+			Rep->bFinished = true;
+			Rep->bAllyUnlocked = !A.IsNone() && Allies.Contains(A);
 		}
 		SaveProgress(ChapterIndex + 1, false);
 		if (ChapterIndex + 1 < S.Chapters.Num()) { BeginChapter(ChapterIndex + 1, false); }
@@ -387,6 +423,7 @@ void AStoryDirector::StartFinale()
 {
 	const FStoryBook& Story = UStoryLibrary::GetStory();
 	bInFinale = true;
+	bFinaleReached = true;
 	ClearHostiles();
 	ApplyReactor(Story.Finale.Reactor);
 	if (Story.Finale.Shots.Num() == 0) { FinishStory(); return; }
@@ -398,6 +435,7 @@ void AStoryDirector::FinishStory()
 	const FStoryBook& Story = UStoryLibrary::GetStory();
 	Step = EStoryStep::Complete;
 	bInFinale = false;
+	bStoryCompleted = true;
 	SaveProgress(Story.Chapters.Num(), true);
 	if (AArenaGameMode* GM = GetGM())
 	{
@@ -437,6 +475,7 @@ void AStoryDirector::StartObjective(int32 Index)
 
 	ObjectiveIndex = Index;
 	Step = EStoryStep::Objective;
+	if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->ObjectivesStarted; }
 	ObjectiveProgress = 0.f;
 	bProgressCommsFired = false;
 	ObjectiveCount = 0;
@@ -574,6 +613,7 @@ void AStoryDirector::FireComms(EStoryCommsTrigger Trigger)
 	{
 		if (Comms.Trigger != Trigger) { continue; }
 		const FStoryLine& L = Comms.Line;
+		if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->CommsFired[FMath::Clamp(int32(Trigger), 0, 2)]; }
 		J->SayScripted(L.Speaker, UStoryLibrary::GetSpeakerLabel(L.Speaker, PlayerName), FText::FromString(Resolve(L.Text)),
 			UStoryLibrary::GetSpeakerColor(L.Speaker), UStoryLibrary::GetLineSound(L, PlayerName, Story.PlayerNameDefault),
 			Trigger == EStoryCommsTrigger::Complete ? 80 : 75, false);
@@ -591,6 +631,7 @@ void AStoryDirector::CompleteObjective()
 	}
 	ObjectiveProgress = 1.f;
 	Step = EStoryStep::ObjectiveDone;
+	if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->ObjectivesCompleted; }
 	GapTimer = ObjectiveGapSeconds;
 	if (AArenaGameMode* GM = GetGM())
 	{
@@ -748,6 +789,7 @@ void AStoryDirector::HandleForcedLanding()
 	if (Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex].Type != EStoryObjectiveType::Energy) { return; }
 
 	++ForcedLandings;
+	if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->ForcedLandings; }
 	ObjectiveTimer = 0.f;
 	ObjectiveProgress = 0.f;
 	if (AArenaGameMode* GM = GetGM())
@@ -783,6 +825,7 @@ void AStoryDirector::HandleSummonAlly()
 	Ally = AStoryAlly::Summon(GetWorld(), GetPlayer(), AllyDuration);
 	if (Ally)
 	{
+		if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->AllySummons; }
 		AllyCooldownLeft = AllyCooldown;
 		GM->ShowBanner(UStoryLibrary::GetSpeakerLabel(AllyId, PlayerName), LOCTEXT("AllyOnline", "Phasing in"), 2.f);
 		if (UJarvisComponent* J = UJarvisComponent::Get(this))
@@ -793,6 +836,36 @@ void AStoryDirector::HandleSummonAlly()
 				UStoryLibrary::GetSpeakerColor(VisonSpeaker), nullptr, 70, false);
 		}
 	}
+}
+
+// =============================================================================== test / HUD state
+
+FStoryChapterReport* AStoryDirector::CurrentReport()
+{
+	return Reports.IsValidIndex(ChapterIndex) ? &Reports[ChapterIndex] : nullptr;
+}
+
+const FStoryObjective* AStoryDirector::GetCurrentObjective() const
+{
+	if (Step != EStoryStep::Objective && Step != EStoryStep::ObjectiveDone) { return nullptr; }
+	const FStoryBook& Story = UStoryLibrary::GetStory();
+	if (!Story.Chapters.IsValidIndex(ChapterIndex) || !Story.Chapters[ChapterIndex].Objectives.IsValidIndex(ObjectiveIndex)) { return nullptr; }
+	return &Story.Chapters[ChapterIndex].Objectives[ObjectiveIndex];
+}
+
+void AStoryDirector::GetObjectiveEnemies(TArray<AEnemyBase*>& Out) const
+{
+	Out.Reset();
+	for (const TWeakObjectPtr<AEnemyBase>& E : ObjectiveEnemies)
+	{
+		if (E.IsValid() && !E->IsDead()) { Out.Add(E.Get()); }
+	}
+}
+
+void AStoryDirector::NotifyBossPhase(int32 Phase)
+{
+	if (Step != EStoryStep::Objective) { return; }
+	if (FStoryChapterReport* Rep = CurrentReport()) { Rep->BossPhasesSeen = FMath::Max(Rep->BossPhasesSeen, Phase); }
 }
 
 // =============================================================================== HUD
@@ -1288,6 +1361,7 @@ void AStoryDirector::ShowHeroPrompt()
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (!PC) { bHeroPromptShown = true; BeginShot(ShotIndex); return; }
 	Step = EStoryStep::NamePrompt;
+	if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->HeroPrompts; }
 	if (VoiceAudio) { VoiceAudio->Stop(); VoiceAudio = nullptr; }
 	if (Overlay) { Overlay->SetCaption(FText::GetEmpty(), FText::GetEmpty(), FLinearColor::White); }
 

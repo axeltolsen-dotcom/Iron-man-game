@@ -21,6 +21,9 @@ public:
 	/** Called once with the trimmed name (DefaultName when left empty). */
 	TFunction<void(const FString&)> OnSubmitted;
 
+	/** Types Name into the box and submits it, as if the player pressed Enter (autopilot / tests). */
+	void SubmitName(const FString& Name);
+
 	/** Keyboard focus to the text box. */
 	void FocusInput(APlayerController* PC);
 

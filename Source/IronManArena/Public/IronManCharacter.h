@@ -169,6 +169,14 @@ public:
 	/** Fired when the ally key (G) is pressed. */
 	FSimpleMulticastDelegate OnSummonAllyPressed;
 
+	// ---- Simulated input (AStoryAutopilot / automation tests): the same code paths as the bindings.
+	void SimulateFlightKey(bool bFly) { if (!bDead && !bInCinematic && bFly != IsFlying()) { SetFlying(bFly); } }
+	void SimulateHulkbusterKey() { Input_Hulkbuster(FInputActionValue()); }
+	void SimulateAllyKey() { Input_Ally(FInputActionValue()); }
+	void SimulateVentKey() { Input_Vent(FInputActionValue()); }
+	/** Space / click during a cinematic (next shot, or skips the suit-up). */
+	bool SimulateSkipKey() { return TrySkipCinematic(); }
+
 	/**
 	 * Restricts the suit wheel / quick slots / swaps to these suit ids (story mode: unlocked suits).
 	 * Empty = every suit (arena).

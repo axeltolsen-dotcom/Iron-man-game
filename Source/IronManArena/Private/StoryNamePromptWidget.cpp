@@ -104,6 +104,13 @@ void UStoryNamePromptWidget::HandleOkClicked()
 	Submit();
 }
 
+void UStoryNamePromptWidget::SubmitName(const FString& Name)
+{
+	if (NameBox) { NameBox->SetText(FText::FromString(Name)); }
+	else { Default = Name; }
+	Submit();
+}
+
 void UStoryNamePromptWidget::Submit()
 {
 	if (bSubmitted) { return; }

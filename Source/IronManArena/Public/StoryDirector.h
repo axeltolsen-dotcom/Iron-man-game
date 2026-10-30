@@ -48,6 +48,36 @@ enum class EStoryStep : uint8
 	Complete
 };
 
+/**
+ * What actually happened in one chapter of the current run (filled by the director as the
+ * chapter plays; read by AStoryAutopilot / the IronManArena.Story automation tests).
+ */
+struct IRONMANARENA_API FStoryChapterReport
+{
+	bool bStarted = false;
+	bool bIntroPlayed = false;
+	bool bOutroPlayed = false;
+	bool bFinished = false;
+	/** Reactor state read back from the player's UReactorComponent after the chapter applied it. */
+	bool bReactorApplied = false;
+	EReactorStage ReactorStage = EReactorStage::Makeshift;
+	EReactorMount ReactorMount = EReactorMount::Spine;
+	bool bCoreDarkAtEnd = false;
+	/** Suit the player wears in the chapter and whether the suit wheel allows it. */
+	FName SuitWorn;
+	bool bSuitAllowed = false;
+	int32 ObjectivesStarted = 0;
+	int32 ObjectivesCompleted = 0;
+	/** Scripted comms lines handed to the comms AI, by trigger (start / progress / complete). */
+	int32 CommsFired[3] = { 0, 0, 0 };
+	int32 AllySummons = 0;
+	/** UnlockAlly from story.json was added to the roster when the chapter finished. */
+	bool bAllyUnlocked = false;
+	int32 BossPhasesSeen = 0;
+	int32 ForcedLandings = 0;
+	int32 HeroPrompts = 0;
+};
+
 UCLASS(Blueprintable)
 class IRONMANARENA_API AStoryDirector : public AActor
 {
@@ -84,6 +114,25 @@ public:
 
 	/** World location of the current beacon (HUD marker), false if none. */
 	bool GetBeaconLocation(FVector& Out) const;
+
+	// ---- read-only state for the autopilot / automation tests
+	EStoryStep GetStep() const { return Step; }
+	int32 GetObjectiveIndex() const { return ObjectiveIndex; }
+	bool IsInFinale() const { return bInFinale; }
+	bool IsInPrologue() const { return bInPrologue; }
+	/** Current objective (nullptr outside an objective). */
+	const FStoryObjective* GetCurrentObjective() const;
+	AStoryBeacon* GetBeacon() const { return Beacon; }
+	AStoryAlly* GetActiveAlly() const { return Ally; }
+	bool HasAlly(FName AllyId) const { return Allies.Contains(AllyId); }
+	void GetObjectiveEnemies(TArray<AEnemyBase*>& Out) const;
+	UStoryNamePromptWidget* GetHeroPrompt() const { return Prompt; }
+	/** One entry per chapter of story.json, reset by StartStory. */
+	const TArray<FStoryChapterReport>& GetChapterReports() const { return Reports; }
+	bool WasFinaleReached() const { return bFinaleReached; }
+	bool WasStoryCompleted() const { return bStoryCompleted; }
+	/** Boss objectives: the director counts phase changes of the active Titan. */
+	void NotifyBossPhase(int32 Phase);
 
 	const FString& GetPlayerName() const { return PlayerName; }
 	const FString& GetHeroName() const { return HeroName; }
@@ -181,7 +230,12 @@ protected:
 	AArenaGameMode* GetGM() const;
 	FString Resolve(const FString& Text) const;
 
+	FStoryChapterReport* CurrentReport();
+
 	// ---- state
+	TArray<FStoryChapterReport> Reports;
+	bool bFinaleReached = false;
+	bool bStoryCompleted = false;
 	EStoryStep Step = EStoryStep::Idle;
 	int32 ChapterIndex = 0;
 	int32 ObjectiveIndex = 0;
