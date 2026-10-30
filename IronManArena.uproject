@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.8",
 	"Category": "",
-	"Description": "Third-person Iron Man arena shooter (placeholder-shape visuals, all-C++ setup).",
+	"Description": "Iron Man action game: story + arena, procedural city and armour, all-C++ setup.",
 	"Modules": [
 		{
 			"Name": "IronManArena",
@@ -30,6 +30,21 @@
 		{
 			"Name": "EditorScriptingUtilities",
 			"Enabled": true
+		},
+		{
+			"Name": "MetaHumanCoreTech",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "MetaHumanSDK",
+			"Enabled": true,
+			"Optional": true
+		},
+		{
+			"Name": "MetaHumanCharacter",
+			"Enabled": true,
+			"Optional": true
 		}
 	]
 }
