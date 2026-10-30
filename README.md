@@ -21,20 +21,48 @@ frame rate have never been seen or measured. Audio playback was never heard (`-n
 references were checked. **No Windows (MSVC) build has been run**; the code avoids C4458/-Wshadow names, but
 that is not a proof.
 
-## Quick start
+## Quick start (Linux)
 
 ```bash
 UE=/path/to/UnrealEngine/5.8
 $UE/Engine/Build/BatchFiles/Linux/Build.sh IronManArenaEditor Linux Development -Project="$PWD/IronManArena.uproject" -WaitMutex
 $UE/Engine/Binaries/Linux/UnrealEditor "$PWD/IronManArena.uproject"
 ```
-- **Windows:** right-click `IronManArena.uproject` → *Generate Visual Studio project files*, build `IronManArenaEditor`
-  / *Development Editor*, press Play. The source drop has no `Binaries/` or `Intermediate/`, so the first open compiles.
 - **MetaHuman plugins:** `MetaHumanCoreTech`, `MetaHumanSDK` and `MetaHumanCharacter` are enabled in the `.uproject`
   as `"Optional": true`, so engines without them (like the build box) still load. Tony's MetaHuman is used when
   `/Game/MetaHumans/Tony/BP_Tony` exists (see `Docs/ADDING_METAHUMANS.md`); otherwise the procedural suit / placeholder.
 - Headless tests: `UnrealEditor IronManArena.uproject -game -nullrhi -nosound -unattended -ExecCmds="Automation RunTests IronManArena" -TestExit="Automation Test Queue Empty"`.
 - Arena smoke: add `-ArenaSmoke [-ArenaSmokeWaves=N] -ArenaSmokeQuit`; story autoplay: `-StoryAutoplay -StoryAutoplayQuit`.
+
+## Build and run on Windows
+
+Requirements: Windows 10/11 x64, **Unreal Engine 5.8** (Epic Games Launcher or source build), **Visual Studio 2022**
+with the *Game development with C++* workload (MSVC v143, Windows 10/11 SDK) - or the toolchain UE 5.8 asks for.
+About 2 GB free for the project plus Unreal's derived data cache.
+
+1. Put the project at `D:\IronManGame\IronManArena\` so that `D:\IronManGame\IronManArena\IronManArena.uproject`
+   exists (the Win64 source drop unzips straight into that folder; all parts go into the same folder).
+2. Copy `Scripts\Windows\build.bat` to `D:\IronManGame\build.bat` (the source drop ships it loose) and run it.
+   It finds the engine from `%UE_ROOT%`, the Epic launcher registry key or the usual install folders, then runs
+   `Engine\Build\BatchFiles\Build.bat IronManArenaEditor Win64 Development -Project=...`.
+   If it can't find the engine: `set UE_ROOT=C:\Program Files\Epic Games\UE_5.8` and run it again.
+3. Launch the game (first start compiles shaders, which can take several minutes):
+   ```bat
+   "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe" "D:\IronManGame\IronManArena\IronManArena.uproject" -game -windowed -ResX=1600 -ResY=900
+   ```
+   (`UnrealEditor.exe` alone works if the engine's `Engine\Binaries\Win64` is on your `PATH`.)
+   Leave out `-game` to open the editor instead, then press Play.
+4. Alternative: right-click `IronManArena.uproject` -> *Generate Visual Studio project files*, open
+   `IronManArena.sln`, choose *Development Editor* / *Win64*, build `IronManArena`, press F5.
+
+Notes:
+- The drop has no `Binaries/`, `Intermediate/`, `Saved/` or `DerivedDataCache/`; everything is rebuilt locally.
+- MSVC treats C4458 (a local hides a class member) as an error. The code avoids UE base-member names
+  (`Slot`, `bHidden`, `Owner`, `Instigator`, `Tags`, `Children`, ...) for locals and parameters; keep it that way.
+- If the editor says a module is missing or out of date, answer *Yes* to rebuild, or rerun `build.bat`.
+- Default scalability is **High** (Settings menu in game). Lower it if an older GPU struggles.
+- To make a standalone Windows build: `RunUAT.bat BuildCookRun -project=D:\IronManGame\IronManArena\IronManArena.uproject
+  -platform=Win64 -clientconfig=Development -build -cook -stage -pak -archive -archivedirectory=D:\IronManGame\Packaged`.
 
 ## How to play
 
