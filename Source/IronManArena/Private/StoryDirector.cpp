@@ -145,8 +145,8 @@ void AStoryDirector::LoadProgress()
 void AStoryDirector::SaveProgress(int32 ReachedChapter, bool bComplete)
 {
 	const AArenaGameMode* GM = GetGM();
-	const FString Slot = GM ? GM->SaveSlotName : FString(TEXT("IronManArena"));
-	UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(Slot);
+	const FString SaveSlotId = GM ? GM->SaveSlotName : FString(TEXT("IronManArena"));
+	UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(SaveSlotId);
 	if (!Save) { return; }
 	if (bSideMission) { return; } // side missions never move main progress (GrantSideReward saves)
 	Save->StoryChapterReached = FMath::Max(Save->StoryChapterReached, ReachedChapter);
@@ -156,7 +156,7 @@ void AStoryDirector::SaveProgress(int32 ReachedChapter, bool bComplete)
 	for (const FName& A : Allies) { Save->StoryAllies.AddUnique(A); }
 	Save->PlayerName = PlayerName;
 	Save->HeroName = HeroName;
-	Save->Write(Slot);
+	Save->Write(SaveSlotId);
 }
 
 // =============================================================================== flow
@@ -217,15 +217,15 @@ bool AStoryDirector::StartSideMission(FName MissionId, bool bSkipIntro, bool bIg
 void AStoryDirector::GrantSideReward(const FStoryChapter& Mission)
 {
 	const AArenaGameMode* GMc = GetGM();
-	const FString Slot = GMc ? GMc->SaveSlotName : FString(TEXT("IronManArena"));
-	UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(Slot);
+	const FString SaveSlotId = GMc ? GMc->SaveSlotName : FString(TEXT("IronManArena"));
+	UArenaSaveGame* Save = UArenaSaveGame::LoadOrCreate(SaveSlotId);
 	if (!Save) { return; }
 	Save->SideMissionsDone.AddUnique(Mission.Id);
 	if (!Mission.RewardCodex.IsNone()) { Save->CodexGranted.AddUnique(Mission.RewardCodex); }
 	if (!Mission.RewardUpgrade.IsNone()) { Save->Upgrades.AddUnique(Mission.RewardUpgrade); }
 	if (!Mission.RewardCosmetic.IsNone()) { Save->Cosmetics.AddUnique(Mission.RewardCosmetic); }
 	for (const FName& S : UnlockedSuits) { Save->StoryUnlockedSuits.AddUnique(S); }
-	Save->Write(Slot);
+	Save->Write(SaveSlotId);
 	bSideRewardGranted = true;
 	if (Mission.RewardCosmetic == ArenaRewards::PodLighting()) { AChapterSet::bHallPodLighting = true; }
 	if (AIronManCharacter* Player = GetPlayer()) { Player->ApplyRewards(); }

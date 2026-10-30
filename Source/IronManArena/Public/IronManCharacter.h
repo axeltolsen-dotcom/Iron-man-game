@@ -128,9 +128,9 @@ public:
 	/** Highlighted slot 0..7 (clockwise from the top) or INDEX_NONE. */
 	int32 GetWheelSelection() const { return WheelSelection; }
 	/** Suit index shown in a wheel slot on the current page, INDEX_NONE if empty. */
-	int32 GetWheelSuit(int32 Slot) const;
+	int32 GetWheelSuit(int32 SlotIndex) const;
 	/** Suit index on quick slot 0..4 (keys 1-5). */
-	int32 GetQuickSlotSuit(int32 Slot) const;
+	int32 GetQuickSlotSuit(int32 SlotIndex) const;
 
 	// --- special ability (HUD) ---
 	FText GetSpecialName() const;
@@ -499,7 +499,7 @@ protected:
 	void Input_Slot3(const FInputActionValue& Value) { QuickSlot(2); }
 	void Input_Slot4(const FInputActionValue& Value) { QuickSlot(3); }
 	void Input_Slot5(const FInputActionValue& Value) { QuickSlot(4); }
-	void QuickSlot(int32 Slot);
+	void QuickSlot(int32 SlotIndex);
 	void Input_BoostStarted(const FInputActionValue& Value);
 	void Input_BoostCompleted(const FInputActionValue& Value);
 	void Input_Vent(const FInputActionValue& Value);

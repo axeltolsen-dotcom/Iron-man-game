@@ -519,22 +519,22 @@ int32 AIronManCharacter::GetWheelPageCount() const
 	return FMath::Max(1, FMath::DivideAndRoundUp(Count, WheelSlots));
 }
 
-int32 AIronManCharacter::GetWheelSuit(int32 Slot) const
+int32 AIronManCharacter::GetWheelSuit(int32 SlotIndex) const
 {
-	if (Slot < 0 || Slot >= WheelSlots) { return INDEX_NONE; }
-	const int32 Idx = WheelPage * WheelSlots + Slot;
+	if (SlotIndex < 0 || SlotIndex >= WheelSlots) { return INDEX_NONE; }
+	const int32 Idx = WheelPage * WheelSlots + SlotIndex;
 	if (SelectableSuits.Num() > 0) { return SelectableSuits.IsValidIndex(Idx) ? SelectableSuits[Idx] : INDEX_NONE; }
 	return Idx < USuitLibrary::GetNumSuits() ? Idx : INDEX_NONE;
 }
 
-int32 AIronManCharacter::GetQuickSlotSuit(int32 Slot) const
+int32 AIronManCharacter::GetQuickSlotSuit(int32 SlotIndex) const
 {
 	if (SelectableSuits.Num() > 0 && SelectableSuits.Num() < USuitLibrary::GetNumSuits())
 	{
 		// Story: 1-5 pick from the unlocked suits, newest last.
-		return SelectableSuits.IsValidIndex(Slot) ? SelectableSuits[Slot] : INDEX_NONE;
+		return SelectableSuits.IsValidIndex(SlotIndex) ? SelectableSuits[SlotIndex] : INDEX_NONE;
 	}
-	return QuickSlotSuitIds.IsValidIndex(Slot) ? USuitLibrary::FindSuitIndex(QuickSlotSuitIds[Slot]) : INDEX_NONE;
+	return QuickSlotSuitIds.IsValidIndex(SlotIndex) ? USuitLibrary::FindSuitIndex(QuickSlotSuitIds[SlotIndex]) : INDEX_NONE;
 }
 
 float AIronManCharacter::GetSpecialCost() const
@@ -769,8 +769,8 @@ void AIronManCharacter::Input_Look(const FInputActionValue& Value)
 			// 0 = up, clockwise (X right, Y up).
 			float Deg = FMath::RadiansToDegrees(FMath::Atan2(WheelCursor.X, WheelCursor.Y));
 			if (Deg < 0.f) { Deg += 360.f; }
-			const int32 Slot = FMath::RoundToInt(Deg / (360.f / WheelSlots)) % WheelSlots;
-			if (GetWheelSuit(Slot) != INDEX_NONE) { WheelSelection = Slot; }
+			const int32 SlotIndex = FMath::RoundToInt(Deg / (360.f / WheelSlots)) % WheelSlots;
+			if (GetWheelSuit(SlotIndex) != INDEX_NONE) { WheelSelection = SlotIndex; }
 		}
 		return;
 	}
@@ -902,10 +902,10 @@ void AIronManCharacter::CloseSuitWheel(bool bApply)
 	}
 }
 
-void AIronManCharacter::QuickSlot(int32 Slot)
+void AIronManCharacter::QuickSlot(int32 SlotIndex)
 {
 	if (bDead || bInCinematic || bWheelOpen) { return; }
-	const int32 Target = GetQuickSlotSuit(Slot);
+	const int32 Target = GetQuickSlotSuit(SlotIndex);
 	if (Target == INDEX_NONE || Target == SuitIndex) { return; }
 	if (!RequestSuitSwap(Target) && SwapCooldownLeft > 0.f)
 	{
