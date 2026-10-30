@@ -1,0 +1,346 @@
+{
+  "generatedAt": "2026-10-30T13:29:16+00:00",
+  "license": "All CC0",
+  "assets": [
+    {
+      "category": "Workshop concrete floor",
+      "name": "Hangar Concrete Floor",
+      "source": "Poly Haven",
+      "assetId": "hangar_concrete_floor",
+      "pageUrl": "https://polyhaven.com/a/hangar_concrete_floor",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/hangar_concrete_floor/hangar_concrete_floor_diff_2k.jpg",
+      "format": "JPG 2K maps (separate files)",
+      "use": "Tony's workshop / lab floor",
+      "maps": {
+        "diffuse": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/hangar_concrete_floor/hangar_concrete_floor_diff_2k.jpg",
+        "normal_dx": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/hangar_concrete_floor/hangar_concrete_floor_nor_dx_2k.jpg",
+        "roughness": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/hangar_concrete_floor/hangar_concrete_floor_rough_2k.jpg",
+        "displacement": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/hangar_concrete_floor/hangar_concrete_floor_disp_2k.jpg",
+        "ao": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/hangar_concrete_floor/hangar_concrete_floor_ao_2k.jpg",
+        "arm": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/hangar_concrete_floor/hangar_concrete_floor_arm_2k.jpg"
+      },
+      "verified": "206",
+      "mapsVerified": {
+        "diffuse": "206",
+        "normal_dx": "206",
+        "roughness": "206",
+        "displacement": "206",
+        "ao": "206",
+        "arm": "206"
+      }
+    },
+    {
+      "category": "Workshop concrete floor",
+      "name": "Concrete 034",
+      "source": "ambientCG",
+      "assetId": "Concrete034",
+      "pageUrl": "https://ambientcg.com/view?id=Concrete034",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=Concrete034_2K-JPG.zip",
+      "format": "ZIP (2K-JPG)",
+      "use": "Alternate garage floor / walls",
+      "verified": "206"
+    },
+    {
+      "category": "Brushed steel",
+      "name": "Metal 009",
+      "source": "ambientCG",
+      "assetId": "Metal009",
+      "pageUrl": "https://ambientcg.com/view?id=Metal009",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=Metal009_2K-JPG.zip",
+      "format": "ZIP (2K-JPG)",
+      "use": "Armor-rack trims, workbench & machinery steel",
+      "verified": "206"
+    },
+    {
+      "category": "Garage interior HDRI",
+      "name": "Garage",
+      "source": "Poly Haven",
+      "assetId": "garage",
+      "pageUrl": "https://polyhaven.com/a/garage",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/garage_2k.hdr",
+      "format": "HDR 2K",
+      "use": "Workshop/garage interior lighting & reflections",
+      "verified": "206"
+    },
+    {
+      "category": "Garage interior HDRI",
+      "name": "Indoor Environment HDRI 010",
+      "source": "ambientCG",
+      "assetId": "IndoorEnvironmentHDRI010",
+      "pageUrl": "https://ambientcg.com/view?id=IndoorEnvironmentHDRI010",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=IndoorEnvironmentHDRI010_2K.zip",
+      "format": "ZIP (2K)",
+      "use": "Industrial garage/workshop ambient lighting",
+      "verified": "206"
+    },
+    {
+      "category": "Rooftop gravel",
+      "name": "Tarred Gravel",
+      "source": "Poly Haven",
+      "assetId": "tarred_gravel",
+      "pageUrl": "https://polyhaven.com/a/tarred_gravel",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/tarred_gravel/tarred_gravel_diff_2k.jpg",
+      "format": "JPG 2K maps (separate files)",
+      "use": "Stark Tower & city rooftop surfaces",
+      "maps": {
+        "diffuse": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/tarred_gravel/tarred_gravel_diff_2k.jpg",
+        "normal_dx": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/tarred_gravel/tarred_gravel_nor_dx_2k.jpg",
+        "roughness": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/tarred_gravel/tarred_gravel_rough_2k.jpg",
+        "displacement": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/tarred_gravel/tarred_gravel_disp_2k.jpg",
+        "ao": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/tarred_gravel/tarred_gravel_ao_2k.jpg",
+        "arm": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/tarred_gravel/tarred_gravel_arm_2k.jpg"
+      },
+      "verified": "206",
+      "mapsVerified": {
+        "diffuse": "206",
+        "normal_dx": "206",
+        "roughness": "206",
+        "displacement": "206",
+        "ao": "206",
+        "arm": "206"
+      }
+    },
+    {
+      "category": "Rooftop gravel",
+      "name": "Gravel 022",
+      "source": "ambientCG",
+      "assetId": "Gravel022",
+      "pageUrl": "https://ambientcg.com/view?id=Gravel022",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=Gravel022_2K-JPG.zip",
+      "format": "ZIP (2K-JPG)",
+      "use": "Loose rooftop gravel ballast",
+      "verified": "206"
+    },
+    {
+      "category": "City asphalt (wet)",
+      "name": "Asphalt 025 C",
+      "source": "ambientCG",
+      "assetId": "Asphalt025C",
+      "pageUrl": "https://ambientcg.com/view?id=Asphalt025C",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=Asphalt025C_2K-JPG.zip",
+      "format": "ZIP (2K-JPG)",
+      "use": "Rain-soaked night streets",
+      "verified": "206"
+    },
+    {
+      "category": "City asphalt (dry)",
+      "name": "Asphalt 02",
+      "source": "Poly Haven",
+      "assetId": "asphalt_02",
+      "pageUrl": "https://polyhaven.com/a/asphalt_02",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_diff_2k.jpg",
+      "format": "JPG 2K maps (separate files)",
+      "use": "Dry city streets and parking lots",
+      "maps": {
+        "diffuse": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_diff_2k.jpg",
+        "normal_dx": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_nor_dx_2k.jpg",
+        "roughness": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_rough_2k.jpg",
+        "displacement": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_disp_2k.jpg",
+        "ao": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_ao_2k.jpg",
+        "arm": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_arm_2k.jpg"
+      },
+      "verified": "206",
+      "mapsVerified": {
+        "diffuse": "206",
+        "normal_dx": "206",
+        "roughness": "206",
+        "displacement": "206",
+        "ao": "206",
+        "arm": "206"
+      }
+    },
+    {
+      "category": "Brick facade",
+      "name": "Red Brick 03",
+      "source": "Poly Haven",
+      "assetId": "red_brick_03",
+      "pageUrl": "https://polyhaven.com/a/red_brick_03",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick_03/red_brick_03_diff_2k.jpg",
+      "format": "JPG 2K maps (separate files)",
+      "use": "Older city building exteriors",
+      "maps": {
+        "diffuse": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick_03/red_brick_03_diff_2k.jpg",
+        "normal_dx": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick_03/red_brick_03_nor_dx_2k.jpg",
+        "roughness": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick_03/red_brick_03_rough_2k.jpg",
+        "displacement": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick_03/red_brick_03_disp_2k.jpg",
+        "ao": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick_03/red_brick_03_ao_2k.jpg",
+        "arm": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick_03/red_brick_03_arm_2k.jpg"
+      },
+      "verified": "206",
+      "mapsVerified": {
+        "diffuse": "206",
+        "normal_dx": "206",
+        "roughness": "206",
+        "displacement": "206",
+        "ao": "206",
+        "arm": "206"
+      }
+    },
+    {
+      "category": "Glass facade",
+      "name": "Facade 001",
+      "source": "ambientCG",
+      "assetId": "Facade001",
+      "pageUrl": "https://ambientcg.com/view?id=Facade001",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=Facade001_2K-JPG.zip",
+      "format": "ZIP (2K-JPG)",
+      "use": "Reflective glass skyscraper exteriors",
+      "verified": "206"
+    },
+    {
+      "category": "Glass facade",
+      "name": "Facade 017",
+      "source": "ambientCG",
+      "assetId": "Facade017",
+      "pageUrl": "https://ambientcg.com/view?id=Facade017",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=Facade017_2K-JPG.zip",
+      "format": "ZIP (2K-JPG)",
+      "use": "Office tower window grids",
+      "verified": "206"
+    },
+    {
+      "category": "Ruined concrete",
+      "name": "Rebar Reinforced Concrete",
+      "source": "Poly Haven",
+      "assetId": "rebar_reinforced_concrete",
+      "pageUrl": "https://polyhaven.com/a/rebar_reinforced_concrete",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rebar_reinforced_concrete/rebar_reinforced_concrete_diff_2k.jpg",
+      "format": "JPG 2K maps (separate files)",
+      "use": "Battle-damaged walls with exposed rebar",
+      "maps": {
+        "diffuse": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rebar_reinforced_concrete/rebar_reinforced_concrete_diff_2k.jpg",
+        "normal_dx": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rebar_reinforced_concrete/rebar_reinforced_concrete_nor_dx_2k.jpg",
+        "roughness": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rebar_reinforced_concrete/rebar_reinforced_concrete_rough_2k.jpg",
+        "displacement": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rebar_reinforced_concrete/rebar_reinforced_concrete_disp_2k.jpg",
+        "ao": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rebar_reinforced_concrete/rebar_reinforced_concrete_ao_2k.jpg",
+        "arm": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rebar_reinforced_concrete/rebar_reinforced_concrete_arm_2k.jpg"
+      },
+      "verified": "206",
+      "mapsVerified": {
+        "diffuse": "206",
+        "normal_dx": "206",
+        "roughness": "206",
+        "displacement": "206",
+        "ao": "206",
+        "arm": "206"
+      }
+    },
+    {
+      "category": "Ruined concrete",
+      "name": "Damaged Concrete Floor",
+      "source": "Poly Haven",
+      "assetId": "damaged_concrete_floor",
+      "pageUrl": "https://polyhaven.com/a/damaged_concrete_floor",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_concrete_floor/damaged_concrete_floor_diff_2k.jpg",
+      "format": "JPG 2K maps (separate files)",
+      "use": "Cracked floors in destroyed zones",
+      "maps": {
+        "diffuse": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_concrete_floor/damaged_concrete_floor_diff_2k.jpg",
+        "normal_dx": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_concrete_floor/damaged_concrete_floor_nor_dx_2k.jpg",
+        "roughness": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_concrete_floor/damaged_concrete_floor_rough_2k.jpg",
+        "displacement": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_concrete_floor/damaged_concrete_floor_disp_2k.jpg",
+        "ao": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_concrete_floor/damaged_concrete_floor_ao_2k.jpg",
+        "arm": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/damaged_concrete_floor/damaged_concrete_floor_arm_2k.jpg"
+      },
+      "verified": "206",
+      "mapsVerified": {
+        "diffuse": "206",
+        "normal_dx": "206",
+        "roughness": "206",
+        "displacement": "206",
+        "ao": "206",
+        "arm": "206"
+      }
+    },
+    {
+      "category": "Rubble",
+      "name": "Rubble",
+      "source": "Poly Haven",
+      "assetId": "rubble",
+      "pageUrl": "https://polyhaven.com/a/rubble",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubble/rubble_diff_2k.jpg",
+      "format": "JPG 2K maps (separate files)",
+      "use": "Debris piles after repulsor/missile impacts",
+      "maps": {
+        "diffuse": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubble/rubble_diff_2k.jpg",
+        "normal_dx": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubble/rubble_nor_dx_2k.jpg",
+        "roughness": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubble/rubble_rough_2k.jpg",
+        "displacement": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubble/rubble_disp_2k.jpg",
+        "ao": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubble/rubble_ao_2k.jpg",
+        "arm": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rubble/rubble_arm_2k.jpg"
+      },
+      "verified": "206",
+      "mapsVerified": {
+        "diffuse": "206",
+        "normal_dx": "206",
+        "roughness": "206",
+        "displacement": "206",
+        "ao": "206",
+        "arm": "206"
+      }
+    },
+    {
+      "category": "Rubble",
+      "name": "Ground 111",
+      "source": "ambientCG",
+      "assetId": "Ground111",
+      "pageUrl": "https://ambientcg.com/view?id=Ground111",
+      "license": "CC0",
+      "url": "https://ambientcg.com/get?file=Ground111_2K-JPG.zip",
+      "format": "ZIP (2K-JPG)",
+      "use": "Urban construction debris ground cover",
+      "verified": "206"
+    },
+    {
+      "category": "Sky HDRI - day",
+      "name": "Kloofendal 48d Partly Cloudy (Pure Sky)",
+      "source": "Poly Haven",
+      "assetId": "kloofendal_48d_partly_cloudy_puresky",
+      "pageUrl": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+      "format": "HDR 2K",
+      "use": "Daytime flight sky",
+      "verified": "206"
+    },
+    {
+      "category": "Sky HDRI - sunset",
+      "name": "The Sky Is On Fire",
+      "source": "Poly Haven",
+      "assetId": "the_sky_is_on_fire",
+      "pageUrl": "https://polyhaven.com/a/the_sky_is_on_fire",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/the_sky_is_on_fire_2k.hdr",
+      "format": "HDR 2K",
+      "use": "Sunset flight / cinematic sky",
+      "verified": "206"
+    },
+    {
+      "category": "Sky HDRI - overcast",
+      "name": "Kloofendal Overcast (Pure Sky)",
+      "source": "Poly Haven",
+      "assetId": "kloofendal_overcast_puresky",
+      "pageUrl": "https://polyhaven.com/a/kloofendal_overcast_puresky",
+      "license": "CC0",
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_overcast_puresky_2k.hdr",
+      "format": "HDR 2K",
+      "use": "Overcast / stormy flight sky",
+      "verified": "206"
+    }
+  ]
+}

@@ -83,6 +83,9 @@ public:
 
 	bool HasPlaidDecal() const;
 
+	/** The arena game mode (null outside an arena world). Public for UHelmetHUDWidget::FillStateFromGame. */
+	AArenaGameMode* GetArenaGameMode() const;
+
 	/** In-game swap: plays the short (2 s) suit-up cinematic, the new suit's AI takes over. */
 	UFUNCTION(BlueprintCallable, Category = "IronMan|Suits")
 	bool RequestSuitSwap(int32 Index);
@@ -541,7 +544,6 @@ protected:
 	/** World point under the crosshair (with aim assist). */
 	FVector ComputeAimPoint() const;
 
-	AArenaGameMode* GetArenaGameMode() const;
 	void Banner(const FText& Title, const FText& Sub, float Seconds = 2.f) const;
 
 	// ------------------------------------------------------------------ components

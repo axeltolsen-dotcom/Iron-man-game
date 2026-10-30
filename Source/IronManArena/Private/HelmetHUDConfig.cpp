@@ -326,11 +326,11 @@ FHelmetHUDConfig FHelmetHUDConfig::Load(const FString& Path)
 	}
 
 	// Personas (known keys only; no iteration over FJsonObject::Values).
-	if (const FObj Personas = Child(Root, TEXT("personas")))
+	if (const FObj PersonasObj = Child(Root, TEXT("personas")))
 	{
 		for (FHUDPersonaPalette& P : Cfg.Personas)
 		{
-			const FObj E = Child(Personas, P.Key);
+			const FObj E = Child(PersonasObj, P.Key);
 			if (!E.IsValid()) { continue; }
 			const FString Ctx = TEXT("personas.") + P.Key;
 			Str(E, TEXT("label"), P.Label);

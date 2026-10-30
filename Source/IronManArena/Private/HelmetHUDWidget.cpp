@@ -452,9 +452,9 @@ void UHelmetHUDWidget::BuildTree()
 		LoadLayoutConfig();
 	}
 
-	UCanvasPanel* Outer = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("HUDRoot"));
-	Outer->SetVisibility(ESlateVisibility::HitTestInvisible);
-	WidgetTree->RootWidget = Outer;
+	UCanvasPanel* OuterCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("HUDRoot"));
+	OuterCanvas->SetVisibility(ESlateVisibility::HitTestInvisible);
+	WidgetTree->RootWidget = OuterCanvas;
 	bTreeBuiltInCode = true;
 
 	auto StretchSlot = [](UCanvasPanelSlot* CanvasSlot, int32 Z)
@@ -475,7 +475,7 @@ void UHelmetHUDWidget::BuildTree()
 		HUDRetainer->SetVisibility(ESlateVisibility::HitTestInvisible);
 		HUDRetainer->SetEffectMaterial(WarpMaterial);
 		HUDRetainer->SetTextureParameter(P_Texture);
-		StretchSlot(Outer->AddChildToCanvas(HUDRetainer), 1);
+		StretchSlot(OuterCanvas->AddChildToCanvas(HUDRetainer), 1);
 	}
 	HUDSafeZone = WidgetTree->ConstructWidget<USafeZone>(USafeZone::StaticClass(), TEXT("HUDSafeZone"));
 	HUDSafeZone->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -485,7 +485,7 @@ void UHelmetHUDWidget::BuildTree()
 	}
 	else
 	{
-		StretchSlot(Outer->AddChildToCanvas(HUDSafeZone), 1);
+		StretchSlot(OuterCanvas->AddChildToCanvas(HUDSafeZone), 1);
 	}
 	RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
 	RootCanvas->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -497,7 +497,7 @@ void UHelmetHUDWidget::BuildTree()
 		UCanvasPanel* Parent = nullptr;
 		if (Def.Parent.IsNone())
 		{
-			Parent = (Def.Id == Id_VisorFrame) ? Outer : RootCanvas.Get();
+			Parent = (Def.Id == Id_VisorFrame) ? OuterCanvas : RootCanvas.Get();
 		}
 		else
 		{
@@ -2553,28 +2553,28 @@ int32 UHelmetHUDWidget::NativePaint(const FPaintArgs& Args, const FGeometry& All
 			}
 			const bool bHorizon = FMath::IsNearlyZero(P);
 			const float Gap = bHorizon ? HalfW * 0.15f : HalfW * 0.25f;
-			const float Outer = bHorizon ? HalfW : HalfW * 0.6f;
+			const float RungHalfLen = bHorizon ? HalfW : HalfW * 0.6f;
 			const FLinearColor Tint = WithAlpha(Ink, A * (bHorizon ? 0.9f : 0.7f));
 			for (const float Side : { -1.f, 1.f })
 			{
 				if (P < 0.f)
 				{
 					const float DashLen = 6.f;
-					for (float X = Gap; X < Outer; X += DashLen * 2.f)
+					for (float X = Gap; X < RungHalfLen; X += DashLen * 2.f)
 					{
-						Line(Rot(Side * X, Y), Rot(Side * FMath::Min(X + DashLen, Outer), Y), Tint, 1.f);
+						Line(Rot(Side * X, Y), Rot(Side * FMath::Min(X + DashLen, RungHalfLen), Y), Tint, 1.f);
 					}
 				}
 				else
 				{
-					Line(Rot(Side * Gap, Y), Rot(Side * Outer, Y), Tint, bHorizon ? 1.5f : 1.f);
+					Line(Rot(Side * Gap, Y), Rot(Side * RungHalfLen, Y), Tint, bHorizon ? 1.5f : 1.f);
 				}
 				if (!bHorizon)
 				{
 					// End tick points toward the horizon.
 					const float TickY = P > 0.f ? 5.f : -5.f;
-					Line(Rot(Side * Outer, Y), Rot(Side * Outer, Y + TickY), Tint, 1.f);
-					Label(FString::Printf(TEXT("%d"), FMath::RoundToInt(P)), Rot(Side * (Outer + 14.f), Y), 0.5f, Tint, 8);
+					Line(Rot(Side * RungHalfLen, Y), Rot(Side * RungHalfLen, Y + TickY), Tint, 1.f);
+					Label(FString::Printf(TEXT("%d"), FMath::RoundToInt(P)), Rot(Side * (RungHalfLen + 14.f), Y), 0.5f, Tint, 8);
 				}
 			}
 		}

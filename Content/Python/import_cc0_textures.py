@@ -15,6 +15,8 @@ import unreal
 
 PROJECT = unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir())
 SRC = os.path.join(PROJECT, "SourceAssets", "PolyHaven")
+# Dume's ambientCG sets (Tools/fetch_dume_assets.py), same file layout, same /Game/Realism/Textures/<id>/ destination.
+SRCS = [SRC, os.path.join(PROJECT, "SourceAssets", "AmbientCG")]
 DEST = "/Game/Realism/Textures"
 REPORT = os.path.join(PROJECT, "Saved", "Realism", "import_report.txt")
 
@@ -57,8 +59,9 @@ def run():
         _report(lines)
         return lines
     tasks = []
-    for folder in sorted(os.listdir(SRC)):
-        full = os.path.join(SRC, folder)
+    folders = [(root, f) for root in SRCS if os.path.isdir(root) for f in sorted(os.listdir(root))]
+    for root, folder in folders:
+        full = os.path.join(root, folder)
         if not os.path.isdir(full):
             continue
         for fn in sorted(os.listdir(full)):
