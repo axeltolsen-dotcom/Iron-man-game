@@ -13,6 +13,7 @@
 #include "JarvisComponent.h"
 #include "StoryLibrary.h"
 #include "StoryBeacon.h"
+#include "MirrorLock.h"
 #include "StoryAlly.h"
 #include "StoryNamePromptWidget.h"
 #include "CinematicOverlayWidget.h"
@@ -91,6 +92,7 @@ AStoryDirector::AStoryDirector()
 	CastList.Add(MakeCast(TEXT("MORGAN"), EStoryBody::Human, AStoryCharacterNPC::DefaultQuinnPath, 0.88f, FLinearColor(0.25f, 0.4f, 0.7f)));
 	CastList.Add(MakeCast(TEXT("PLAYER"), EStoryBody::Human, AStoryCharacterNPC::DefaultMannyPath, 0.93f, FLinearColor(0.42f, 0.3f, 0.2f)));
 	CastList.Add(MakeCast(TEXT("Vison"), EStoryBody::Synthezoid, nullptr, 1.02f, FLinearColor(0.45f, 0.06f, 0.1f)));
+	CastList.Add(MakeCast(TEXT("JOCASTA"), EStoryBody::Synthezoid, nullptr, 0.97f, FLinearColor(0.62f, 0.72f, 0.82f)));
 	CastList.Add(MakeCast(TEXT("U"), EStoryBody::Robot, nullptr, 1.f, FLinearColor(0.4f, 0.4f, 0.42f)));
 	CastList.Add(MakeCast(TEXT("DUM-E"), EStoryBody::Robot, nullptr, 1.f, FLinearColor(0.45f, 0.43f, 0.38f)));
 }
@@ -321,6 +323,7 @@ void AStoryDirector::StopStory()
 	}
 	if (Prompt) { Prompt->OnSubmitted = nullptr; Prompt->RemoveFromParent(); Prompt = nullptr; }
 	if (Beacon) { Beacon->Destroy(); Beacon = nullptr; }
+	if (MirrorLock) { MirrorLock->Destroy(); MirrorLock = nullptr; }
 	if (Ally) { Ally->Destroy(); Ally = nullptr; }
 	ClearEnvironment();
 	for (auto& Pair : Npcs) { if (Pair.Value) { Pair.Value->Destroy(); } }
@@ -387,6 +390,7 @@ void AStoryDirector::BeginChapter(int32 Index, bool bSkipIntro)
 	bInPrologue = false;
 	ClearHostiles();
 	if (Beacon) { Beacon->Destroy(); Beacon = nullptr; }
+	if (MirrorLock) { MirrorLock->Destroy(); MirrorLock = nullptr; }
 	if (Ally) { Ally->Destroy(); Ally = nullptr; }
 	AllyCooldownLeft = 0.f;
 
@@ -478,6 +482,7 @@ void AStoryDirector::FinishChapter()
 
 	ClearHostiles();
 	if (Beacon) { Beacon->Destroy(); Beacon = nullptr; }
+	if (MirrorLock) { MirrorLock->Destroy(); MirrorLock = nullptr; }
 	if (Ally) { Ally->Dismiss(); Ally = nullptr; }
 
 	// Chapter 5: the makeshift reactor finally gives out - the core goes dark for the outro.
@@ -574,6 +579,7 @@ void AStoryDirector::FinishStory()
 void AStoryDirector::NotifyPlayerDied()
 {
 	if (Beacon) { Beacon->Destroy(); Beacon = nullptr; }
+	if (MirrorLock) { MirrorLock->Destroy(); MirrorLock = nullptr; }
 	if (Ally) { Ally->Dismiss(); Ally = nullptr; }
 	ObjectiveEnemies.Reset();
 	if (Step == EStoryStep::Objective || Step == EStoryStep::ObjectiveDone) { Step = EStoryStep::Idle; }
@@ -665,6 +671,7 @@ void AStoryDirector::StartObjective(int32 Index)
 	WaveBreak = 0.f;
 	ObjectiveEnemies.Reset();
 	if (Beacon) { Beacon->Destroy(); Beacon = nullptr; }
+	if (MirrorLock) { MirrorLock->Destroy(); MirrorLock = nullptr; }
 
 	const FStoryObjective& O = C.Objectives[Index];
 	FActorSpawnParameters SP;
@@ -676,6 +683,13 @@ void AStoryDirector::StartObjective(int32 Index)
 	{
 		FVector L = GM->FindSpawnLocation(GroundBeaconDistance * 0.8f, GroundBeaconDistance * 1.1f, 0.f);
 		L.Z = GM->GetArenaFloorZ();
+		if (Has(O.Target, TEXT("mirror lock")))
+		{
+			// Jocasta's side mission: a lights-out ring of six pillars, solved on foot (MirrorLock.h).
+			MirrorLock = GetWorld()->SpawnActor<AMirrorLock>(AMirrorLock::StaticClass(), FTransform(L), SP);
+			if (MirrorLock) { MirrorLock->Arm(); break; }
+			UE_LOG(LogIronManArena, Error, TEXT("Story: could not spawn the Mirror Lock, using a plain beacon"));
+		}
 		Beacon = GetWorld()->SpawnActor<AStoryBeacon>(AStoryBeacon::StaticClass(), FTransform(L), SP);
 		if (Beacon) { Beacon->Setup(false, 300.f, StoryGold); }
 		break;
@@ -805,6 +819,11 @@ void AStoryDirector::CompleteObjective()
 		Beacon->Destroy();
 		Beacon = nullptr;
 	}
+	if (MirrorLock)
+	{
+		MirrorLock->SetLifeSpan(4.f);  // let the opened lock glow blue for a moment
+		MirrorLock = nullptr;
+	}
 	ObjectiveProgress = 1.f;
 	Step = EStoryStep::ObjectiveDone;
 	if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->ObjectivesCompleted; }
@@ -832,6 +851,16 @@ void AStoryDirector::TickObjective(float DeltaSeconds)
 	case EStoryObjectiveType::Ground:
 	case EStoryObjectiveType::Flight:
 	{
+		if (MirrorLock)
+		{
+			SetObjectiveProgress(MirrorLock->GetProgress());
+			if (MirrorLock->IsSolved())
+			{
+				if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->MirrorLocksSolved; }
+				CompleteObjective();
+			}
+			break;
+		}
 		if (!Beacon) { CompleteObjective(); return; }
 		const float D = FVector::Dist(Player->GetActorLocation(), Beacon->GetActorLocation());
 		SetObjectiveProgress(1.f - D / BeaconStartDist);
@@ -998,7 +1027,7 @@ void AStoryDirector::HandleSummonAlly()
 			FText::Format(LOCTEXT("AllyCooldownSub", "{0} s"), FText::AsNumber(FMath::CeilToInt(AllyCooldownLeft))), 1.2f);
 		return;
 	}
-	Ally = AStoryAlly::Summon(GetWorld(), GetPlayer(), AllyDuration);
+	Ally = AStoryAlly::Summon(GetWorld(), GetPlayer(), AllyDuration, AllyId);
 	if (Ally)
 	{
 		if (FStoryChapterReport* Rep = CurrentReport()) { ++Rep->AllySummons; }
@@ -1006,10 +1035,23 @@ void AStoryDirector::HandleSummonAlly()
 		GM->ShowBanner(UStoryLibrary::GetSpeakerLabel(AllyId, PlayerName), LOCTEXT("AllyOnline", "Phasing in"), 2.f);
 		if (UJarvisComponent* J = UJarvisComponent::Get(this))
 		{
-			const FName VisonSpeaker(TEXT("Vison"));
-			J->SayScripted(VisonSpeaker, UStoryLibrary::GetSpeakerLabel(VisonSpeaker, PlayerName),
-				LOCTEXT("VisonSummon", "I am here. Keep your reactor cool; I will hold their attention."),
-				UStoryLibrary::GetSpeakerColor(VisonSpeaker), nullptr, 70, false);
+			if (AllyId == FName(TEXT("jocasta")))
+			{
+				const FName JocastaSpeaker(TEXT("JOCASTA"));
+				const TCHAR* SummonPath = TEXT("/Game/Audio/JOCASTA/JOCASTA_summon_1");
+				USoundBase* SummonSound = FPackageName::DoesPackageExist(SummonPath)
+					? LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/JOCASTA/JOCASTA_summon_1.JOCASTA_summon_1")) : nullptr;
+				J->SayScripted(JocastaSpeaker, UStoryLibrary::GetSpeakerLabel(JocastaSpeaker, PlayerName),
+					LOCTEXT("JocastaSummon", "I'm on your flank. Don't thank me yet."),
+					UStoryLibrary::GetSpeakerColor(JocastaSpeaker), SummonSound, 70, false);
+			}
+			else
+			{
+				const FName VisonSpeaker(TEXT("Vison"));
+				J->SayScripted(VisonSpeaker, UStoryLibrary::GetSpeakerLabel(VisonSpeaker, PlayerName),
+					LOCTEXT("VisonSummon", "I am here. Keep your reactor cool; I will hold their attention."),
+					UStoryLibrary::GetSpeakerColor(VisonSpeaker), nullptr, 70, false);
+			}
 		}
 	}
 }
@@ -1070,7 +1112,14 @@ bool AStoryDirector::GetObjectiveInfo(FText& OutChapter, FText& OutObjective, FT
 	{
 	case EStoryObjectiveType::Ground:
 	case EStoryObjectiveType::Flight:
-		if (Beacon && Player)
+		if (MirrorLock && Player)
+		{
+			const int32 M = FMath::RoundToInt(FVector::Dist(Player->GetActorLocation(), MirrorLock->GetActorLocation()) / 100.f);
+			OutProgress = Player->IsFlying() && M > 12
+				? FText::Format(LOCTEXT("LockLand", "{0} m  -  LAND AND GO ON FOOT"), FText::AsNumber(M))
+				: FText::Format(LOCTEXT("LockBlue", "{0} / 6 BLUE  -  STEP ON A PLATE TO TURN A PILLAR"), FText::AsNumber(FMath::RoundToInt(MirrorLock->GetProgress() * 6.f)));
+		}
+		else if (Beacon && Player)
 		{
 			const int32 M = FMath::RoundToInt(FVector::Dist(Player->GetActorLocation(), Beacon->GetActorLocation()) / 100.f);
 			OutProgress = (O.Type == EStoryObjectiveType::Ground && Player->IsFlying())
@@ -1120,6 +1169,7 @@ FText AStoryDirector::GetAllyHint() const
 
 bool AStoryDirector::GetBeaconLocation(FVector& Out) const
 {
+	if (MirrorLock) { Out = MirrorLock->GetActorLocation(); return true; }
 	if (!Beacon) { return false; }
 	Out = Beacon->GetActorLocation();
 	return true;

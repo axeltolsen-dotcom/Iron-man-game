@@ -10,6 +10,7 @@
 #include "Dom/JsonObject.h"
 #include "Engine/TextureCube.h"
 #include "GameFramework/Actor.h"
+#include "HAL/IConsoleManager.h"
 #include "JsonObjectConverter.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -18,6 +19,28 @@
 #include "Serialization/JsonSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogContribLighting, Log, All);
+
+static TAutoConsoleVariable<int32> CVarPhotorealGrade(TEXT("ima.PhotorealGrade"), 1,
+	TEXT("1 = photoreal grade over the lighting presets (no chromatic aberration, subtle grain, restrained bloom/flare/saturation); 0 = raw presets. Applies on the next environment change."));
+
+bool ContribLighting::IsPhotorealGradeEnabled() { return CVarPhotorealGrade.GetValueOnGameThread() != 0; }
+
+void ContribLighting::ApplyPhotorealGrade(FPostProcessSettings& S, bool bCinematic)
+{
+	if (!IsPhotorealGradeEnabled()) { return; }
+	S.bOverride_SceneFringeIntensity = true;
+	S.SceneFringeIntensity = 0.f;
+	const float GrainMax = bCinematic ? 0.15f : 0.08f;
+	if (S.bOverride_FilmGrainIntensity) { S.FilmGrainIntensity = FMath::Clamp(S.FilmGrainIntensity, 0.02f, GrainMax); }
+	else if (!bCinematic) { S.bOverride_FilmGrainIntensity = true; S.FilmGrainIntensity = 0.03f; }
+	if (S.bOverride_BloomIntensity) { S.BloomIntensity = FMath::Min(S.BloomIntensity, 0.6f); }
+	if (S.bOverride_LensFlareIntensity) { S.LensFlareIntensity = FMath::Min(S.LensFlareIntensity, 0.4f); }
+	if (S.bOverride_ColorSaturation)
+	{
+		S.ColorSaturation = FVector4(FMath::Min(S.ColorSaturation.X, 1.0), FMath::Min(S.ColorSaturation.Y, 1.0),
+			FMath::Min(S.ColorSaturation.Z, 1.0), FMath::Min(S.ColorSaturation.W, 1.0));
+	}
+}
 
 namespace
 {
@@ -402,6 +425,7 @@ namespace ContribLighting
 					Written += ApplyObject(FPostProcessSettings::StaticStruct(), &PP->Settings, B, NoSpecial, true, LuxScale, false,
 						TEXT("PostProcessVolume"), Skipped);
 				}
+				ApplyPhotorealGrade(PP->Settings, false);
 			}
 		}
 		UE_LOG(LogContribLighting, Log, TEXT("Applied contrib lighting preset '%s' (lux scale %g): %d properties, %d skipped."),
@@ -440,6 +464,7 @@ namespace ContribLighting
 				TEXT("CineCamera.PostProcessOverrides"), Skipped);
 			Camera->PostProcessBlendWeight = 1.f;
 		}
+		ApplyPhotorealGrade(Camera->PostProcessSettings, true);
 		UE_LOG(LogContribLighting, Log, TEXT("Applied contrib cine camera '%s': %d properties, %d skipped."), *PresetKey.ToString(), Written, Skipped);
 		if (OutSkipped) { *OutSkipped = Skipped; }
 		return Written;

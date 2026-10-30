@@ -11,6 +11,7 @@
 #include "StoryDirector.h"
 #include "StoryLibrary.h"
 #include "StoryBeacon.h"
+#include "MirrorLock.h"
 #include "StoryAlly.h"
 #include "StoryNamePromptWidget.h"
 #include "SuitTypes.h"
@@ -286,6 +287,22 @@ void AStoryAutopilot::DriveObjective(float DeltaSeconds)
 	{
 		const bool bAir = O->Type == EStoryObjectiveType::Flight;
 		Player->SimulateFlightKey(bAir);
+		if (AMirrorLock* Lock = D->GetMirrorLock())
+		{
+			// Solve it like a player: walk onto the hinted pillar's plate, step off, repeat.
+			if (Player->IsFlying()) { break; }
+			LockStepTimer -= DeltaSeconds;
+			if (LockStepTimer > 0.f) { break; }
+			LockStepTimer = 0.4f;
+			const float Half = Player->GetCapsuleComponent() ? Player->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 90.f;
+			const int32 Hint = Lock->GetHintPillar();
+			bLockOnPlate = !bLockOnPlate && Hint != INDEX_NONE;
+			const FVector Spot = bLockOnPlate ? Lock->GetPlateLocation(Hint) : Lock->GetActorLocation() + FVector(0.f, 0.f, 0.f);
+			Player->SetActorLocation(Spot + FVector(0.f, 0.f, Half + 5.f), false, nullptr, ETeleportType::TeleportPhysics);
+			if (UCharacterMovementComponent* Move = Player->GetCharacterMovement()) { Move->Velocity = FVector::ZeroVector; }
+			if (bLockOnPlate) { UE_LOG(LogIronManArena, Log, TEXT("StoryTest: mirror lock: step on pillar %d (%d moves left)"), Hint + 1, Lock->GetMovesLeft()); }
+			break;
+		}
 		if (const AStoryBeacon* Beacon = D->GetBeacon())
 		{
 			if (bAir != Player->IsFlying()) { break; }
@@ -405,6 +422,7 @@ void AStoryAutopilot::Evaluate()
 			if (M.RewardUpgrade == ArenaRewards::CapacitorBank() && R && R->GetPermanentCapacityBonus() <= 0.f) { Fail(TEXT("capacitor bank not applied to the reactor")); }
 			if (M.RewardUpgrade == ArenaRewards::HeatSinkFins() && R && R->GetPermanentCoolingBonus() <= 0.f) { Fail(TEXT("heat-sink fins not applied to the reactor")); }
 			if (M.RewardCosmetic == ArenaRewards::WhiteTrim() && !SuitRig::IsWhiteTrim()) { Fail(TEXT("white trim not applied")); }
+			if (M.RewardCosmetic == ArenaRewards::PaleBlueTrim() && !SuitRig::IsPaleBlueTrim()) { Fail(TEXT("pale blue trim not applied")); }
 			if (M.RewardCosmetic == ArenaRewards::PodLighting() && !AChapterSet::bHallPodLighting) { Fail(TEXT("pod lighting flag not set")); }
 		}
 		FirstChapter = LastChapter = 0;
@@ -468,6 +486,9 @@ void AStoryAutopilot::Evaluate()
 
 		// Ally.
 		if (bAllyObjective && R.AllySummons < 1) { Fail(Tag + TEXT(": allyAvailable is set but the ally was never summoned")); }
+		const bool bMirrorLock = C.Objectives.ContainsByPredicate([](const FStoryObjective& Obj)
+			{ return Obj.Type == EStoryObjectiveType::Ground && Obj.Target.Contains(TEXT("mirror lock"), ESearchCase::IgnoreCase); });
+		if (bMirrorLock && R.MirrorLocksSolved < 1) { Fail(Tag + TEXT(": the Mirror Lock was never solved")); }
 		if (!C.UnlockAlly.IsNone() && R.bFinished && !R.bAllyUnlocked) { Fail(Tag + FString::Printf(TEXT(": unlockAlly '%s' was not granted"), *C.UnlockAlly.ToString())); }
 
 		// Boss phases.

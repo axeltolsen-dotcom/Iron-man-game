@@ -68,7 +68,34 @@ void AStoryAlly::BeginPlay()
 	BeamMID = PaintComponent(this, BeamMesh, AllyGold, 40.f);
 }
 
-AStoryAlly* AStoryAlly::Summon(UWorld* World, AActor* Player, float Duration)
+void AStoryAlly::ApplyLook(FName AllyId)
+{
+	AllyKind = AllyId;
+	if (AllyId != FName(TEXT("jocasta"))) { return; }
+	// Jocasta: a borrowed chassis in pale silver with a quiet blue core, no cape.
+	// Fights up close with short energy bursts (see contrib/jocasta/vision_quest_side_mission.md).
+	const FLinearColor Silver(0.72f, 0.74f, 0.78f);
+	const FLinearColor Pale(0.55f, 0.82f, 1.f);
+	GlowColor = Pale;
+	BeamRange = 1800.f;
+	BeamDamagePerSecond = 85.f;
+	FollowDistance = 300.f;
+	for (FArenaPaintedPart& Part : Parts)
+	{
+		if (!Part.Component) { continue; }
+		const FName N = Part.Component->GetFName();
+		if (N == TEXT("Cape")) { Part.Component->SetVisibility(false); continue; }
+		if (N == TEXT("Gem") || N == TEXT("ChestLine")) { Part.Color = Pale; }
+		else if (N == TEXT("Head")) { Part.Color = Silver * 1.1f; }
+		else { Part.Color = Silver; }
+		Part.Color.A = 1.f;
+		RepaintPart(Part);
+	}
+	if (GemLight) { GemLight->SetLightColor(Pale); }
+	BeamMID = PaintComponent(this, BeamMesh, Pale, 40.f);
+}
+
+AStoryAlly* AStoryAlly::Summon(UWorld* World, AActor* Player, float Duration, FName AllyId)
 {
 	if (!World || !Player) { return nullptr; }
 	const FVector Loc = Player->GetActorLocation() + Player->GetActorRightVector() * 260.f + FVector(0, 0, 300.f);
@@ -79,14 +106,15 @@ AStoryAlly* AStoryAlly::Summon(UWorld* World, AActor* Player, float Duration)
 	{
 		A->FollowTarget = Player;
 		A->TimeLeft = FMath::Max(1.f, Duration);
-		AArenaBlastFX::Spawn(World, Loc, 260.f, AllyGold, 0.5f);
+		A->ApplyLook(AllyId);
+		AArenaBlastFX::Spawn(World, Loc, 260.f, A->GlowColor, 0.5f);
 	}
 	return A;
 }
 
 void AStoryAlly::Dismiss()
 {
-	AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 220.f, AllyGold, 0.4f);
+	AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 220.f, GlowColor, 0.4f);
 	Destroy();
 }
 

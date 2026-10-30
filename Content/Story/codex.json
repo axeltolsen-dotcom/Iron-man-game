@@ -368,6 +368,14 @@
       "unlockChapter": "ch8_legacy",
       "body": "Maintenance records for every display pod restored after Ultron's drones raided the Hall of Armor. U logged each repair by video, and Dum-E logged each one by spilling something. Every pod now carries its original serial plate.",
       "unlockedBy": "sm_hall_restoration"
+    },
+    {
+      "id": "jocasta_blank_core",
+      "title": "The Blank Core",
+      "category": "characters",
+      "unlockChapter": "ch7_skyline",
+      "body": "Ultron built Jocasta to stand beside him, and she walked away. Years later one of his relay hubs under the old Expo district woke up calling her name. She helped shut it down, took the core it guarded and wiped Ultron's half of it in front of witnesses. She kept the empty shell: the only thing he gave her that she wanted. The channel to the workshop stays open; whether she answers is up to her.",
+      "unlockedBy": "sm_jocasta_second_signal"
     }
   ]
 }

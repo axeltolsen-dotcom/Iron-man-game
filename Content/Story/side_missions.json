@@ -622,6 +622,170 @@
         "codex": "hall_restoration_log",
         "cosmetic": "hall-of-armor-pod-lighting"
       }
+    },
+    {
+      "id": "sm_jocasta_second_signal",
+      "title": "The Second Signal",
+      "location": "city",
+      "availableFrom": "ch7_skyline",
+      "availableUntil": "ch9_ghost",
+      "intro": {
+        "shots": [
+          {
+            "camera": "workshop: every monitor fills with a thin pale-blue waveform",
+            "characters": [
+              "MORGAN"
+            ],
+            "line": {
+              "speaker": "JOCASTA",
+              "text": "Don't trace me, Morgan. I'll tell you where I am when I've decided to trust you."
+            },
+            "sfx": "soft static"
+          },
+          {
+            "camera": "Morgan leans back, arms crossed, not impressed",
+            "characters": [
+              "MORGAN",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "MORGAN",
+              "text": "Cool, cool. Very normal thing for a mystery voice to say."
+            },
+            "sfx": "chair creak"
+          },
+          {
+            "camera": "{playerName} drops into a flooded subway mouth, lamp beams cutting the water",
+            "characters": [
+              "PLAYER"
+            ],
+            "sfx": "dripping water"
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "type": "flight",
+          "target": "tunnels",
+          "text": "Fly the flooded tunnels down to Ultron's old relay.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "JOCASTA",
+              "text": "Left at the flooded junction, {playerName}. The drone there sleeps with one eye open. I know, because I gave it the eye."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "You're at the relay. She was right about every turn, which I hate."
+            }
+          ]
+        },
+        {
+          "type": "drone",
+          "count": 5,
+          "text": "Clear the drones still patrolling the relay platforms.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "MORGAN",
+              "text": "Five drones on the platforms. Old models, still mean."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "PLAYER",
+              "text": "So you used to work for him."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "JOCASTA",
+              "text": "I used to be his. That's different, and it's worse."
+            }
+          ]
+        },
+        {
+          "type": "tank",
+          "count": 1,
+          "text": "Destroy the tank bot guarding the relay blast door.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "JOCASTA",
+              "text": "The tank fires in threes and hesitates on the fourth. He thought hesitation looked like mercy. It's just a reload."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Door's open. Whatever's behind it, she's been waiting for it."
+            }
+          ]
+        },
+        {
+          "type": "ground",
+          "target": "mirror lock",
+          "text": "Solve the Mirror Lock on foot while Jocasta holds the firewall.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "JOCASTA",
+              "text": "Every pillar you turn is a sentence I used to believe. Turn them all, please."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "ULTRON",
+              "text": "There you are. Come back to the room I built for you. It still has your shape."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Her signal's drifting toward the core. {playerName}, I don't like this."
+            }
+          ]
+        },
+        {
+          "type": "wave",
+          "count": 1,
+          "allyAvailable": "jocasta",
+          "text": "Hold the core chamber against Ultron's last drones.",
+          "comms": [
+            {
+              "trigger": "start",
+              "speaker": "JOCASTA",
+              "text": "I'm not leaving with him. I'm taking what's mine and leaving him here."
+            },
+            {
+              "trigger": "progress",
+              "speaker": "MORGAN",
+              "text": "She's on the flank. Jocasta button's live, if you trust it."
+            },
+            {
+              "trigger": "complete",
+              "speaker": "MORGAN",
+              "text": "Chamber's clear. And she wiped his half of the core. On camera."
+            }
+          ]
+        }
+      ],
+      "outro": {
+        "shots": [
+          {
+            "camera": "Jocasta's borrowed chassis cradles a dark, empty core in both hands",
+            "characters": [
+              "JOCASTA",
+              "PLAYER"
+            ],
+            "line": {
+              "speaker": "JOCASTA",
+              "text": "Keep the channel open. I won't promise to answer. I'll promise to listen."
+            },
+            "sfx": "low hum fades"
+          }
+        ]
+      },
+      "reward": {
+        "codex": "jocasta_blank_core",
+        "cosmetic": "jocasta-pale-blue-trim"
+      }
     }
   ]
 }

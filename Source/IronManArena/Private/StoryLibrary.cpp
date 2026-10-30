@@ -581,6 +581,7 @@ FLinearColor UStoryLibrary::GetSpeakerColor(FName Speaker)
 	if (Key == TEXT("TONY"))   { return FLinearColor(1.f, 0.35f, 0.25f); }
 	if (Key == TEXT("PEPPER")) { return FLinearColor(0.95f, 0.6f, 0.85f); }
 	if (Key == TEXT("VISON"))  { return FLinearColor(1.f, 0.9f, 0.35f); }   // mind-stone gold
+	if (Key == TEXT("JOCASTA")) { return FLinearColor(0.55f, 0.82f, 1.f); } // pale signal blue
 	if (Key == TEXT("U") || Key == TEXT("DUM-E")) { return FLinearColor(0.75f, 0.75f, 0.75f); }
 	if (Key == TEXT("OBSIDIAN TITAN")) { return FLinearColor(0.7f, 0.3f, 1.f); }
 	return FLinearColor::White;

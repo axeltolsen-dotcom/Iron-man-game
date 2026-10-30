@@ -289,6 +289,7 @@ void AArenaEnvironment::ApplyPreset(const FEnvironmentPreset& In)
 		S.bOverride_LumenFinalGatherQuality = true; S.LumenFinalGatherQuality = 1.f;
 		S.bOverride_LumenReflectionQuality = true;  S.LumenReflectionQuality = 1.f;
 		S.bOverride_LumenMaxTraceDistance = true;   S.LumenMaxTraceDistance = 20000.f;
+		ContribLighting::ApplyPhotorealGrade(S, false);
 	}
 }
 

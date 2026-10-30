@@ -33,6 +33,7 @@ class ACineCameraActor;
 class UCinematicOverlayWidget;
 class UAudioComponent;
 class AStoryBeacon;
+class AMirrorLock;
 class AChapterSet;
 struct FEnvironmentPreset;
 class AStoryAlly;
@@ -73,6 +74,8 @@ struct IRONMANARENA_API FStoryChapterReport
 	/** Scripted comms lines handed to the comms AI, by trigger (start / progress / complete). */
 	int32 CommsFired[3] = { 0, 0, 0 };
 	int32 AllySummons = 0;
+	/** Mirror Lock puzzles opened (ground objectives with target "mirror lock"). */
+	int32 MirrorLocksSolved = 0;
 	/** UnlockAlly from story.json was added to the roster when the chapter finished. */
 	bool bAllyUnlocked = false;
 	int32 BossPhasesSeen = 0;
@@ -141,6 +144,7 @@ public:
 	/** Current objective (nullptr outside an objective). */
 	const FStoryObjective* GetCurrentObjective() const;
 	AStoryBeacon* GetBeacon() const { return Beacon; }
+	AMirrorLock* GetMirrorLock() const { return MirrorLock; }
 	AStoryAlly* GetActiveAlly() const { return Ally; }
 	/** Unlocked allies, plus any ally a side mission's objective names (side missions lend their ally, e.g. Vison's signal before ch7). */
 	bool HasAlly(FName AllyId) const { return Allies.Contains(AllyId) || (bSideMission && !AllyId.IsNone()); }
@@ -311,6 +315,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AStoryBeacon> Beacon;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AMirrorLock> MirrorLock;
 
 	UPROPERTY()
 	TObjectPtr<AChapterSet> ChapterSet;

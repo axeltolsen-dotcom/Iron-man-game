@@ -21,6 +21,7 @@
 #include "SuitArmorKit.h"
 #include "CityLayout.h"
 #include "SuitTypes.h"
+#include "MirrorLock.h"
 
 namespace StoryTests
 {
@@ -138,10 +139,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStorySideDataTest, "IronManArena.Story.SideDat
 bool FStorySideDataTest::RunTest(const FString& Parameters)
 {
 	const FStoryBook& Story = UStoryLibrary::GetStory();
-	TestEqual(TEXT("side mission count"), Story.SideMissions.Num(), 5);
-	TestEqual(TEXT("codex entry count"), Story.Codex.Num(), 44);
+	TestEqual(TEXT("side mission count"), Story.SideMissions.Num(), 6);
+	TestEqual(TEXT("codex entry count"), Story.Codex.Num(), 45);
 	const TArray<FName> Rewards = { ArenaRewards::CapacitorBank(), ArenaRewards::HeatSinkFins(), ArenaRewards::WhiteTrim(),
-		ArenaRewards::PlaidDecal(), ArenaRewards::PodLighting() };
+		ArenaRewards::PlaidDecal(), ArenaRewards::PodLighting(), ArenaRewards::PaleBlueTrim() };
 	TArray<FName> Seen;
 	for (const FStoryChapter& M : Story.SideMissions)
 	{
@@ -175,7 +176,7 @@ bool FStorySideDataTest::RunTest(const FString& Parameters)
 		TestTrue(Tag + TEXT(" reward is a known upgrade / cosmetic"), Rewards.Contains(Reward));
 		Seen.AddUnique(Reward);
 	}
-	TestEqual(TEXT("all five rewards are handed out"), Seen.Num(), Rewards.Num());
+	TestEqual(TEXT("all six rewards are handed out"), Seen.Num(), Rewards.Num());
 
 	// Codex unlocks: nothing before the story, everything chapter-gated by the end, side entries only by grant.
 	int32 AtStart = 0, AtEnd = 0, GrantOnly = 0, GrantOnlyAtEnd = 0, Granted = 0;
@@ -221,6 +222,54 @@ bool FStorySideMissionTest::RunTest(const FString& Parameters)
 	AStoryAutopilot* Pilot = AStoryAutopilot::LaunchSideMission(World, FName(*Parameters), false);
 	if (!Pilot) { AddError(TEXT("could not spawn the side-mission autopilot")); return false; }
 	ADD_LATENT_AUTOMATION_COMMAND(StoryTests::FWaitForAutopilot(this, Pilot, 600.0));
+	return true;
+}
+
+// ---- Jocasta's Mirror Lock (lights-out on a ring of six): solvable starts, hints, pulses
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMirrorLockTest, "IronManArena.Story.MirrorLock",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FMirrorLockTest::RunTest(const FString& Parameters)
+{
+	using P = FMirrorLockPuzzle;
+	for (int32 i = 0; i < P::NumPillars; ++i)
+	{
+		const uint8 M = P::MoveMask(i);
+		int32 Bits = 0;
+		for (int32 b = 0; b < P::NumPillars; ++b) { Bits += (M >> b) & 1; }
+		TestEqual(FString::Printf(TEXT("pillar %d flips itself and two neighbours"), i + 1), Bits, 3);
+		TestTrue(FString::Printf(TEXT("pillar %d flips its ring neighbours"), i + 1),
+			((M >> ((i + 1) % 6)) & 1) && ((M >> ((i + 5) % 6)) & 1) && ((M >> i) & 1));
+	}
+	const TArray<uint8> Starts = P::ShippedStarts(4);
+	AddInfo(FString::Printf(TEXT("%d shipped starting states"), Starts.Num()));
+	TestTrue(TEXT("there are shipped starting states"), Starts.Num() >= 8);
+	for (const uint8 S : Starts)
+	{
+		const int32 Need = P::MinMoves(S);
+		TestTrue(FString::Printf(TEXT("start 0x%02x solvable in 1..4 moves"), S), Need >= 1 && Need <= 4);
+		// Following the hint always solves it in exactly the shortest number of moves.
+		P Lock; Lock.Blue = S;
+		int32 Steps = 0;
+		while (!Lock.IsSolved() && Steps < 8)
+		{
+			const int32 H = Lock.HintPillar();
+			if (H == INDEX_NONE) { break; }
+			const int32 Before = P::MinMoves(Lock.Blue);
+			Lock.Rotate(H);
+			TestEqual(FString::Printf(TEXT("start 0x%02x: hint %d is a correct next move"), S, H + 1), P::MinMoves(Lock.Blue), Before - 1);
+			++Steps;
+		}
+		TestTrue(FString::Printf(TEXT("start 0x%02x: hints solve it"), S), Lock.IsSolved());
+		TestEqual(FString::Printf(TEXT("start 0x%02x: hint path is shortest"), S), Steps, Need);
+		// A pulse (a rotation) never makes the lock unsolvable.
+		for (int32 i = 0; i < P::NumPillars; ++i)
+		{
+			TestTrue(FString::Printf(TEXT("start 0x%02x: pulse on %d stays solvable"), S, i + 1), P::MinMoves(S ^ P::MoveMask(i)) >= 0);
+		}
+	}
+	P Solved;
+	TestTrue(TEXT("default lock is solved"), Solved.IsSolved());
+	TestEqual(TEXT("no hint when solved"), Solved.HintPillar(), int32(INDEX_NONE));
 	return true;
 }
 

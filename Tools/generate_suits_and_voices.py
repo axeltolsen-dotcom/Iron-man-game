@@ -252,6 +252,10 @@ VOICE_PROFILES = {
     "PLAYER":     dict(voice="am_puck:0.75,am_echo:0.25", lang="en-us", speed=1.04, fx="clean", pitch=1.04),  # Harley, teen
     "VISON":      dict(voice="bm_daniel:0.6,bm_lewis:0.4", lang="en-gb", speed=0.88, fx="vision"),
     "OBSIDIAN_TITAN": dict(voice="am_onyx", lang="en-us", speed=0.85, fx="titan"),
+    # Jocasta (contrib/jocasta/jocasta_voice.md): original stock-voice blend, mid-low, ~12% slower than
+    # Morgan (1.06 -> 0.93), slight pitch-down for the register, signature sine under the first word.
+    "JOCASTA":    dict(voice="af_nicole:0.55,af_sarah:0.45", lang="en-us", speed=0.93, fx="jocasta", pitch=0.97,
+                       signature=True),
 }
 DEFAULT_PROFILE = "PLAYER"
 
@@ -273,6 +277,10 @@ FX_CHAINS = {
     "radio": "highpass=f=260,lowpass=f=4800,equalizer=f=1800:t=o:w=1.5:g=2,"
              "acompressor=threshold=0.1:ratio=3:attack=5:release=60," + _COMMON_TAIL,
     "vision": "aecho=0.9:0.88:35|62:0.1|0.07,chorus=0.97:0.97:30:0.06:0.2:1.0," + _COMMON_TAIL,
+    # Jocasta: clean; faint 9 kHz shelf (+1.5 dB) on top of the common tail, short low-mix chorus (~12%)
+    "jocasta": _COMMON_TAIL + ",treble=g=4:f=9000:t=s,chorus=0.9:0.9:18:0.12:0.35:1.1",
+    # her Mirror Lock "old self": the same take 2 semitones down with a little warm distortion (layered low)
+    "jocasta_echo": "rubberband=pitch=0.891:formant=preserved,lowpass=f=5200,asoftclip=type=tanh:threshold=0.5," + _COMMON_TAIL,
     "titan": "rubberband=pitch=0.82,chorus=0.9:0.9:30|45:0.25|0.2:0.2|0.3:2|2.5,"
              "aecho=0.85:0.8:8|80:0.25|0.12," + _COMMON_TAIL,
 }
@@ -346,7 +354,8 @@ def normalise(x, rate, target=TARGET_LUFS, tp=TARGET_TP_DB):
 def write_wav(path, x, rate):
     import numpy as np
     import soundfile as sf
-    x = np.concatenate([np.zeros(int(rate * LEAD_SILENCE), dtype=np.float32), np.asarray(x, dtype=np.float32)])
+    x = np.asarray(x, dtype=np.float32)
+    x = np.concatenate([np.zeros((int(rate * LEAD_SILENCE),) + x.shape[1:], dtype=np.float32), x])
     os.makedirs(os.path.dirname(path), exist_ok=True)
     sf.write(path, np.clip(x, -1.0, 1.0), rate, subtype="PCM_16")
 
@@ -384,7 +393,61 @@ class Synth:
             prof = VOICE_PROFILES[DEFAULT_PROFILE]
         samples, rate = self.k.create(spoken_text(text), voice=self.style(prof["voice"]), speed=prof["speed"], lang=prof["lang"])
         y = run_fx(samples, rate, FX_CHAINS[prof["fx"]], prof.get("pitch", 1.0))
+        if prof.get("signature"):
+            y = add_signature_tone(y, rate)
         return normalise(y, rate), rate
+
+    def render_echo(self, profile_name, text):
+        """Jocasta's Mirror Lock variant: stereo, her take centred plus a second take 2 semitones down,
+        warm-distorted, hard-panned right, 14 dB under her (never overpowers the current voice)."""
+        import numpy as np
+        prof = VOICE_PROFILES[profile_name]
+        y, rate = self.render(profile_name, text)
+        samples, _ = self.k.create(spoken_text(text), voice=self.style(prof["voice"]), speed=prof["speed"], lang=prof["lang"])
+        e = normalise(run_fx(samples, rate, FX_CHAINS["jocasta_echo"], prof.get("pitch", 1.0)), rate) * (10 ** (-14 / 20))
+        lag = int(rate * 0.045)
+        n = max(len(y), len(e) + lag)
+        L = np.zeros(n, dtype=np.float32); R = np.zeros(n, dtype=np.float32)
+        L[:len(y)] += y * 0.92; R[:len(y)] += y * 0.92
+        R[lag:lag + len(e)] += e
+        return np.stack([L, R], axis=1), rate
+
+
+def estimate_f0(x, rate, lo=110.0, hi=300.0):
+    """Rough fundamental of the first voiced 400 ms (autocorrelation); 180 Hz if unsure."""
+    import numpy as np
+    x = np.asarray(x, dtype=np.float64)
+    thr = 0.1 * (np.max(np.abs(x)) + 1e-9)
+    idx = np.nonzero(np.abs(x) > thr)[0]
+    if len(idx) == 0:
+        return 180.0, 0
+    start = int(idx[0])
+    seg = x[start:start + int(rate * 0.4)]
+    if len(seg) < int(rate / lo) * 2:
+        return 180.0, start
+    seg = seg - seg.mean()
+    ac = np.correlate(seg, seg, mode="full")[len(seg) - 1:]
+    a, b = int(rate / hi), int(rate / lo)
+    lag = a + int(np.argmax(ac[a:b]))
+    return (rate / lag if ac[lag] > 0.3 * ac[0] else 180.0), start
+
+
+def add_signature_tone(x, rate, level_db=-24.0, dur=0.6, fade_in=0.15):
+    """Jocasta's signal mark: a soft sine near the line's fundamental under the first word, ~-24 dB
+    relative to the line's RMS, 150 ms fade-in and a gentle fade-out."""
+    import numpy as np
+    x = np.asarray(x, dtype=np.float32).copy()
+    f0, start = estimate_f0(x, rate)
+    n = min(int(rate * dur), len(x) - start)
+    if n <= 0:
+        return x
+    voiced = x[np.abs(x) > 0.02 * (np.max(np.abs(x)) + 1e-9)]
+    rms = float(np.sqrt(np.mean(voiced.astype(np.float64) ** 2))) if len(voiced) else 0.05
+    amp = rms * np.sqrt(2.0) * 10 ** (level_db / 20.0)
+    t = np.arange(n) / rate
+    env = np.minimum(1.0, t / fade_in) * np.minimum(1.0, (dur - t) / 0.2)
+    x[start:start + n] += (amp * env * np.sin(2 * np.pi * f0 * t)).astype(np.float32)
+    return x
 
     def say(self, profile_name, text, path):
         y, rate = self.render(profile_name, text)

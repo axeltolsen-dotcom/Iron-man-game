@@ -133,6 +133,10 @@ namespace SuitRig
 	IRONMANARENA_API void SetWhiteTrim(bool bEnable);
 	IRONMANARENA_API bool IsWhiteTrim();
 
+	/** Cosmetic reward jocasta-pale-blue-trim (The Second Signal): accent parts in Jocasta's pale blue (wins over white trim). */
+	IRONMANARENA_API void SetPaleBlueTrim(bool bEnable);
+	IRONMANARENA_API bool IsPaleBlueTrim();
+
 	/** U's Content/Story/suit_materials.json: is there a PBR entry for this suit (tests)? */
 	IRONMANARENA_API bool HasSuitMaterial(FName SuitId);
 	IRONMANARENA_API int32 GetSuitMaterialCount();

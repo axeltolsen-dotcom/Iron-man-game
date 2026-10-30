@@ -475,15 +475,20 @@ namespace SuitRig
 	void SetWhiteTrim(bool bEnable) { GWhiteTrim = bEnable; }
 	bool IsWhiteTrim() { return GWhiteTrim; }
 
+	static bool GPaleBlueTrim = false;
+	void SetPaleBlueTrim(bool bEnable) { GPaleBlueTrim = bEnable; }
+	bool IsPaleBlueTrim() { return GPaleBlueTrim; }
+
 	static void ApplyColorsBase(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts);
 
 	void ApplyColors(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts)
 	{
 		ApplyColorsBase(Suit, Parts);
-		if (!GWhiteTrim) { return; }
+		if (!GWhiteTrim && !GPaleBlueTrim) { return; }
 		// Cosmetic reward "vison-white-trim" (side mission Synthezoid Signal): accent trim in
 		// Vison's pearl white - a satin ceramic-like finish, not chrome.
-		const FLinearColor Pearl(0.80f, 0.80f, 0.77f);
+		// "jocasta-pale-blue-trim" (The Second Signal) uses the same satin finish in pale blue.
+		const FLinearColor Pearl = GPaleBlueTrim ? FLinearColor(0.50f, 0.70f, 0.86f) : FLinearColor(0.80f, 0.80f, 0.77f);
 		for (FArenaPaintedPart& P : Parts)
 		{
 			if (P.Role != ESuitPaintRole::Accent) { continue; }

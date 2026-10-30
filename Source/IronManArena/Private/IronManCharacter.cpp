@@ -240,6 +240,7 @@ void AIronManCharacter::ApplyRewards()
 
 	if (Reactor) { Reactor->SetPermanentUpgrades(Save->HasUpgrade(ArenaRewards::CapacitorBank()), Save->HasUpgrade(ArenaRewards::HeatSinkFins())); }
 	SuitRig::SetWhiteTrim(Save->IsCosmeticActive(ArenaRewards::WhiteTrim()));
+	SuitRig::SetPaleBlueTrim(Save->IsCosmeticActive(ArenaRewards::PaleBlueTrim()));
 
 	const bool bPlaid = Save->IsCosmeticActive(ArenaRewards::PlaidDecal());
 	if (bPlaid && !PlaidDecal)

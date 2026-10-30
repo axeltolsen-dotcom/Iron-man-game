@@ -119,6 +119,35 @@ Gamepad works through Enhanced Input (mappings created in code).
 - Armour: U's `armor_kit.json` plates extruded at runtime (Mark III resolves 135 plates), U's suit materials.
 - HUD: EDITH's layout and the 13 `M_HUD_*` / `MI_HUD_*` materials.
 
+## Photoreal defaults (Windows, RTX 2070 SUPER, 1600x900, 60 fps target)
+
+What a fresh install uses (nothing to switch on):
+- **Lighting:** Lumen GI and Lumen reflections at **High** (software Lumen with mesh distance fields), physical sun
+  (120 000 lux) with a physically based sky atmosphere, volumetric clouds, exponential height fog and volumetric fog;
+  local lights in lumens / candelas. Per-location looks come from Vison's presets (`Content/Story/lighting_presets.json`
+  + `postprocess_realism.json`).
+- **Shadows / geometry:** Virtual Shadow Maps; Nanite on every environment mesh (`import_env_assets.py` builds it on
+  import, `env_nanite.py` enables it on everything under `/Game/Env` plus Nanite copies of the basic shapes).
+- **Image:** TSR (dynamic resolution 67-100 % at High, 16.0 ms budget) with light tonemapper sharpening; filmic tone curve
+  with histogram auto-exposure in EV100 (Vison's ranges, bias ~0).
+- **Photoreal grade** (`ima.PhotorealGrade 1`, on by default, over Vison's presets): chromatic aberration **off**,
+  film grain subtle (0.02-0.08, cutscenes up to 0.15), bloom capped at 0.6, lens flare at 0.4, no saturation above 1.0.
+  `ima.PhotorealGrade 0` (console, then change area) shows the raw presets.
+- **Surfaces:** CC0 photoscanned PBR sets (Poly Haven / ambientCG: facades, brick, concrete, asphalt, gravel, rubble,
+  metal; `Docs/CREDITS.md`) with triplanar roughness from the scans, plus wet variants (darker albedo, glossier,
+  puddles on flat floors) in the rain / night / overcast presets.
+- **Hardware ray tracing is opt-in:** Settings → *Hardware ray tracing (RTX-class GPU)* switches Lumen to hardware RT
+  (better reflections, more GPU time). Off by default so 60 fps is the starting point.
+
+If the frame rate drops, in this order (Settings menu unless noted):
+1. Leave hardware ray tracing **off** (or turn it off again).
+2. *Motion blur* off, *Cinematic depth of field* off (cutscenes only).
+3. *Graphics quality* **High → Medium** (Lumen and VSM get cheaper; dynamic resolution may go down to 50 %).
+4. Console (`~`): `r.Shadow.Virtual.MaxPhysicalPages 1024`, `r.VolumetricFog 0`, `r.VolumetricCloud 0`
+   (clouds off), `sg.GlobalIlluminationQuality 1`, `sg.ReflectionQuality 1`.
+5. Frame rate limit / VSync in Settings; *Resolution* lower than 1600x900 as the last resort.
+Nothing here has been measured on a GPU yet (the build box has none): treat these as the intended defaults.
+
 ## Known gaps
 
 - Nothing has been seen on a GPU or heard through speakers; 60 fps on an RTX 2070 SUPER is a target, not a measurement.

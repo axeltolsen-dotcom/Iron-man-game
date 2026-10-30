@@ -21,6 +21,12 @@ loudness-normalised to -20 LUFS; U and DUM-E get soft procedural robot beeps.
 Run with /workspace/kokoro-venv/bin/python.
 
     python3 Tools/generate_story_audio.py [--voices-dir DIR] [--force] [--only SPEAKER] [--csv-only]
+
+Side missions are unvoiced unless listed with --missions (ids from side_missions.json); their takes
+are written to side_lines.csv instead of story_lines.csv. --missions sm_jocasta_second_signal also
+writes Jocasta's in-game event takes (summon, Mirror Lock block/hints) to
+SourceAudio/Audio/JOCASTA/JOCASTA_<event>_<n>.wav (-> /Game/Audio/JOCASTA, see MirrorLock.cpp).
+Import just those with Content/Python/import_jocasta_audio.py.
 """
 import argparse
 import csv
@@ -46,6 +52,16 @@ DEFAULT_NAME = "Harley"
 HERO_DEFAULT = "Iron Lad"
 
 warnings = []
+
+AUDIO_DIR = os.path.join(ROOT, "SourceAudio", "Audio")
+# Jocasta's event lines; the captions must match MirrorLock.cpp / StoryDirector.cpp (HandleSummonAlly).
+_ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth"]
+JOCASTA_EVENTS = [("JOCASTA_summon_1", "I'm on your flank. Don't thank me yet.", False),
+                  ("JOCASTA_mirrorLockBlock_1", "Got it. That one doesn't reach you.", True)] + \
+                 [("JOCASTA_mirrorLockHint_%d" % (i + 1), "The %s pillar. It sounds least like me." % o, True)
+                  for i, o in enumerate(_ORDINALS)]
+# Lines spoken while she argues with her old self at the Mirror Lock get the Ultron-echo variant.
+ECHO_LINES = {"sm_jocasta_second_signal_obj4_start"}
 
 
 def folder_for(speaker):
@@ -169,8 +185,12 @@ class Synth:
         self.engine = engine
         self.tts = engine.Synth(voices_dir)
 
-    def say(self, folder, text, path):
+    def say(self, folder, text, path, echo=False):
         e = self.engine
+        if echo and folder in e.VOICE_PROFILES:
+            y, rate = self.tts.render_echo(folder, text)
+            e.write_wav(path, y, rate)
+            return
         if folder in ROBOTS:
             rate, y = robot_beeps(text)
             y = e.normalise(y, rate, target=e.TARGET_LUFS - 3.0)  # beeps sit a little under speech
@@ -188,6 +208,7 @@ def main():
     ap.add_argument("--only", default="", help="only this speaker folder (e.g. MORGAN)")
     ap.add_argument("--csv-only", action="store_true", help="write story_lines.csv, no audio")
     ap.add_argument("--shard", default="0/1", help="i/n: synthesise every n-th take starting at i (parallel runs)")
+    ap.add_argument("--missions", default="", help="comma-separated side mission ids to voice (only those)")
     a = ap.parse_args()
 
     with open(os.path.join(STORY_DIR, "story.json"), encoding="utf-8") as f:
@@ -197,7 +218,20 @@ def main():
     if os.path.exists(mp):
         with open(mp, encoding="utf-8") as f:
             morgan = json.load(f)
-    lines = collect_lines(story, morgan)
+    missions = [m.strip() for m in a.missions.split(",") if m.strip()]
+    events = []
+    if missions:
+        with open(os.path.join(STORY_DIR, "side_missions.json"), encoding="utf-8") as f:
+            side = {m["id"]: m for m in json.load(f).get("missions", [])}
+        missing = [m for m in missions if m not in side]
+        if missing:
+            print("unknown side mission(s): " + ", ".join(missing))
+            return 1
+        lines = collect_lines({"chapters": [side[m] for m in missions]}, None)
+        if "sm_jocasta_second_signal" in missions:
+            events = JOCASTA_EVENTS
+    else:
+        lines = collect_lines(story, morgan)
 
     ids = [l[0] for l in lines]
     dups = sorted({i for i in ids if ids.count(i) > 1})
@@ -227,11 +261,22 @@ def main():
             if take_id.endswith("_noname") and not is_meaningful(take_text):
                 write_silence(path, 1.0)  # the caption still shows the typed name
             else:
-                synth.say(folder, take_text, path)
+                synth.say(folder, take_text, path, echo=lid in ECHO_LINES)
             made += 1
 
+    for eid, text, echo in events:
+        rel = "JOCASTA/%s.wav" % eid
+        rows.append((eid, "JOCASTA", "JOCASTA", "../Audio/" + rel, text))
+        path = os.path.join(AUDIO_DIR, rel)
+        if synth is None or (os.path.exists(path) and not a.force):
+            skipped += synth is not None
+            continue
+        synth.say("JOCASTA", text, path, echo=echo)
+        made += 1
+
     os.makedirs(OUT_DIR, exist_ok=True)
-    with open(os.path.join(OUT_DIR, "story_lines.csv"), "w", newline="", encoding="utf-8") as f:
+    csv_name = "side_lines.csv" if missions else "story_lines.csv"
+    with open(os.path.join(OUT_DIR, csv_name), "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["id", "speaker", "folder", "file", "text"])
         w.writerows(rows)

@@ -97,6 +97,9 @@ protected:
 	int32 WatchedChapter = INDEX_NONE;
 	int32 WatchedObjective = INDEX_NONE;
 	bool bSummonTried = false;
+	/** Mirror Lock: alternate between the hinted plate and the ring centre. */
+	float LockStepTimer = 0.f;
+	bool bLockOnPlate = false;
 	bool bSawPrologue = false;
 	int32 MaxBossPhase = 0;
 	FString SavedSlot;

@@ -85,4 +85,5 @@ namespace ArenaRewards
 	inline const FName WhiteTrim()     { return FName(TEXT("vison-white-trim")); }
 	inline const FName PlaidDecal()    { return FName(TEXT("garage-plaid-decal")); }
 	inline const FName PodLighting()   { return FName(TEXT("hall-of-armor-pod-lighting")); }
+	inline const FName PaleBlueTrim()  { return FName(TEXT("jocasta-pale-blue-trim")); }
 }
