@@ -601,10 +601,10 @@ void AStoryDirector::ApplyEnvironment(FName SetName, const FEnvironmentPreset& P
 		Env->SetArenaDressingVisible(bArena);
 		EArenaSurface Floor = EArenaSurface::Concrete;
 		const FString S = SetName.ToString();
-		if (S == TEXT("workshop"))         { Floor = EArenaSurface::Concrete; }
-		else if (S == TEXT("rooftops"))    { Floor = Preset.bWet ? EArenaSurface::ConcreteWet : EArenaSurface::Concrete; }
+		if (S == TEXT("workshop"))         { Floor = EArenaSurface::HangarFloor; }
+		else if (S == TEXT("rooftops"))    { Floor = Preset.bWet ? EArenaSurface::RoofGravelWet : EArenaSurface::RoofGravel; }
 		else if (S == TEXT("city"))        { Floor = Preset.bWet ? EArenaSurface::ConcreteWet : EArenaSurface::Concrete; }
-		else if (S == TEXT("ruins"))       { Floor = EArenaSurface::Rubble; }
+		else if (S == TEXT("ruins"))       { Floor = EArenaSurface::DebrisGround; }
 		else if (S == TEXT("battlefield")) { Floor = EArenaSurface::BurnedGround; }
 		Env->SetFloorSurface(Floor, FLinearColor(0.8f, 0.8f, 0.8f));
 	}

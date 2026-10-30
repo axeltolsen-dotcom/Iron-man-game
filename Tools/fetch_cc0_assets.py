@@ -69,6 +69,8 @@ def md5(path):
 
 def write_credits():
     path = os.path.join(ROOT, "Docs", "CREDITS.md")
+    if os.path.exists(path):
+        return  # hand-maintained now (Dume's assets, fonts, contrib data); this only seeds it
     lines = [
         "# Credits",
         "",

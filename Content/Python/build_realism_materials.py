@@ -499,6 +499,19 @@ SURFACES = [
     ("rusty_metal_02",      "MI_RustyMetal",  220.0, (1.0, 1.0, 1.0), 1.0, False),
     ("rubble",              "MI_Rubble",      320.0, (1.0, 1.0, 1.0), 1.0, False),
     ("burned_ground_01",    "MI_BurnedGround", 450.0, (1.0, 1.0, 1.0), 1.0, False),
+    # Dume's CC0 sets (contrib/dume/assets.json, Tools/fetch_dume_assets.py)
+    ("hangar_concrete_floor",     "MI_HangarFloor",  300.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("Concrete034",               "MI_ConcreteAlt",  300.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("Metal009",                  "MI_Steel",        150.0, (1.0, 1.0, 1.0), 0.9, False),
+    ("tarred_gravel",             "MI_RoofGravel",   250.0, (1.0, 1.0, 1.0), 1.0, True),
+    ("Gravel022",                 "MI_Gravel",       200.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("Asphalt025C",               "MI_AsphaltRain",  350.0, (1.0, 1.0, 1.0), 0.85, False),
+    ("red_brick_03",              "MI_RedBrick",     260.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("Facade001",                 "MI_GlassFacade",  1200.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("Facade017",                 "MI_OfficeFacade", 1200.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("rebar_reinforced_concrete", "MI_RuinedWall",   300.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("damaged_concrete_floor",    "MI_DamagedFloor", 300.0, (1.0, 1.0, 1.0), 1.0, False),
+    ("Ground111",                 "MI_DebrisGround", 350.0, (1.0, 1.0, 1.0), 1.0, False),
 ]
 
 

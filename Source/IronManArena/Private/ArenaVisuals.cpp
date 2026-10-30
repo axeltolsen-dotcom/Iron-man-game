@@ -104,7 +104,38 @@ namespace ArenaVisuals
 		case EArenaSurface::BurnedGround: return TEXT("MI_BurnedGround");
 		case EArenaSurface::Smoke:        return TEXT("M_Smoke");
 		case EArenaSurface::Facade:       return TEXT("M_Facade");
+		case EArenaSurface::HangarFloor:  return TEXT("MI_HangarFloor");
+		case EArenaSurface::Steel:        return TEXT("MI_Steel");
+		case EArenaSurface::RoofGravel:   return TEXT("MI_RoofGravel");
+		case EArenaSurface::RoofGravelWet: return TEXT("MI_RoofGravel_Wet");
+		case EArenaSurface::AsphaltRain:  return TEXT("MI_AsphaltRain");
+		case EArenaSurface::RedBrick:     return TEXT("MI_RedBrick");
+		case EArenaSurface::RuinedWall:   return TEXT("MI_RuinedWall");
+		case EArenaSurface::DamagedFloor: return TEXT("MI_DamagedFloor");
+		case EArenaSurface::DebrisGround: return TEXT("MI_DebrisGround");
+		case EArenaSurface::Gravel:       return TEXT("MI_Gravel");
+		case EArenaSurface::ConcreteAlt:  return TEXT("MI_ConcreteAlt");
 		default: return nullptr;
+		}
+	}
+
+	/** Older surface to use when a newer (Dume) instance has not been built. */
+	static EArenaSurface SurfaceFallback(EArenaSurface Surface)
+	{
+		switch (Surface)
+		{
+		case EArenaSurface::HangarFloor:   return EArenaSurface::GarageFloor;
+		case EArenaSurface::Steel:         return EArenaSurface::MetalPlate;
+		case EArenaSurface::RoofGravel:    return EArenaSurface::Concrete;
+		case EArenaSurface::RoofGravelWet: return EArenaSurface::ConcreteWet;
+		case EArenaSurface::AsphaltRain:   return EArenaSurface::AsphaltWet;
+		case EArenaSurface::RedBrick:      return EArenaSurface::Brick;
+		case EArenaSurface::RuinedWall:    return EArenaSurface::BlockWall;
+		case EArenaSurface::DamagedFloor:  return EArenaSurface::Concrete;
+		case EArenaSurface::DebrisGround:  return EArenaSurface::Rubble;
+		case EArenaSurface::Gravel:        return EArenaSurface::Rubble;
+		case EArenaSurface::ConcreteAlt:   return EArenaSurface::Concrete;
+		default: return EArenaSurface::Plain;
 		}
 	}
 
@@ -134,7 +165,11 @@ namespace ArenaVisuals
 		{
 			M = LoadObject<UMaterialInterface>(nullptr, *(Package + TEXT(".") + Name));
 		}
-		if (!M) { M = GetParentMaterial(); }
+		if (!M)
+		{
+			const EArenaSurface Fallback = SurfaceFallback(Surface);
+			M = Fallback != EArenaSurface::Plain ? GetSurfaceMaterial(Fallback) : GetParentMaterial();
+		}
 		Cache.Add(uint8(Surface), M);
 		return M;
 	}

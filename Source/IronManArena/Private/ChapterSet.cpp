@@ -211,7 +211,7 @@ void AChapterSet::DisplaySuit(const FVector& Loc, float Yaw, const FLinearColor&
 {
 	USceneComponent* S = Pivot(Root, Loc, FRotator(0, Yaw, 0));
 	// Plinth + glass case.
-	Box(FVector(0, 0, 15), FVector(150, 150, 30), DarkSteel, EArenaSurface::MetalPlate, true, FRotator::ZeroRotator, 0.f, S);
+	Box(FVector(0, 0, 15), FVector(150, 150, 30), DarkSteel, EArenaSurface::Steel, true, FRotator::ZeroRotator, 0.f, S);
 	Box(FVector(0, 0, 32), FVector(130, 130, 4), ArcBlue, EArenaSurface::Glow, false, FRotator::ZeroRotator, bCaseLit ? 0.8f : 0.05f, S); // display-case floor panel
 	Box(FVector(0, 0, 150), FVector(150, 150, 240), FLinearColor(0.9f, 0.95f, 1.f), EArenaSurface::Glass, true, FRotator::ZeroRotator, 0.f, S);
 	SetLastScalar(TEXT("Opacity"), 0.12f);
@@ -330,7 +330,7 @@ void AChapterSet::Ruin(const FVector2D& XY, float Yaw, float Width, float Height
 	for (int32 i = 0; i < Cols; ++i)
 	{
 		const float H = Height * R.FRandRange(0.25f, 1.f);
-		const EArenaSurface S = (i % 3 == 0) ? EArenaSurface::Brick : EArenaSurface::Concrete;
+		const EArenaSurface S = (i % 3 == 0) ? EArenaSurface::RedBrick : (i % 3 == 1 ? EArenaSurface::RuinedWall : EArenaSurface::Concrete);
 		Box(FVector(0, -Width * 0.5f + ColW * (i + 0.5f), H * 0.5f), FVector(60, ColW - 8.f, H), Wall, S, true,
 			FRotator(0, 0, R.FRandRange(-3.f, 3.f)), 0.f, P);
 		SetLastScalar(TEXT("Wetness"), 0.f);
@@ -342,7 +342,7 @@ void AChapterSet::Ruin(const FVector2D& XY, float Yaw, float Width, float Height
 	}
 	const float Depth = Width * R.FRandRange(0.4f, 0.8f);
 	const float SideH = Height * R.FRandRange(0.4f, 0.9f);
-	Box(FVector(-Depth * 0.5f, Width * 0.5f, SideH * 0.5f), FVector(Depth, 60, SideH), Wall, EArenaSurface::BlockWall, true, FRotator::ZeroRotator, 0.f, P);
+	Box(FVector(-Depth * 0.5f, Width * 0.5f, SideH * 0.5f), FVector(Depth, 60, SideH), Wall, EArenaSurface::RuinedWall, true, FRotator::ZeroRotator, 0.f, P);
 	for (int32 f = 1; f * 400.f < Height * 0.8f; ++f)
 	{
 		Box(FVector(-Depth * 0.45f, R.FRandRange(-Width * 0.2f, Width * 0.2f), f * 400.f), FVector(Depth * 0.8f, Width * R.FRandRange(0.3f, 0.7f), 35),
@@ -365,7 +365,7 @@ void AChapterSet::BuildWorkshop(bool bNight)
 	// garage runs back along -X to a glass wall over the lake. Hall of Armor along +Y.
 	const float Back = -2000.f, Front = 500.f, Half = 1200.f, H = 700.f;
 	const FLinearColor Wall(0.75f, 0.74f, 0.72f);
-	Box(FVector((Back + Front) * 0.5f, 0, 3), FVector(Front - Back, Half * 2.f, 6), FLinearColor(0.85f, 0.85f, 0.85f), EArenaSurface::GarageFloor, false);
+	Box(FVector((Back + Front) * 0.5f, 0, 3), FVector(Front - Back, Half * 2.f, 6), FLinearColor(0.85f, 0.85f, 0.85f), EArenaSurface::HangarFloor, false);
 	// Side walls (+Y holds the armor alcoves).
 	Box(FVector((Back + Front) * 0.5f, Half, H * 0.5f), FVector(Front - Back, 40, H), Wall, EArenaSurface::BlockWall, true);
 	Box(FVector((Back + Front) * 0.5f, -Half, H * 0.5f), FVector(Front - Back, 40, H), Wall, EArenaSurface::BlockWall, true);
@@ -402,7 +402,7 @@ void AChapterSet::BuildWorkshop(bool bNight)
 
 	// Workbench with tools + holo table (the Tennessee garage / Stark workshop nod).
 	const FVector Bench(-900.f, -800.f, 0.f);
-	Box(Bench + FVector(0, 0, 90), FVector(500, 160, 12), FLinearColor(0.4f, 0.4f, 0.42f), EArenaSurface::MetalPlate, true);
+	Box(Bench + FVector(0, 0, 90), FVector(500, 160, 12), FLinearColor(0.4f, 0.4f, 0.42f), EArenaSurface::Steel, true);
 	for (const float X : { -230.f, 230.f }) { for (const float Y : { -70.f, 70.f })
 	{
 		Box(Bench + FVector(X, Y, 45), FVector(10, 10, 90), DarkSteel, EArenaSurface::RobotMetal, false);
@@ -474,7 +474,7 @@ void AChapterSet::BuildRooftops(bool bStorm)
 	for (int32 s = 0; s < 4; ++s)
 	{
 		const FRotator Rot(0, s * 90.f, 0);
-		Box(Rot.RotateVector(FVector(E, 0, 60)), FVector(80, E * 2.f, 120), Wall, bStorm ? EArenaSurface::ConcreteWet : EArenaSurface::Concrete, true, Rot);
+		Box(Rot.RotateVector(FVector(E, 0, 60)), FVector(80, E * 2.f, 120), Wall, bStorm ? EArenaSurface::ConcreteWet : EArenaSurface::ConcreteAlt, true, Rot);
 	}
 	// Helipad.
 	Shape(EArenaShape::Cylinder, FVector(3200, -3200, 8), FVector(2200, 2200, 16), FRotator::ZeroRotator, FLinearColor(0.25f, 0.25f, 0.26f),
@@ -534,7 +534,7 @@ void AChapterSet::BuildRooftops(bool bStorm)
 void AChapterSet::BuildCity(bool bNight, bool bWet)
 {
 	// A crossroads in the middle of the arena (cleared), towers beyond the play radius.
-	const EArenaSurface Road = bWet ? EArenaSurface::AsphaltWet : EArenaSurface::Asphalt;
+	const EArenaSurface Road = bWet ? EArenaSurface::AsphaltRain : EArenaSurface::Asphalt;
 	const EArenaSurface Walk = bWet ? EArenaSurface::ConcreteWet : EArenaSurface::Concrete;
 	const float RoadW = 1800.f, Len = 18000.f;
 	Box(FVector(0, 0, 3), FVector(Len, RoadW, 6), FLinearColor(0.85f, 0.85f, 0.85f), Road, false);
@@ -623,7 +623,7 @@ void AChapterSet::BuildRuins(bool bBattlefield)
 		const float A = Rng.FRandRange(0.f, 2.f * PI);
 		const float R = Rng.FRandRange(1800.f, 5500.f);
 		Box(FVector(FMath::Cos(A) * R, FMath::Sin(A) * R, 70), FVector(Rng.FRandRange(300.f, 700.f), Rng.FRandRange(150.f, 300.f), 140),
-			FLinearColor(0.6f, 0.58f, 0.55f), EArenaSurface::Concrete, true, FRotator(Rng.FRandRange(-15.f, 15.f), Rng.FRandRange(0.f, 360.f), Rng.FRandRange(-10.f, 10.f)));
+			FLinearColor(0.6f, 0.58f, 0.55f), EArenaSurface::DamagedFloor, true, FRotator(Rng.FRandRange(-15.f, 15.f), Rng.FRandRange(0.f, 360.f), Rng.FRandRange(-10.f, 10.f)));
 	}
 	for (int32 i = 0; i < (bBattlefield ? 4 : 3); ++i)
 	{

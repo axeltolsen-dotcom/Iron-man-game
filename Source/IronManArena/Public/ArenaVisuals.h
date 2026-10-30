@@ -78,7 +78,19 @@ enum class EArenaSurface : uint8
 	Rubble,
 	BurnedGround,
 	Smoke,          // M_Smoke (soft lit translucent puffs)
-	Facade          // M_Facade (procedural tower windows; EmissiveStrength lights them at night)
+	Facade,         // M_Facade (procedural tower windows; EmissiveStrength lights them at night)
+	// Dume's CC0 sets (Tools/fetch_dume_assets.py). Each falls back to the older surface when its MI is not built.
+	HangarFloor,    // MI_HangarFloor   (hangar_concrete_floor)       -> GarageFloor
+	Steel,          // MI_Steel         (ambientCG Metal009)          -> MetalPlate
+	RoofGravel,     // MI_RoofGravel    (tarred_gravel)               -> Concrete
+	RoofGravelWet,  // MI_RoofGravel_Wet                              -> ConcreteWet
+	AsphaltRain,    // MI_AsphaltRain   (ambientCG Asphalt025C, wet)  -> AsphaltWet
+	RedBrick,       // MI_RedBrick      (red_brick_03)                -> Brick
+	RuinedWall,     // MI_RuinedWall    (rebar_reinforced_concrete)   -> BlockWall
+	DamagedFloor,   // MI_DamagedFloor  (damaged_concrete_floor)      -> Concrete
+	DebrisGround,   // MI_DebrisGround  (ambientCG Ground111)         -> Rubble
+	Gravel,         // MI_Gravel        (ambientCG Gravel022)         -> Rubble
+	ConcreteAlt     // MI_ConcreteAlt   (ambientCG Concrete034)       -> Concrete
 };
 
 /** One painted placeholder part: the component plus the colour it should get at BeginPlay. */
