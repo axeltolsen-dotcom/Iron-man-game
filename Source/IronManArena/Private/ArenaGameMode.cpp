@@ -132,7 +132,14 @@ void AArenaGameMode::BuildArenaIfNeeded()
 	FCollisionObjectQueryParams Obj(ECC_WorldStatic);
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ArenaFloorProbe), false);
 	if (Player) { Params.AddIgnoredActor(Player); }
-	const bool bHasFloor = World->LineTraceSingleByObjectType(Hit, Probe + FVector(0.f, 0.f, 5000.f), Probe - FVector(0.f, 0.f, 20000.f), Obj, Params);
+	// Start just above the pawn: from +50 m the probe began inside large level geometry (sky / volumes) and
+	// reported a "floor" 50 m up, which lifted the whole runtime city above the player.
+	bool bHasFloor = World->LineTraceSingleByObjectType(Hit, Probe + FVector(0.f, 0.f, 300.f), Probe - FVector(0.f, 0.f, 20000.f), Obj, Params);
+	if (bHasFloor && (Hit.bStartPenetrating || Hit.ImpactNormal.Z < 0.5f)) { bHasFloor = false; }
+	if (bHasFloor)
+	{
+		UE_LOG(LogIronManArena, Log, TEXT("Arena floor probe: hit %s at Z=%.0f"), Hit.GetActor() ? *Hit.GetActor()->GetName() : TEXT("?"), Hit.ImpactPoint.Z);
+	}
 
 	const bool bHasSun = static_cast<bool>(TActorIterator<ADirectionalLight>(World));
 
@@ -219,6 +226,9 @@ void AArenaGameMode::SetupCityPlay()
 	float Radius = 0.f;
 	FTransform Start;
 	if (!City || !Player || !City->GetStoryLocation(TEXT("city"), Center, Radius) || !City->GetPlayerStart(TEXT("ps_plaza"), Start)) { return; }
+	// city_layout.json puts ps_plaza ~657 m from the 'city' centre with a 600 m play radius; widen the ring so the
+	// start (and the Legacy Plaza around it) is inside instead of being pushed back by the boundary.
+	Radius = FMath::Max(Radius, float(FVector::Dist2D(Start.GetLocation(), Center)) + 5000.f);
 	bCityPlay = true;
 	CityPlayCenter = Center;
 	CityPlayRadius = Radius;
@@ -237,7 +247,8 @@ void AArenaGameMode::SetupCityPlay()
 		else { continue; } // Gems belong to the story chapters.
 		if (APickup::SpawnPickup(GetWorld(), Type, Spot.Key)) { ++Spawned; }
 	}
-	UE_LOG(LogIronManArena, Log, TEXT("City free play: radius %.0f m, %d pickups."), Radius / 100.f, Spawned);
+	UE_LOG(LogIronManArena, Log, TEXT("City free play: radius %.0f m, %d pickups, city origin %s, start %s, centre %s."), Radius / 100.f, Spawned,
+		*City->GetActorLocation().ToCompactString(), *Start.GetLocation().ToCompactString(), *Center.ToCompactString());
 }
 
 void AArenaGameMode::StartNewGame(int32 SuitIndex)

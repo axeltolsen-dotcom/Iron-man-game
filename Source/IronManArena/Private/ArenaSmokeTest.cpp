@@ -121,8 +121,22 @@ void AArenaSmokeTest::Drive(float DeltaSeconds)
 	if (Nearest && PC)
 	{
 		const FVector Eye = Player->GetPawnViewLocation();
-		PC->SetControlRotation((Nearest->GetAimPoint() - Eye).Rotation());
+		// Lead the target like a player would (repulsor bolts fly at RepulsorSpeed).
+		const float LeadTime = float(FVector::Dist(Nearest->GetAimPoint(), Eye)) / FMath::Max(Player->RepulsorSpeed, 100.f);
+		PC->SetControlRotation((Nearest->GetAimPoint() + Nearest->GetVelocity() * LeadTime - Eye).Rotation());
 		Player->SimulateFire(true);
+		DiagClock -= DeltaSeconds;
+		if (DiagClock <= 0.f)
+		{
+			DiagClock = 5.f;
+			FHitResult LosHit;
+			FCollisionQueryParams LosParams(SCENE_QUERY_STAT(SmokeLos), false, Player);
+			const bool bBlocked = GetWorld()->LineTraceSingleByChannel(LosHit, Eye, Nearest->GetAimPoint(), ECC_Visibility, LosParams);
+			const AActor* HitActor = bBlocked ? LosHit.GetActor() : nullptr;
+			UE_LOG(LogIronManArena, Display, TEXT("ARENA SMOKE: t=%.0f player %s, nearest %s at %.0f m (%s), line of sight %s"),
+				Clock, *Player->GetActorLocation().ToCompactString(), *Nearest->GetName(), NearestDist / 100.f, *Nearest->GetActorLocation().ToCompactString(),
+				!bBlocked ? TEXT("clear") : HitActor == Nearest ? TEXT("on target") : HitActor ? *HitActor->GetName() : TEXT("blocked"));
+		}
 		if (UReactorComponent* R = Player->GetReactor()) { if (R->IsOverheated()) { Player->SimulateVentKey(); } }
 		if (WaveClock > FallbackAfter && !bFallback)
 		{

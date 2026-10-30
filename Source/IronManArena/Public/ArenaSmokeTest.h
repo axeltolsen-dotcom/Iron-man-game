@@ -32,6 +32,7 @@ public:
 	bool Passed() const { return bFinished && Failures.Num() == 0; }
 
 	float FallbackAfter = 75.f;
+	float DiagClock = 0.f;
 	float Timeout = 400.f;
 
 private:
