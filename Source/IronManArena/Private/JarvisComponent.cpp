@@ -45,6 +45,12 @@ void UJarvisComponent::BeginPlay()
 	if (bAutoLoadVoiceAssets) { ResolveSounds(); }
 }
 
+void UJarvisComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (bDucking) { bDucking = false; UArenaGameUserSettings::SetVoiceDucking(this, false); }
+	Super::EndPlay(EndPlayReason);
+}
+
 void UJarvisComponent::LoadDefaultLines()
 {
 	for (const FRawAILine& R : GRawAILines)
@@ -318,6 +324,7 @@ void UJarvisComponent::StopAll()
 	if (VoiceAudio) { VoiceAudio->Stop(); }
 	CurrentLine = INDEX_NONE;
 	CurrentTimeLeft = 0.f;
+	if (bDucking) { bDucking = false; UArenaGameUserSettings::SetVoiceDucking(this, false); }
 	GapLeft = 0.f;
 	IdleTime = 0.f;
 }
@@ -367,6 +374,12 @@ void UJarvisComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	{
 		IdleTime += DeltaTime;
 		if (IdleTime > IdleChatterAfter) { IdleTime = 0.f; Say(EAIEvent::Idle); }
+	}
+
+	// Duck SFX / music under voiced lines (the -20 LUFS voices sit ~9 dB under the old ones).
+	{
+		const bool bVoiced = Lines.IsValidIndex(CurrentLine) && Lines[CurrentLine].Sound != nullptr && CurrentTimeLeft > 0.4f;
+		if (bVoiced != bDucking) { bDucking = bVoiced; UArenaGameUserSettings::SetVoiceDucking(this, bVoiced); }
 	}
 
 	if (CurrentLine != INDEX_NONE)

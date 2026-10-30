@@ -17,6 +17,8 @@ namespace
 {
 	// Transient mix carrying the category overrides (only used when Sound Class assets exist).
 	TWeakObjectPtr<USoundMix> GArenaVolumeMix;
+	TWeakObjectPtr<USoundMix> GArenaDuckMix;
+	bool GArenaDucked = false;
 }
 
 UArenaGameUserSettings::UArenaGameUserSettings()
@@ -48,7 +50,61 @@ void UArenaGameUserSettings::ApplyGameOptionDefaults()
 	HudOpacity = 1.f;
 	HudScale = 1.f;
 	SubtitleScale = 1.f;
+	VoiceDuckSfx = 0.6f;
+	VoiceDuckMusic = 0.45f;
+	SettingsVersion = CurrentSettingsVersion;
 	ToggleFullscreenMode = EWindowMode::WindowedFullscreen;
+}
+
+void UArenaGameUserSettings::LoadSettings(bool bForceReload)
+{
+	Super::LoadSettings(bForceReload);
+	if (SettingsVersion < 2)
+	{
+		// v2: voice lines were re-rendered at -20 LUFS and the default voice level dropped to 0.7.
+		// Only the old untouched default (1.0) moves; a level the player chose stays.
+		if (FMath::IsNearlyEqual(VoiceVolume, 1.f, 0.001f))
+		{
+			VoiceVolume = 0.7f;
+			UE_LOG(LogTemp, Log, TEXT("ArenaGameUserSettings: migrated VoiceVolume 1.0 -> 0.7 (settings v%d)"), CurrentSettingsVersion);
+		}
+	}
+	if (SettingsVersion < CurrentSettingsVersion)
+	{
+		SettingsVersion = CurrentSettingsVersion;
+		SaveConfig();
+	}
+}
+
+void UArenaGameUserSettings::SetVoiceDucking(const UObject* WorldContext, bool bDuck)
+{
+	if (GArenaDucked == bDuck) { return; }
+	UWorld* World = WorldContext && GEngine ? GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::ReturnNull) : nullptr;
+	const UArenaGameUserSettings* S = GetArenaSettings();
+	if (!World || !S) { if (!bDuck) { GArenaDucked = false; } return; }
+	USoundMix* Mix = GArenaDuckMix.Get();
+	if (!Mix)
+	{
+		Mix = NewObject<USoundMix>(GetTransientPackage(), TEXT("ArenaVoiceDuckMix"));
+		Mix->AddToRoot();
+		Mix->FadeInTime = 0.15f;
+		Mix->FadeOutTime = 0.6f;
+		GArenaDuckMix = Mix;
+	}
+	USoundClass* Sfx = LoadSoundClassIfExists(S->SfxSoundClass);
+	USoundClass* Music = LoadSoundClassIfExists(S->MusicSoundClass);
+	if (!Sfx && !Music) { return; }
+	GArenaDucked = bDuck;
+	if (bDuck)
+	{
+		if (Sfx) { UGameplayStatics::SetSoundMixClassOverride(World, Mix, Sfx, FMath::Clamp(S->VoiceDuckSfx, 0.f, 1.f), 1.f, 0.15f, false); }
+		if (Music) { UGameplayStatics::SetSoundMixClassOverride(World, Mix, Music, FMath::Clamp(S->VoiceDuckMusic, 0.f, 1.f), 1.f, 0.15f, false); }
+		UGameplayStatics::PushSoundMixModifier(World, Mix);
+	}
+	else
+	{
+		UGameplayStatics::PopSoundMixModifier(World, Mix);
+	}
 }
 
 void UArenaGameUserSettings::SetToDefaults()

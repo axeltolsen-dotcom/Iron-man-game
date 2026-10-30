@@ -1,4 +1,5 @@
 #include "ArenaGameMode.h"
+#include "ArenaSmokeTest.h"
 #include "StoryLibrary.h"
 #include "StoryAutopilot.h"
 #include "Misc/CommandLine.h"
@@ -66,6 +67,13 @@ void AArenaGameMode::BeginPlay()
 		const int32 Last = UStoryLibrary::GetStory().Chapters.Num() - 1;
 		AStoryAutopilot::Launch(GetWorld(), bOne ? Chapter - 1 : 0, bOne ? Chapter - 1 : Last, !bOne,
 			FParse::Param(FCommandLine::Get(), TEXT("StoryAutoplayQuit")));
+	}
+	// Headless arena smoke test: -ArenaSmoke [-ArenaSmokeWaves=N] [-ArenaSmokeQuit] (see ArenaSmokeTest.h).
+	if (FParse::Param(FCommandLine::Get(), TEXT("ArenaSmoke")))
+	{
+		int32 SmokeWaves = 1;
+		FParse::Value(FCommandLine::Get(), TEXT("ArenaSmokeWaves="), SmokeWaves);
+		AArenaSmokeTest::Launch(GetWorld(), SmokeWaves, FParse::Param(FCommandLine::Get(), TEXT("ArenaSmokeQuit")));
 	}
 	NextHulkbusterAt = HulkbusterScoreStep;
 	ASuitUpCinematic::OnFinished.AddUObject(this, &AArenaGameMode::HandleSuitUpFinished);

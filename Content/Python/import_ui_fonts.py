@@ -27,20 +27,13 @@ def log(s):
 
 
 def import_face(path, name):
-    t = unreal.AssetImportTask()
-    t.set_editor_property("filename", path)
-    t.set_editor_property("destination_path", FACE_DIR)
-    t.set_editor_property("destination_name", name)
-    t.set_editor_property("automated", True)
-    t.set_editor_property("replace_existing", True)
-    t.set_editor_property("save", True)
-    unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([t])
-    for p in list(t.get_editor_property("imported_object_paths") or []):
-        a = unreal.load_asset(p)
-        if isinstance(a, unreal.FontFace):
-            return a
-    a = unreal.load_asset(FACE_DIR + "/" + name)
-    return a if isinstance(a, unreal.FontFace) else None
+    """Font Face asset from a .ttf without the import factory (its options dialog needs Slate)."""
+    pkg = FACE_DIR + "/" + name
+    face = unreal.ArenaFontLibrary.create_font_face_from_file(path, pkg)
+    if face is None:
+        return None
+    unreal.EditorAssetLibrary.save_loaded_asset(face, only_if_is_dirty=False)
+    return face
 
 
 def pick_file(files, typeface):
@@ -90,8 +83,8 @@ def main():
         if font is None:
             log("FAIL %s: could not create %s" % (key, asset))
             continue
-        n = unreal.ArenaFontLibrary.build_composite_font(font, names, objs)
-        unreal.EditorAssetLibrary.save_asset(asset, only_if_is_dirty=False)
+        n = unreal.ArenaFontLibrary.build_composite_font(font, [unreal.Name(x) for x in names], objs)
+        unreal.EditorAssetLibrary.save_loaded_asset(font, only_if_is_dirty=False)
         got = [str(x) for x in unreal.ArenaFontLibrary.get_typeface_names(font)]
         log("OK   %s -> %s typefaces %s (%d entries, faces: %s)" % (key, asset, got, n, ", ".join(sorted(faces))))
         ok += 1

@@ -1,4 +1,6 @@
 #include "EnemyBase.h"
+#include "ArenaFeel.h"
+#include "BossTitan.h"
 #include "IronManArena.h"
 #include "IronManCharacter.h"
 #include "IronProjectile.h"
@@ -83,6 +85,12 @@ float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 		bDead = true;
 		SetActorEnableCollision(false);
 		OnKilled();
+		if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
+		{
+			// Kill confirm: a short freeze, much longer for a boss.
+			const bool bBoss = IsA<ABossTitan>();
+			Feel->HitStop(bBoss ? 0.22f : 0.045f, bBoss ? 0.08f : 0.2f);
+		}
 		if (AArenaGameMode* GM = GetArenaGameMode()) { GM->OnEnemyKilled(this); }
 		AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), DeathBlastRadius, FLinearColor(1.f, 0.55f, 0.15f), 0.5f);
 		Destroy();

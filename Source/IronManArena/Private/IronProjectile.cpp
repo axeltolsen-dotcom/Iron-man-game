@@ -1,4 +1,5 @@
 #include "IronProjectile.h"
+#include "ArenaFeel.h"
 #include "ArenaVisuals.h"
 #include "ArenaBlastFX.h"
 #include "IronManCharacter.h"
@@ -118,7 +119,12 @@ void AIronProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComp, AActo
 
 void AIronProjectile::OnProjectileStopped(const FHitResult& ImpactResult)
 {
-	// Hit the floor or a wall (WorldStatic).
+	// Hit the floor or a wall (WorldStatic): leave a scorch mark (player shots and blasts).
+	if (!bExploded && (!bHostile || BlastRadius > 0.f) && ImpactResult.bBlockingHit)
+	{
+		ArenaFeel::SpawnImpactDecal(GetWorld(), ImpactResult.ImpactPoint, ImpactResult.ImpactNormal,
+			BlastRadius > 0.f ? FMath::Clamp(BlastRadius * 0.9f, 60.f, 400.f) : 28.f + Collision->GetUnscaledSphereRadius() * 1.5f);
+	}
 	Explode(nullptr);
 }
 

@@ -1,4 +1,5 @@
 #include "ArenaBlastFX.h"
+#include "ArenaFeel.h"
 #include "ArenaVisuals.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -28,6 +29,7 @@ AArenaBlastFX::AArenaBlastFX()
 AArenaBlastFX* AArenaBlastFX::Spawn(UWorld* World, const FVector& Location, float Radius, const FLinearColor& InColor, float InDuration)
 {
 	if (!World) { return nullptr; }
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(World)) { Feel->AddBlastTrauma(Location, Radius); }
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	AArenaBlastFX* FX = World->SpawnActor<AArenaBlastFX>(AArenaBlastFX::StaticClass(), Location, FRotator::ZeroRotator, Params);

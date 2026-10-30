@@ -1,4 +1,5 @@
 #include "BossTitan.h"
+#include "ArenaFeel.h"
 #include "ArenaVisuals.h"
 #include "StoryDirector.h"
 #include "IronManCharacter.h"
@@ -101,6 +102,7 @@ float ABossTitan::ModifyIncomingDamage(float Amount)
 	{
 		return 0.f; // shield sparks only
 	}
+	if (State == EBossState::Venting) { Amount *= VentDamageMultiplier; }
 	// Check for a phase change caused by this hit.
 	const float After = (Health - Amount) / FMath::Max(1.f, MaxHealth);
 	if (Health - Amount > 0.f)
@@ -118,6 +120,12 @@ void ABossTitan::EnterPhase(int32 NewPhase)
 {
 	Phase = NewPhase;
 	InvulnerableLeft = PhaseChangeInvulnerability;
+	if (State == EBossState::Venting) { State = EBossState::Fighting; VentLeft = 0.f; SetCoreColor(FLinearColor(0.65f, 0.3f, 1.f)); }
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
+	{
+		Feel->HitStop(0.12f, 0.1f);
+		Feel->AddTrauma(0.6f);
+	}
 	AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 600.f, FLinearColor(0.85f, 0.6f, 1.f), 0.6f);
 	DropPickup(EPickupType::Health, FVector(0, 0, -150));
 	UJarvisComponent::Notify(this, NewPhase >= 3 ? EAIEvent::BossPhase3 : EAIEvent::BossPhase2);
@@ -195,6 +203,11 @@ void ABossTitan::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 		{
 			Parts.Last().MID->SetVectorParameterValue(TEXT("Color"), FMath::Lerp(FLinearColor(0.65f, 0.3f, 1.f), FLinearColor::White, FMath::Abs(FMath::Sin(Age * 25.f))));
 		}
+		if (StateTimer <= DeltaSeconds)
+		{
+			// Telegraph where it will ram: a ring that tracks the player and fills as the charge completes.
+			AArenaTelegraph::Spawn(GetWorld(), PlayerLoc, TelegraphRadius * 1.2f, DashChargeTime, FLinearColor(1.f, 0.12f, 0.05f), Player);
+		}
 		if (StateTimer >= DashChargeTime)
 		{
 			State = EBossState::Dashing;
@@ -210,8 +223,24 @@ void ABossTitan::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 		MoveBy(Velocity * DeltaSeconds);
 		if (StateTimer >= DashDuration)
 		{
-			State = EBossState::Fighting;
 			Velocity *= 0.2f;
+			OpenVent(VentAfterDashSeconds);
+		}
+		break;
+	}
+	case EBossState::Venting:
+	{
+		// Exposed core: drift, hold fire, glow hot. Shoot it.
+		VentLeft -= DeltaSeconds;
+		Velocity *= FMath::Max(0.f, 1.f - 2.5f * DeltaSeconds);
+		Velocity.Z += FMath::Sin(Age * 3.f) * 20.f * DeltaSeconds;
+		MoveBy(Velocity * DeltaSeconds);
+		FaceToward(PlayerLoc, DeltaSeconds, 30.f);
+		SetCoreColor(FMath::Lerp(FLinearColor(1.f, 0.45f, 0.1f), FLinearColor(1.f, 0.9f, 0.6f), 0.5f + 0.5f * FMath::Sin(Age * 14.f)));
+		if (VentLeft <= 0.f)
+		{
+			State = EBossState::Fighting;
+			SetCoreColor(FLinearColor(0.65f, 0.3f, 1.f));
 		}
 		break;
 	}
@@ -249,11 +278,12 @@ void ABossTitan::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 			{
 				MissileTimer = bRage ? MissileCooldownPhase3 : MissileCooldownPhase2;
 				FireMissiles(Player);
+				OpenVent(VentAfterMissilesSeconds);
 			}
 		}
 
 		// Ramming dash in phase 3.
-		if (bRage)
+		if (bRage && State == EBossState::Fighting)
 		{
 			DashTimer -= DeltaSeconds;
 			if (DashTimer <= 0.f)
@@ -299,6 +329,8 @@ void ABossTitan::FireMissiles(AIronManCharacter* Player)
 {
 	const int32 PerSide = Phase >= 3 ? 2 : 1;
 	USceneComponent* HomingTarget = Player->GetRootComponent();
+	// Incoming-missile warning ring that follows the player until the salvo arrives (~flight time).
+	AArenaTelegraph::Spawn(GetWorld(), Player->GetActorLocation(), TelegraphRadius, 1.6f, FLinearColor(1.f, 0.3f, 0.05f), Player);
 	for (const float Side : { -1.f, 1.f })
 	{
 		for (int32 k = 0; k < PerSide; ++k)
@@ -312,6 +344,34 @@ void ABossTitan::FireMissiles(AIronManCharacter* Player)
 			}
 		}
 	}
+}
+
+void ABossTitan::OpenVent(float Seconds)
+{
+	if (Seconds <= 0.f) { State = EBossState::Fighting; return; }
+	State = EBossState::Venting;
+	VentLeft = Seconds;
+	StateTimer = 0.f;
+	++VentWindowsOpened;
+	// Steam puffs off the shoulders.
+	for (const float Side : { -1.f, 1.f })
+	{
+		AArenaBlastFX::Spawn(GetWorld(), GetActorLocation() + GetActorRightVector() * Side * 170.f + FVector(0, 0, 200.f), 90.f, FLinearColor(0.9f, 0.9f, 0.95f), 0.5f);
+	}
+	if (!bVentHintShown)
+	{
+		bVentHintShown = true;
+		if (AArenaGameMode* GM = GetArenaGameMode())
+		{
+			GM->ShowBanner(NSLOCTEXT("IronManArena", "BossVent", "CORE EXPOSED"),
+				NSLOCTEXT("IronManArena", "BossVentSub", "It vents after every dash and missile salvo - double damage"), 1.6f);
+		}
+	}
+}
+
+void ABossTitan::SetCoreColor(const FLinearColor& C)
+{
+	if (Parts.Num() > 0 && Parts.Last().MID) { Parts.Last().MID->SetVectorParameterValue(TEXT("Color"), C); }
 }
 
 void ABossTitan::OnKilled()

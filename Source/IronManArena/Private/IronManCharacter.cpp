@@ -1,4 +1,5 @@
 #include "IronManCharacter.h"
+#include "ArenaFeel.h"
 #include "IronManArena.h"
 #include "IronProjectile.h"
 #include "EnemyBase.h"
@@ -1668,6 +1669,7 @@ float AIronManCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	InvulnerableLeft = InvulnerabilityAfterHit;
 	HitFlashLeft = 0.15f;
 	ArenaVisuals::FlashAll(Parts, FLinearColor(1.f, 0.5f, 0.3f), false);
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->AddTrauma(FMath::Clamp(Applied / 25.f, 0.12f, 0.55f)); }
 
 	if (Health <= 0.f)
 	{

@@ -81,6 +81,7 @@ class IRONMANARENA_API UJarvisComponent : public UActorComponent
 public:
 	UJarvisComponent();
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
@@ -182,6 +183,7 @@ protected:
 	int32 ScriptedCounter = 0;
 	TArray<int32> ScriptedSlots;
 	float CurrentTimeLeft = 0.f;
+	bool bDucking = false;
 	float CurrentDuration = 0.f;
 	float GapLeft = 0.f;
 	float IdleTime = 0.f;

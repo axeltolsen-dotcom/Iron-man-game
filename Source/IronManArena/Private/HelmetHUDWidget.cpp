@@ -2682,7 +2682,8 @@ void UHelmetHUDWidget::FillStateFromGame(const UObject* WorldContext, const AIro
 		return;
 	}
 
-	const AArenaGameMode* GM = Player->GetArenaGameMode();
+	// Same lookup as UArenaHUDWidget (AIronManCharacter::GetArenaGameMode is protected upstream).
+	const AArenaGameMode* GM = GameWorld->GetAuthGameMode<AArenaGameMode>();
 	const FSuitDef& Suit = Player->GetSuit();
 
 	// ---- Mode ----

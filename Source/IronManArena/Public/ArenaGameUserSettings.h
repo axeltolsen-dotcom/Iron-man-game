@@ -33,6 +33,13 @@ public:
 	static UArenaGameUserSettings* GetArenaSettings();
 
 	virtual void SetToDefaults() override;
+	virtual void LoadSettings(bool bForceReload = false) override;
+
+	/** Bumped when a saved default must change (2 = voice volume 1.0 -> 0.7 for the -20 LUFS Kokoro lines). */
+	static constexpr int32 CurrentSettingsVersion = 2;
+
+	/** Duck SFX and music under a playing voice line (UJarvisComponent calls this per line). */
+	static void SetVoiceDucking(const UObject* WorldContext, bool bDuck);
 
 	/** Applies the non-engine options (camera, mouse, audio) to the running game. Call after
 	 *  ApplySettings(). Safe with a null world context (audio only). */
@@ -72,6 +79,17 @@ public:
 
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
 	float VoiceVolume = 0.7f;
+
+	/** Saved-settings schema version (see CurrentSettingsVersion / LoadSettings migration). */
+	UPROPERTY(config)
+	int32 SettingsVersion = 0;
+
+	/** SFX / music level while a voice line plays (0..1, multiplies the sliders). */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
+	float VoiceDuckSfx = 0.6f;
+
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
+	float VoiceDuckMusic = 0.45f;
 
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
 	float MusicVolume = 0.8f;

@@ -1,4 +1,6 @@
 #include "ArenaPlayerController.h"
+#include "ArenaFeel.h"
+#include "Camera/PlayerCameraManager.h"
 
 #include "ArenaHUDWidget.h"
 #include "HelmetHUDWidget.h"
@@ -33,6 +35,9 @@ void AArenaPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	if (!IsLocalController()) { return; }
+
+	// Trauma camera shake (hits, blasts, boss phases); scaled to 0 by the Camera Shake / Reduced Motion settings.
+	if (PlayerCameraManager) { PlayerCameraManager->AddNewCameraModifier(UArenaShakeModifier::StaticClass()); }
 
 	if (*HUDWidgetClass)
 	{

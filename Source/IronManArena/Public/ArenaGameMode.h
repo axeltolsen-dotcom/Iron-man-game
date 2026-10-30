@@ -142,6 +142,7 @@ public:
 	int32 GetHighScore() const { return HighScore; }
 	UFUNCTION(BlueprintPure, Category = "Arena")
 	int32 GetWave() const { return Wave; }
+	bool IsWaveActive() const { return bWaveActive; }
 	UFUNCTION(BlueprintPure, Category = "Arena")
 	int32 GetCombo() const { return Combo; }
 	UFUNCTION(BlueprintPure, Category = "Arena")

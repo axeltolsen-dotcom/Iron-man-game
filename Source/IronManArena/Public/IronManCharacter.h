@@ -183,6 +183,7 @@ public:
 	void SimulateHulkbusterKey() { Input_Hulkbuster(FInputActionValue()); }
 	void SimulateAllyKey() { Input_Ally(FInputActionValue()); }
 	void SimulateVentKey() { Input_Vent(FInputActionValue()); }
+	void SimulateFire(bool bHeld) { bFireHeld = bHeld && !bDead; }
 	/** Space / click during a cinematic (next shot, or skips the suit-up). */
 	bool SimulateSkipKey() { return TrySkipCinematic(); }
 

@@ -20,7 +20,8 @@ enum class EBossState : uint8
 	Entering,
 	Fighting,
 	Charging,
-	Dashing
+	Dashing,
+	Venting    // core exposed after a dash or missile salvo: takes extra damage, holds fire
 };
 
 UCLASS()
@@ -35,6 +36,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Boss")
 	int32 GetPhase() const { return Phase; }
+	EBossState GetBossState() const { return State; }
+	bool IsCoreExposed() const { return State == EBossState::Venting; }
+	int32 GetVentWindowsOpened() const { return VentWindowsOpened; }
 
 	UFUNCTION(BlueprintPure, Category = "Boss")
 	bool IsInvulnerable() const { return InvulnerableLeft > 0.f; }
@@ -108,6 +112,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Dash")
 	FVector2D DashIntervalRange = FVector2D(4.5f, 6.f);
 
+	/** Seconds the core stays exposed after a ramming dash. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Vent")
+	float VentAfterDashSeconds = 2.2f;
+
+	/** Seconds the core stays exposed after a missile salvo (the pods dump heat). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Vent")
+	float VentAfterMissilesSeconds = 1.4f;
+
+	/** Damage multiplier while the core is exposed. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Vent")
+	float VentDamageMultiplier = 2.f;
+
+	/** Telegraph ring radius under the player for missile salvos and dashes (cm). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Telegraph")
+	float TelegraphRadius = 280.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Contact")
 	float ContactDamage = 10.f;
 
@@ -141,6 +161,8 @@ protected:
 	void FireVolley(AIronManCharacter* Player);
 	void FireMissiles(AIronManCharacter* Player);
 	void EnterPhase(int32 NewPhase);
+	void OpenVent(float Seconds);
+	void SetCoreColor(const FLinearColor& C);
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<USceneComponent> CannonL;
@@ -172,4 +194,7 @@ protected:
 	float OrbitAngle = 0.f;
 	float OrbitDir = 1.f;
 	FVector EnterTarget = FVector::ZeroVector;
+	float VentLeft = 0.f;
+	int32 VentWindowsOpened = 0;
+	bool bVentHintShown = false;
 };
