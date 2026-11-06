@@ -137,4 +137,7 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<class APilotAvatar> Face;
 	struct FMaskPart { TWeakObjectPtr<USceneComponent> C; TWeakObjectPtr<USceneComponent> Parent; };
 	TArray<FMaskPart> MaskParts;
+	/** Hinge rest position / pilot-face position in the hinge parent's space (placeholder helmet or the kit's Rig.Root). */
+	FVector MaskHingeBase = FVector(-1.f, 0.f, 186.f);
+	FVector MaskFaceAt = FVector(4.f, 0.f, 171.f);
 };

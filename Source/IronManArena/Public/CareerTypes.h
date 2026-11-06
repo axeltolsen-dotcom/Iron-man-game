@@ -93,6 +93,8 @@ struct IRONMANARENA_API FAvatarConfig
 	/** Barber: boys only (ignored on a feminine body). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avatar|Pilot") EAvatarFacialHair FacialHair = EAvatarFacialHair::None;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avatar|Pilot") FAvatarOutfit Outfit;
+	/** Real character body (index among the bodies of this body type in AvatarCatalog); -1 = default. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avatar|Pilot") int32 BodyModel = -1;
 	/** 0.85 .. 1.1 (teen .. tall adult). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avatar|Pilot") float Height = 0.95f;
 

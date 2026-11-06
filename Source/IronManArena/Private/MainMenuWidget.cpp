@@ -11,9 +11,11 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "Components/ButtonSlot.h"
 #include "Styling/CoreStyle.h"
 #include "InputCoreTypes.h"
 #include "ArenaAudio.h"
+#include "CareerWidgets.h"
 #include "Components/AudioComponent.h"
 #include "Components/Image.h"
 #include "Components/ScrollBox.h"
@@ -65,7 +67,7 @@ UButton* UMainMenuWidget::MakeButton(UVerticalBox* Box, const FText& Label, UTex
 	B->SetBackgroundColor(FLinearColor::White);
 	OutLabel = MakeText(WidgetTree, Label, 22, FLinearColor(0.78f, 0.93f, 1.f));
 	OutLabel->SetJustification(ETextJustify::Left);
-	B->SetContent(OutLabel);
+	if (UButtonSlot* BS = Cast<UButtonSlot>(B->SetContent(OutLabel))) { BS->SetHorizontalAlignment(HAlign_Left); BS->SetVerticalAlignment(VAlign_Center); }
 	B->OnHovered.AddDynamic(this, &UMainMenuWidget::HandleHoverChanged);
 	B->OnUnhovered.AddDynamic(this, &UMainMenuWidget::HandleHoverChanged);
 	if (UVerticalBoxSlot* S = Box->AddChildToVerticalBox(B))
@@ -135,6 +137,8 @@ void UMainMenuWidget::BuildTree()
 	ResumeButton = MakeButton(Box, LOCTEXT("Resume", "RESUME"), Tmp); ResumeLabel = Tmp;
 	StartButton = MakeButton(Box, LOCTEXT("Arena", "ARENA"), Tmp); StartLabel = Tmp;
 	StoryButton = MakeButton(Box, LOCTEXT("Story", "STORY"), Tmp); StoryLabel = Tmp;
+	AvatarButton = MakeButton(Box, LOCTEXT("Avatar", "CUSTOMIZE AVATAR  [K]"), Tmp);
+	AvatarButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleAvatarClicked);
 	SettingsButton = MakeButton(Box, LOCTEXT("Settings", "SETTINGS"), Tmp); SettingsLabel = Tmp;
 	TitleButton = MakeButton(Box, LOCTEXT("ToTitle", "QUIT TO TITLE"), Tmp); TitleLabel = Tmp;
 	CreditsButton = MakeButton(Box, LOCTEXT("Credits", "CREDITS"), Tmp); CreditsLabel = Tmp;
@@ -197,6 +201,14 @@ void UMainMenuWidget::BuildTree()
 	CreditsPanel->SetVisibility(ESlateVisibility::Collapsed);
 
 	RefreshTexts();
+}
+
+void UMainMenuWidget::HandleAvatarClicked()
+{
+	Click();
+	// Over the title: open on top (closing returns to the title). Paused: resume first, the editor pauses on its own.
+	if (Mode == EMenuMode::Paused) { if (AArenaPlayerController* PC = Cast<AArenaPlayerController>(GetOwningPlayer())) { PC->MenuResume(); } }
+	if (UCareerInput* CI = UCareerInput::Get(this)) { CI->OpenScreen(ECareerScreen::Avatar); }
 }
 
 void UMainMenuWidget::HandleCreditsClicked()
@@ -324,6 +336,7 @@ void UMainMenuWidget::RefreshTexts()
 		break;
 	}
 	ResumeButton->SetVisibility(Mode == EMenuMode::Paused ? Shown : Hidden);
+	if (AvatarButton) { AvatarButton->SetVisibility(Mode != EMenuMode::GameOver && UCareerInput::Get(this) ? Shown : Hidden); }
 	StoryButton->SetVisibility(Mode == EMenuMode::Title ? Shown : Hidden);
 	SettingsButton->SetVisibility(Mode != EMenuMode::GameOver ? Shown : Hidden);
 	TitleButton->SetVisibility(Mode != EMenuMode::Title ? Shown : Hidden);
@@ -335,6 +348,7 @@ FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 	if (PC && PC->HandleGlobalKey(InKeyEvent)) { return FReply::Handled(); }
 
 	const FKey Key = InKeyEvent.GetKey();
+	if (Key == EKeys::K && Mode != EMenuMode::GameOver) { HandleAvatarClicked(); return FReply::Handled(); }
 	if (CreditsPanel && CreditsPanel->GetVisibility() != ESlateVisibility::Collapsed && (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::BackSpace))
 	{
 		CreditsPanel->SetVisibility(ESlateVisibility::Collapsed);

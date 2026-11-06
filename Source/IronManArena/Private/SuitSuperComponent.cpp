@@ -1052,34 +1052,83 @@ void USuitSuperComponent::ToggleMask()
 {
 	AIronManCharacter* C = Char();
 	if (!C || C->IsDead() || C->IsInCinematic() || C->bCareerSuitOff || bActive) { return; }
+	auto IsFacePart = [](const FString& N)
+	{
+		for (const TCHAR* T : { TEXT("Faceplate"), TEXT("Face"), TEXT("Eye"), TEXT("Jaw"), TEXT("Chin"), TEXT("Cheek"), TEXT("Mouth") })
+		{
+			if (N.Contains(T, ESearchCase::CaseSensitive)) { return true; }
+		}
+		return false;
+	};
+	// Hinge parent: the visible placeholder helmet when it carries face pieces, else the armour kit (head plates on Rig.Root).
 	USceneComponent* Helmet = nullptr;
-	for (USceneComponent* H : C->Rig.Helmets) { if (H && H->IsVisible()) { Helmet = H; break; } }
-	if (!Helmet) { return; }
+	TArray<USceneComponent*> Found;
+	// Already rigged (second toggle): keep the hinge and its parts.
+	if (MaskHinge && MaskParts.Num() > 0 && MaskHinge->GetAttachParent())
+	{
+		bool bAllValid = true;
+		for (const FMaskPart& M : MaskParts) { bAllValid &= M.C.IsValid() && M.C->GetAttachParent() == MaskHinge; }
+		if (bAllValid) { Helmet = MaskHinge->GetAttachParent(); }
+	}
+	for (USceneComponent* H : C->Rig.Helmets)
+	{
+		if (Helmet) { break; }
+		if (!H || !H->IsVisible()) { continue; }
+		TArray<USceneComponent*> Kids;
+		H->GetChildrenComponents(false, Kids);
+		for (USceneComponent* K : Kids) { if (K && K->GetFName() != TEXT("MaskHinge") && IsFacePart(K->GetName())) { Found.Add(K); } }
+		if (Found.Num()) { Helmet = H; break; }
+	}
+	if (!Helmet && C->Rig.Root)
+	{
+		const float RootZ = C->GetActorLocation().Z - C->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+		for (const FArenaPaintedPart& P : C->Parts)
+		{
+			USceneComponent* K = P.Component;
+			if (!K || !K->IsVisible() || !IsFacePart(K->GetName())) { continue; }
+			if (K->GetComponentLocation().Z - RootZ < 140.f * C->GetActorScale3D().Z) { continue; } // head only
+			Found.Add(K);
+		}
+		if (Found.Num()) { Helmet = Found[0]->GetAttachParent() && Found[0]->GetAttachParent() != MaskHinge ? Found[0]->GetAttachParent() : C->Rig.Root.Get(); }
+	}
+	if (!Helmet && !bMaskOpen) { return; }
 	if (!bMaskOpen)
 	{
-		// Faceplate parts = the helmet's front pieces (face / eyes / jaw / chin / cheeks / mouth).
 		if (!MaskHinge || MaskHinge->GetAttachParent() != Helmet)
 		{
 			for (FMaskPart& M : MaskParts) { if (M.C.IsValid() && M.Parent.IsValid()) { M.C->AttachToComponent(M.Parent.Get(), FAttachmentTransformRules::KeepRelativeTransform); } }
 			MaskParts.Reset();
 			if (MaskHinge) { MaskHinge->DestroyComponent(); }
+			// Hinge on the top-back edge of the faceplate group (Mark III hinge line), measured from the real parts.
+			FBox Box(ForceInit);
+			const FTransform PT = Helmet->GetComponentTransform();
+			for (USceneComponent* K : Found)
+			{
+				if (const UPrimitiveComponent* Pc = Cast<UPrimitiveComponent>(K))
+				{
+					const FBox WB = Pc->Bounds.GetBox();
+					Box += PT.InverseTransformPosition(WB.Min);
+					Box += PT.InverseTransformPosition(WB.Max);
+				}
+				else { Box += PT.InverseTransformPosition(K->GetComponentLocation()); }
+			}
+			if (Box.IsValid)
+			{
+				const FVector Ctr = Box.GetCenter();
+				MaskHingeBase = FVector(Box.Min.X + 1.f, 0.f, Box.Max.Z + 1.f);
+				MaskFaceAt = FVector(Ctr.X - 3.f, 0.f, Ctr.Z);
+			}
 			MaskHinge = NewObject<USceneComponent>(C, TEXT("MaskHinge"));
 			MaskHinge->SetupAttachment(Helmet);
 			MaskHinge->RegisterComponent();
-			MaskHinge->SetRelativeLocation(FVector(-1.f, 0.f, 186.f)); // top of the head, the Mark III hinge line
-			TArray<USceneComponent*> Kids;
-			Helmet->GetChildrenComponents(false, Kids);
-			for (USceneComponent* K : Kids)
+			MaskHinge->SetRelativeLocation(MaskHingeBase);
+			for (USceneComponent* K : Found)
 			{
-				if (K == MaskHinge) { continue; }
-				const FString N = K->GetName();
-				if (N.Contains(TEXT("Face")) || N.Contains(TEXT("Eye")) || N.Contains(TEXT("Jaw")) || N.Contains(TEXT("Chin")) || N.Contains(TEXT("Cheek")) || N.Contains(TEXT("Mouth")))
-				{
-					FMaskPart M; M.C = K; M.Parent = Helmet;
-					MaskParts.Add(M);
-					K->AttachToComponent(MaskHinge, FAttachmentTransformRules::KeepWorldTransform);
-				}
+				FMaskPart M; M.C = K; M.Parent = K->GetAttachParent();
+				MaskParts.Add(M);
+				K->AttachToComponent(MaskHinge, FAttachmentTransformRules::KeepWorldTransform);
 			}
+			UE_LOG(LogTemp, Log, TEXT("Suit: mask toggle uses %d faceplate parts (%s)"), MaskParts.Num(), *Helmet->GetName());
 		}
 		// The pilot's face (head-only avatar) sits in the helmet opening.
 		if (!Face && GetWorld())
@@ -1092,7 +1141,7 @@ void USuitSuperComponent::ToggleMask()
 				const FVector HeadC = Face->SetHeadOnly();
 				Face->AttachToComponent(Helmet, FAttachmentTransformRules::KeepRelativeTransform);
 				Face->SetActorRelativeScale3D(FVector(0.9f));
-				Face->SetActorRelativeLocation(FVector(4.f, 0.f, 171.f) - HeadC * 0.9f);
+				Face->SetActorRelativeLocation(MaskFaceAt - HeadC * 0.9f);
 				Face->SetActorHiddenInGame(true);
 			}
 		}
@@ -1122,7 +1171,7 @@ void USuitSuperComponent::TickMask(float Dt)
 	const float Lift = FMath::InterpEaseInOut(0.f, 1.f, FMath::Clamp((MaskAlpha - 0.25f) / 0.75f, 0.f, 1.f), 2.5f);
 	if (MaskHinge)
 	{
-		MaskHinge->SetRelativeLocation(FVector(-1.f + 1.5f * Pop, 0.f, 186.f - 0.6f * Pop + 1.f * Lift));
+		MaskHinge->SetRelativeLocation(MaskHingeBase + FVector(1.5f * Pop, 0.f, -0.6f * Pop + 1.f * Lift));
 		MaskHinge->SetRelativeRotation(FRotator(98.f * Lift, 0.f, 0.f));
 	}
 	if (Face) { Face->SetActorHiddenInGame(MaskAlpha < 0.2f); }

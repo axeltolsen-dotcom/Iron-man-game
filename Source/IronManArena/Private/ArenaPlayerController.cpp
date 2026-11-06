@@ -1,4 +1,5 @@
 #include "ArenaPlayerController.h"
+#include "Engine/Engine.h"
 #include "CareerWidgets.h"
 #include "CityLayout.h"
 #include "ArenaEnvironment.h"
@@ -41,6 +42,11 @@ void AArenaPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	if (!IsLocalController()) { return; }
+#if !UE_BUILD_SHIPPING
+	// Engine on-screen warnings (exposure / lighting / shader messages) must not cover the game or the menu.
+	// Re-enable with the console command EnableAllScreenMessages while look-dev'ing.
+	if (GEngine) { GEngine->Exec(GetWorld(), TEXT("DisableAllScreenMessages")); }
+#endif
 
 	// Trauma camera shake (hits, blasts, boss phases); scaled to 0 by the Camera Shake / Reduced Motion settings.
 	if (PlayerCameraManager) { PlayerCameraManager->AddNewCameraModifier(UArenaShakeModifier::StaticClass()); }

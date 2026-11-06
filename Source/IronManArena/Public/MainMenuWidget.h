@@ -41,6 +41,7 @@ protected:
 	UFUNCTION() void HandleTitleClicked();
 	UFUNCTION() void HandleQuitClicked();
 	UFUNCTION() void HandleCreditsClicked();
+	UFUNCTION() void HandleAvatarClicked();
 	UFUNCTION() void HandleHoverChanged();
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -76,6 +77,7 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UButton> QuitButton;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> QuitLabel;
 	UPROPERTY(Transient) TObjectPtr<UButton> CreditsButton;
+	UPROPERTY(Transient) TObjectPtr<UButton> AvatarButton;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> CreditsLabel;
 	UPROPERTY(Transient) TObjectPtr<class UBorder> CreditsPanel;
 	UPROPERTY(Transient) TObjectPtr<class UAudioComponent> Music;

@@ -17,6 +17,35 @@
 class USkeletalMeshComponent;
 class UAnimSequenceBase;
 
+/** One selectable real character body for the avatar creator (MetaHuman / Character Creator: Kevin / CityKit people). */
+struct FAvatarBodyEntry
+{
+	FString MeshPath;
+	FString Label;
+	/** "MetaHuman", "Character Creator: Kevin" or "CityKit". */
+	FString Source;
+	TArray<FString> Idle, Walk, Defeat;
+	/** MetaHuman: the separate face mesh (follows the body through the leader pose). */
+	FString FacePath;
+	bool bFeminine = false;
+	/** 2 = Epic / Fab character tech (MetaHuman, Kevin), 1 = CityKit people fallback. */
+	int32 Tier = 1;
+};
+
+/** Real-character catalog scanned from the asset registry (cached). */
+namespace AvatarCatalog
+{
+	IRONMANARENA_API const TArray<FAvatarBodyEntry>& All();
+	/** Indices into All() for the body type (falls back to every entry when none match). */
+	IRONMANARENA_API TArray<int32> ForBody(bool bFeminine);
+	/** Index into All() for this config (-1 = no real bodies in the project). */
+	IRONMANARENA_API int32 Resolve(const FAvatarConfig& Config);
+	/** True when a MetaHuman or Character Creator: Kevin body was found. */
+	IRONMANARENA_API bool HasPremium();
+	/** Short on-screen note about which character tech is in use (and how to add Kevin when missing). */
+	IRONMANARENA_API FString SourceNote();
+}
+
 UCLASS()
 class IRONMANARENA_API APilotAvatar : public AActor
 {
@@ -54,6 +83,8 @@ protected:
 	void Clear();
 	void BuildShapes();
 	bool BuildSkeletal();
+	/** Real character body from AvatarCatalog (idle clip from its own folder, slots tinted by name). */
+	bool BuildCatalog();
 	void BuildHead(USceneComponent* HeadPivot, const FVector& HeadCenter, bool bOnSkeleton);
 	void PlayClip(FName Category);
 
@@ -64,6 +95,7 @@ protected:
 	UPROPERTY() TObjectPtr<USceneComponent> Root;
 	UPROPERTY() TObjectPtr<USceneComponent> BodyRoot;
 	UPROPERTY() TObjectPtr<USkeletalMeshComponent> Skel;
+	UPROPERTY() TObjectPtr<USkeletalMeshComponent> FaceSkel;
 	UPROPERTY() TArray<FArenaPaintedPart> Parts;
 	UPROPERTY() TArray<TObjectPtr<USceneComponent>> Pivots;
 
@@ -79,5 +111,9 @@ protected:
 	FRotator CollapseRot = FRotator::ZeroRotator;
 	FVector CollapseSlide = FVector::ZeroVector;
 	FName CurrentClip;
+	bool bCatalog = false;
+	UPROPERTY() TObjectPtr<UAnimSequenceBase> CatIdle;
+	UPROPERTY() TObjectPtr<UAnimSequenceBase> CatWalk;
+	UPROPERTY() TObjectPtr<UAnimSequenceBase> CatDefeat;
 	float LegLen = 88.f;
 };

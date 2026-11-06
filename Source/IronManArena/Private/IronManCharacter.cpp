@@ -1970,11 +1970,13 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 	if (Controller) { AimPitch = FRotator::NormalizeAxis(Controller->GetControlRotation().Pitch); }
 	const float BodyPitch = SuitRoot->GetRelativeRotation().Pitch;
 	const float Raised = 90.f + AimPitch - BodyPitch;
-	const float Idle = bFly ? -20.f : FMath::Sin(WalkCycle) * 25.f * FMath::Min(1.f, Vel.Size2D() / 500.f);
+	// Hover: arms almost at the sides (palms down for the repulsors); fast flight sweeps them back.
+	const float Idle = bFly ? -FMath::Lerp(6.f, 28.f, FMath::Clamp(Vel.Size() / MaxSpeed, 0.f, 1.f)) : FMath::Sin(WalkCycle) * 25.f * FMath::Min(1.f, Vel.Size2D() / 500.f);
 
 	const bool bAim = (AimPoseTime > 0.f || IsBeamActive()) && !bInCinematic;
 	float PitchR = bAim ? Raised : Idle;
-	float PitchL = bAim ? Raised : -Idle;
+	// Flight: both arms swept slightly back together (was mirrored: one forward, one back). Ground: opposite swing.
+	float PitchL = bAim ? Raised : (bFly ? Idle : -Idle);
 	if (IsHulkbusterActive() && PunchTimeLeft > 0.f)
 	{
 		// Punch: alternate arms, quick extend.
@@ -1987,10 +1989,12 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 	{
 		// Only the firing hand is fully up; the other stays half raised.
 		if (bUseLeftHand) { PitchR = FMath::Lerp(Idle, Raised, 0.5f); }
-		else              { PitchL = FMath::Lerp(-Idle, Raised, 0.5f); }
+		else              { PitchL = FMath::Lerp(bFly ? Idle : -Idle, Raised, 0.5f); }
 	}
-	ShoulderR->SetRelativeRotation(FRotator(PitchR, 0.f, bFly && !bAim ? 12.f : 0.f));
-	ShoulderL->SetRelativeRotation(FRotator(PitchL, 0.f, bFly && !bAim ? -12.f : 0.f));
+	// Relaxed idle: arms hang at the sides, a few degrees out so the gauntlets clear the hips (never behind the back).
+	const float ArmOut = bAim ? 0.f : bFly ? 12.f : 5.f;
+	ShoulderR->SetRelativeRotation(FRotator(FMath::Clamp(PitchR, -35.f, 200.f), 0.f, ArmOut));
+	ShoulderL->SetRelativeRotation(FRotator(FMath::Clamp(PitchL, -35.f, 200.f), 0.f, -ArmOut));
 
 	// Legs: walk cycle on the ground, together and slightly bent back in flight.
 	if (!bFly && GetCharacterMovement()->IsMovingOnGround())

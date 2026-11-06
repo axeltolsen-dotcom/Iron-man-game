@@ -1,4 +1,5 @@
 #include "PilotAvatar.h"
+#include "HAL/IConsoleManager.h"
 
 #include "NpcManifest.h"
 #include "StoryCharacterNPC.h"
@@ -9,6 +10,11 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/PackageName.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "Animation/AnimSequence.h"
+#include "AssetRegistry/IAssetRegistry.h"
+#include "AssetRegistry/AssetData.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInterface.h"
 
 namespace
 {
@@ -22,6 +28,264 @@ namespace
 		return Path.Split(TEXT("."), &A, &B) ? A : Path;
 	}
 	bool PkgExists(const FString& Path) { return FPackageName::IsValidLongPackageName(Pkg(Path)) && FPackageName::DoesPackageExist(Pkg(Path)); }
+}
+
+static TAutoConsoleVariable<int32> CVarSkeletalAvatars(TEXT("ima.SkeletalAvatars"), 0,
+	TEXT("1 = use imported skeletal bodies (UAL / Manny) for the pilot and pedestrians; 0 = customizable shape bodies (default)."));
+
+
+static TAutoConsoleVariable<int32> CVarAvatarCatalog(TEXT("ima.AvatarCatalog"), 1,
+	TEXT("1 = the pilot uses a real character body (MetaHuman / Character Creator: Kevin / CityKit people) when the project has one; 0 = shape body."));
+
+// ============================================================================ real character catalog
+
+namespace AvatarCatalog
+{
+	static bool IsFemName(const FString& L)
+	{
+		if (L.Contains(TEXT("female")) || L.Contains(TEXT("woman")) || L.Contains(TEXT("girl")) || L.Contains(TEXT("quinn"))) { return true; }
+		if (L.Contains(TEXT("_f_")) || L.StartsWith(TEXT("f_")) || L.EndsWith(TEXT("_f")) || L.Contains(TEXT("/f_"))) { return true; }
+		return false;
+	}
+
+	static FString MakeLabel(const FString& Name)
+	{
+		FString L = Name;
+		for (const TCHAR* Pre : { TEXT("SKM_"), TEXT("SK_"), TEXT("Quaternius_") }) { L.RemoveFromStart(Pre); }
+		L.ReplaceInline(TEXT("_"), TEXT(" "));
+		return L.TrimStartAndEnd();
+	}
+
+	static TArray<FAvatarBodyEntry> Scan()
+	{
+		TArray<FAvatarBodyEntry> Out;
+		IAssetRegistry* AR = IAssetRegistry::Get();
+		if (!AR) { return Out; }
+		if (AR->IsLoadingAssets())
+		{
+			TArray<FString> Paths = { TEXT("/Game/CityKit/People"), TEXT("/Game/MetaHumans"), TEXT("/Game/Kevin"), TEXT("/Game/CharacterCreator"), TEXT("/Game/Reallusion") };
+			AR->ScanPathsSynchronous(Paths, false);
+		}
+		TArray<FAssetData> Meshes;
+		AR->GetAssetsByClass(USkeletalMesh::StaticClass()->GetClassPathName(), Meshes, true);
+		for (const FAssetData& A : Meshes)
+		{
+			const FString Path = A.GetObjectPathString();
+			const FString Lower = Path.ToLower();
+			const FString NameL = A.AssetName.ToString().ToLower();
+			if (!Lower.StartsWith(TEXT("/game/"))) { continue; }
+			FAvatarBodyEntry E;
+			E.MeshPath = Path;
+			E.Label = MakeLabel(A.AssetName.ToString());
+			const bool bPart = NameL.Contains(TEXT("hair")) || NameL.Contains(TEXT("eye")) || NameL.Contains(TEXT("teeth")) || NameL.Contains(TEXT("tongue"))
+				|| NameL.Contains(TEXT("brow")) || NameL.Contains(TEXT("lash")) || NameL.Contains(TEXT("beard")) || NameL.Contains(TEXT("mustache"));
+			if (Lower.Contains(TEXT("/metahumans/")) && NameL.Contains(TEXT("body")) && !NameL.Contains(TEXT("face")) && !bPart)
+			{
+				E.Source = TEXT("MetaHuman"); E.Tier = 2;
+				// MetaHuman folder name is the character's name.
+				FString Folder = A.PackagePath.ToString(); Folder.RemoveFromStart(TEXT("/Game/MetaHumans/"));
+				FString First, Rest; if (Folder.Split(TEXT("/"), &First, &Rest)) { Folder = First; }
+				if (!Folder.IsEmpty()) { E.Label = Folder; }
+				for (const FAssetData& M2 : Meshes)
+				{
+					const FString P2 = M2.GetObjectPathString();
+					if (P2.StartsWith(FString(TEXT("/Game/MetaHumans/")) + Folder + TEXT("/")) && M2.AssetName.ToString().ToLower().Contains(TEXT("face"))) { E.FacePath = P2; break; }
+				}
+			}
+			else if ((Lower.Contains(TEXT("kevin")) || Lower.Contains(TEXT("charactercreator")) || Lower.Contains(TEXT("reallusion")) || NameL.Contains(TEXT("cc_base")) || Lower.Contains(TEXT("/cc4"))) && !bPart)
+			{
+				E.Source = TEXT("Character Creator: Kevin"); E.Tier = 2;
+			}
+			else if (Lower.StartsWith(TEXT("/game/citykit/people/")) && NameL.StartsWith(TEXT("sk_")))
+			{
+				E.Source = TEXT("CityKit"); E.Tier = 1;
+			}
+			else { continue; }
+			E.bFeminine = IsFemName(NameL) || IsFemName(Lower);
+			// Clips that live next to the mesh (Quaternius: <Name>CharacterArmature_Idle / _Walk / _Defeat).
+			TArray<FAssetData> Anims;
+			AR->GetAssetsByPath(A.PackagePath, Anims, true);
+			for (const FAssetData& An : Anims)
+			{
+				if (An.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()) { continue; }
+				const FString AL = An.AssetName.ToString().ToLower();
+				if (AL.EndsWith(TEXT("_idle")) || AL.Contains(TEXT("idle"))) { E.Idle.Add(An.GetObjectPathString()); }
+				else if (AL.EndsWith(TEXT("_walk")) || (AL.Contains(TEXT("walk")) && !AL.Contains(TEXT("carry")))) { E.Walk.Add(An.GetObjectPathString()); }
+				else if (AL.Contains(TEXT("defeat")) || AL.Contains(TEXT("death"))) { E.Defeat.Add(An.GetObjectPathString()); }
+			}
+			Out.Add(E);
+		}
+		Out.Sort([](const FAvatarBodyEntry& X, const FAvatarBodyEntry& Y) { return X.Tier != Y.Tier ? X.Tier > Y.Tier : X.MeshPath < Y.MeshPath; });
+		UE_LOG(LogTemp, Log, TEXT("Career: avatar catalog %d real bodies (%s)"), Out.Num(), Out.Num() ? *Out[0].Source : TEXT("none - shape body"));
+		return Out;
+	}
+
+	static TArray<FAvatarBodyEntry>& Cache() { static TArray<FAvatarBodyEntry> C; return C; }
+	static bool& Scanned() { static bool b = false; return b; }
+
+	const TArray<FAvatarBodyEntry>& All()
+	{
+		if (!Scanned() || Cache().Num() == 0)
+		{
+			static double LastTry = -100.0;
+			const double Now = FPlatformTime::Seconds();
+			if (!Scanned() || Now - LastTry > 5.0) { LastTry = Now; Cache() = Scan(); Scanned() = true; }
+		}
+		return Cache();
+	}
+
+	bool HasPremium() { for (const FAvatarBodyEntry& E : All()) { if (E.Tier >= 2) { return true; } } return false; }
+
+	TArray<int32> ForBody(bool bFeminine)
+	{
+		const TArray<FAvatarBodyEntry>& L = All();
+		const bool bPremium = HasPremium();
+		TArray<int32> R;
+		for (int32 i = 0; i < L.Num(); ++i) { if (L[i].bFeminine == bFeminine && (!bPremium || L[i].Tier >= 2)) { R.Add(i); } }
+		if (R.Num() == 0) { for (int32 i = 0; i < L.Num(); ++i) { if (L[i].bFeminine == bFeminine) { R.Add(i); } } }
+		if (R.Num() == 0) { for (int32 i = 0; i < L.Num(); ++i) { R.Add(i); } }
+		return R;
+	}
+
+	int32 Resolve(const FAvatarConfig& Config)
+	{
+		const TArray<int32> R = ForBody(Config.Body == EAvatarBody::Feminine);
+		if (R.Num() == 0) { return -1; }
+		if (Config.BodyModel < 0)
+		{
+			// Default: a casual outfit when there is one.
+			for (int32 i : R) { if (All()[i].Label.Contains(TEXT("Casual"))) { return i; } }
+			return R[0];
+		}
+		return R[Config.BodyModel % R.Num()];
+	}
+
+	FString SourceNote()
+	{
+		const TArray<FAvatarBodyEntry>& L = All();
+		if (HasPremium()) { return FString::Printf(TEXT("Character tech: %s"), *L[0].Source); }
+		const FString Add = TEXT("No MetaHuman / Character Creator: Kevin in the project yet. Add it: Epic Games Launcher > Fab Library > Character Creator: Kevin > Add to Project > IronManArena.");
+		return L.Num() ? FString::Printf(TEXT("Using CityKit people (%d bodies). %s"), L.Num(), *Add) : FString::Printf(TEXT("Using the built-in body. %s"), *Add);
+	}
+}
+
+static UAnimSequenceBase* FirstClip(const TArray<FString>& Paths, const USkeletalMesh* Mesh)
+{
+	for (const FString& P : Paths)
+	{
+		UAnimSequenceBase* Seq = LoadObject<UAnimSequenceBase>(nullptr, *P);
+		if (Seq && Mesh && Seq->GetSkeleton() == Mesh->GetSkeleton()) { return Seq; }
+	}
+	return nullptr;
+}
+
+/** A material that can render on a skeletal mesh in this build (cooked / -game runs can't add the usage flag). */
+static UMaterialInterface* SkeletalSafe(UMaterialInterface* M)
+{
+	auto Ok = [](UMaterialInterface* X) { const UMaterial* B = X ? X->GetMaterial() : nullptr; return B && (GIsEditor || B->GetUsageByFlag(MATUSAGE_SkeletalMesh)); };
+	if (Ok(M)) { return M; }
+	for (const TCHAR* Path : { TEXT("/Game/IronManArena/Materials/M_ArenaEmissive.M_ArenaEmissive"), TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"), TEXT("/Engine/EngineMaterials/DefaultLitMaterial.DefaultLitMaterial") })
+	{
+		if (UMaterialInterface* F = LoadObject<UMaterialInterface>(nullptr, Path)) { if (Ok(F)) { return F; } }
+	}
+	return M;
+}
+
+bool APilotAvatar::BuildCatalog()
+{
+	const int32 Index = AvatarCatalog::Resolve(Cfg);
+	if (Index < 0) { return false; }
+	const FAvatarBodyEntry E = AvatarCatalog::All()[Index];
+	USkeletalMesh* Mesh = LoadObject<USkeletalMesh>(nullptr, *E.MeshPath);
+	if (!Mesh) { UE_LOG(LogTemp, Warning, TEXT("Career: avatar body %s failed to load"), *E.MeshPath); return false; }
+	CatIdle = FirstClip(E.Idle, Mesh);
+	CatWalk = FirstClip(E.Walk, Mesh);
+	CatDefeat = FirstClip(E.Defeat, Mesh);
+
+	Skel = NewObject<USkeletalMeshComponent>(this);
+	Skel->SetupAttachment(BodyRoot);
+	Skel->SetSkeletalMesh(Mesh);
+	Skel->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	Skel->SetCollisionProfileName(TEXT("Ragdoll"));
+	Skel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Skel->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	Skel->bEnableUpdateRateOptimizations = false;
+	Skel->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	Skel->PrimaryComponentTick.bTickEvenWhenPaused = true; // the creator preview runs while the game is paused
+	Skel->SetCastShadow(true);
+	Skel->RegisterComponent();
+	AddInstanceComponent(Skel);
+	bSkeletal = true;
+	bCatalog = true;
+	if (!E.FacePath.IsEmpty())
+	{
+		if (USkeletalMesh* FaceMesh = LoadObject<USkeletalMesh>(nullptr, *E.FacePath))
+		{
+			FaceSkel = NewObject<USkeletalMeshComponent>(this);
+			FaceSkel->SetupAttachment(Skel);
+			FaceSkel->SetSkeletalMesh(FaceMesh);
+			FaceSkel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			FaceSkel->PrimaryComponentTick.bTickEvenWhenPaused = true;
+			FaceSkel->RegisterComponent();
+			FaceSkel->SetLeaderPoseComponent(Skel);
+			AddInstanceComponent(FaceSkel);
+		}
+	}
+
+	// Scale to the creator's height (imported bodies come in at any size).
+	const FBoxSphereBounds B = Mesh->GetBounds();
+	const float MeshH = FMath::Max(1.f, float(B.Origin.Z + B.BoxExtent.Z) - float(B.Origin.Z - B.BoxExtent.Z));
+	if (MeshH < 60.f || MeshH > 400.f) { Skel->SetRelativeScale3D(FVector(178.f / MeshH)); }
+
+	// Tint slots by their names (Quaternius: Skin / Hair / Shirt / Pants / Main / Belt / Hat / Detail; MetaHuman / CC: skin, hair, cloth).
+	const TArray<FLinearColor>& OC = Career::OutfitColors();
+	const FAvatarOutfit& O = Cfg.Outfit;
+	const FLinearColor SkinC = ColorAt(Career::SkinTones(), Cfg.SkinTone);
+	const FLinearColor HairC = ColorAt(Career::HairColors(), Cfg.HairColor);
+	const TArray<FName> Slots = Skel->GetMaterialSlotNames();
+	for (int32 m = 0; m < Skel->GetNumMaterials(); ++m)
+	{
+		UMaterialInterface* Orig = Skel->GetMaterial(m);
+		FString N = Slots.IsValidIndex(m) ? Slots[m].ToString() : FString();
+		if (Orig) { N += TEXT("|") + Orig->GetName(); }
+		N = N.ToLower();
+		bool bTint = true;
+		FLinearColor C;
+		if (N.Contains(TEXT("skin")) || N.Contains(TEXT("body"))) { C = SkinC; }
+		else if (N.Contains(TEXT("hair")) || N.Contains(TEXT("beard"))) { C = HairC; }
+		else if (N.Contains(TEXT("shirt")) || N.Contains(TEXT("main")) || N.Contains(TEXT("vest")) || N.Contains(TEXT("top")) || N.Contains(TEXT("cloth"))) { C = ColorAt(OC, O.TopColor); }
+		else if (N.Contains(TEXT("pants")) || N.Contains(TEXT("legs")) || N.Contains(TEXT("bottom"))) { C = ColorAt(OC, O.PantsColor); }
+		else if (N.Contains(TEXT("belt")) || N.Contains(TEXT("shoe")) || N.Contains(TEXT("boot")) || N.Contains(TEXT("black")) || N.Contains(TEXT("brown"))) { C = ColorAt(OC, O.ShoesColor); }
+		else if (N.Contains(TEXT("hat")) || N.Contains(TEXT("helmet"))) { C = ColorAt(OC, O.HatColor); }
+		else if (N.Contains(TEXT("detail")) || N.Contains(TEXT("red")) || N.Contains(TEXT("green")) || N.Contains(TEXT("grey"))) { C = ColorAt(OC, O.JacketColor); }
+		else { bTint = false; }
+		UMaterialInterface* Safe = SkeletalSafe(Orig);
+		if (Safe != Orig) { Skel->SetMaterial(m, Safe); if (!bTint) { bTint = true; C = (m == 0) ? SkinC : FLinearColor(0.08f, 0.08f, 0.09f); } }
+		if (!bTint) { continue; }
+		if (UMaterialInstanceDynamic* MID = Skel->CreateAndSetMaterialInstanceDynamic(m))
+		{
+			for (const TCHAR* Param : { TEXT("DiffuseColor"), TEXT("BaseColor"), TEXT("Base Color"), TEXT("BaseColorFactor"), TEXT("Color"), TEXT("Tint"), TEXT("Paint Tint") }) { MID->SetVectorParameterValue(Param, C); }
+		}
+	}
+
+	// Head pivot on the head bone (faceplate-open view, hats from the shape kit are not added on real bodies).
+	FName HeadBone = NAME_None;
+	for (int32 b = 0; b < Skel->GetNumBones(); ++b)
+	{
+		const FString BN = Skel->GetBoneName(b).ToString().ToLower();
+		if (BN == TEXT("head") || (HeadBone.IsNone() && BN.Contains(TEXT("head")) && !BN.Contains(TEXT("end")))) { HeadBone = Skel->GetBoneName(b); if (BN == TEXT("head")) { break; } }
+	}
+	if (!HeadBone.IsNone())
+	{
+		USceneComponent* Head = NewObject<USceneComponent>(this);
+		Head->SetupAttachment(Skel, HeadBone);
+		Head->RegisterComponent();
+		Pivots.Add(Head);
+		HeadPivot = Head;
+	}
+	UE_LOG(LogTemp, Log, TEXT("Career: pilot body %s [%s] idle=%s"), *E.Label, *E.Source, CatIdle ? *CatIdle->GetName() : TEXT("none (ref pose)"));
+	PlayClip(TEXT("idle"));
+	return true;
 }
 
 APilotAvatar::APilotAvatar()
@@ -56,10 +320,13 @@ void APilotAvatar::Clear()
 	Parts.Reset();
 	for (USceneComponent* C : Pivots) { if (C) { C->DestroyComponent(); } }
 	Pivots.Reset();
+	if (FaceSkel) { FaceSkel->DestroyComponent(); FaceSkel = nullptr; }
 	if (Skel) { Skel->DestroyComponent(); Skel = nullptr; }
 	HipL = HipR = KneeL = KneeR = ShoulderL = ShoulderR = ElbowL = ElbowR = HeadPivot = Chest = nullptr;
 	BodyRoot = nullptr;
 	bSkeletal = false;
+	bCatalog = false;
+	CatIdle = CatWalk = CatDefeat = nullptr;
 	CurrentClip = NAME_None;
 }
 
@@ -70,7 +337,14 @@ void APilotAvatar::ApplyConfig(const FAvatarConfig& Config, bool bAllowSkeletal)
 	bCollapsed = false;
 	BodyRoot = Pivot(Root, FVector::ZeroVector);
 	BodyRoot->SetRelativeScale3D(FVector(FMath::Clamp(Cfg.Height, 0.8f, 1.15f)));
-	if (!(bAllowSkeletal && BuildSkeletal())) { BuildShapes(); }
+	// Skeletal bodies are opt-in (ima.SkeletalAvatars 1): the imported UAL / GLB mannequins come in with a broken bind
+	// pose (arms folded behind the back), materials without the SkeletalMesh usage flag (engine default grey) and no
+	// colour parameters, so the avatar creator's skin / hair / outfit picks did not show. The shape body takes every pick.
+	// The player / pilot (no forced pedestrian body) uses a real character from AvatarCatalog: MetaHuman or
+	// Character Creator: Kevin when added to the project, else the CityKit people. Each plays its own idle clip, so the
+	// bind pose (arms behind the back on the GLB imports) is never shown.
+	if (bAllowSkeletal && ForcedBodyIndex < 0 && CVarAvatarCatalog.GetValueOnGameThread() != 0 && BuildCatalog()) { return; }
+	if (!(bAllowSkeletal && CVarSkeletalAvatars.GetValueOnGameThread() != 0 && BuildSkeletal())) { BuildShapes(); }
 }
 
 float APilotAvatar::GetStandingHeight() const { return 178.f * FMath::Clamp(Cfg.Height, 0.8f, 1.15f); }
@@ -159,6 +433,19 @@ bool APilotAvatar::BuildSkeletal()
 
 void APilotAvatar::PlayClip(FName Category)
 {
+	if (bCatalog)
+	{
+		if (!Skel || CurrentClip == Category) { return; }
+		const bool bDeath = Category == FName(TEXT("death"));
+		const bool bMove = Category == FName(TEXT("walk")) || Category == FName(TEXT("run"));
+		UAnimSequenceBase* Seq = bDeath ? CatDefeat.Get() : bMove ? CatWalk.Get() : CatIdle.Get();
+		if (!Seq) { Seq = CatIdle.Get(); }
+		if (!Seq) { return; }
+		CurrentClip = Category;
+		Skel->PlayAnimation(Seq, !bDeath);
+		Skel->SetPlayRate(Category == FName(TEXT("run")) ? 1.7f * AnimRate : AnimRate);
+		return;
+	}
 	if (!Skel || CurrentClip == Category || Skel->GetAnimationMode() != EAnimationMode::AnimationSingleNode) { return; }
 	const TArray<FString>& L = NpcManifest::Anims(Category);
 	TArray<UAnimSequenceBase*> Ok;
@@ -456,6 +743,21 @@ void APilotAvatar::Tick(float DeltaSeconds)
 FVector APilotAvatar::SetHeadOnly()
 {
 	SetActorTickEnabled(false);
+	if (bCatalog && Skel)
+	{
+		// Real body: keep the head, hide limbs (they would poke through the armour), no shadow.
+		Skel->SetCastShadow(false);
+		for (int32 b = 0; b < Skel->GetNumBones(); ++b)
+		{
+			const FName Bn = Skel->GetBoneName(b);
+			const FString L = Bn.ToString().ToLower();
+			if (L.Contains(TEXT("arm")) || L.Contains(TEXT("shoulder")) || L.Contains(TEXT("clavicle")) || L.Contains(TEXT("thigh")) || L.Contains(TEXT("upleg")) || L.Contains(TEXT("upperleg")))
+			{
+				Skel->HideBoneByName(Bn, EPhysBodyOp::PBO_None);
+			}
+		}
+		return HeadPivot ? FVector(HeadPivot->GetComponentLocation() - GetActorLocation()) : FVector(0.f, 0.f, 167.f);
+	}
 	TArray<UPrimitiveComponent*> Prims;
 	GetComponents<UPrimitiveComponent>(Prims);
 	for (UPrimitiveComponent* Pc : Prims)

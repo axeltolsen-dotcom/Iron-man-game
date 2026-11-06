@@ -30,12 +30,17 @@ public:
 	/** Optional subtitle line under the title card area (story cutscenes). */
 	void SetCaption(const FText& Speaker, const FText& Line, const FLinearColor& Color);
 
+	/** Helmet HUD boot (suit-up eyes-on beat): 0 = off, 1 = full. Line = optional status text. */
+	void SetHudBoot(float Alpha, const FText& Line, const FLinearColor& Color);
+
 	/** Full letterbox height in Slate units. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cinematic")
 	float BarHeight = 120.f;
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
+		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	void BuildTree();
 
 	UPROPERTY(Transient) TObjectPtr<UCanvasPanel> RootPanel;
@@ -48,4 +53,8 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> CaptionText;
 
 	bool bCompactCard = false;
+	float HudAlpha = 0.f;
+	float HudAge = 0.f;
+	FLinearColor HudColor = FLinearColor(0.35f, 0.9f, 1.f);
+	FText HudLine;
 };

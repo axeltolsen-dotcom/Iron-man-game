@@ -309,6 +309,7 @@ void UCareerSubsystem::SetAvatar(const FAvatarConfig& In, bool bSave)
 {
 	Avatar = In;
 	Avatar.PilotName = Avatar.PilotName.TrimStartAndEnd().Left(20);
+	UE_LOG(LogTemp, Log, TEXT("Career: avatar applied for %s (save=%d)"), *Avatar.PilotName, bSave ? 1 : 0);
 	if (bSave) { Save(); } else { MarkDirty(); }
 	RefreshPlayer();
 	if (UWorld* World = GetTickableGameObjectWorld())

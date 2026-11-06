@@ -6,6 +6,10 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/TextBlock.h"
 #include "Styling/CoreStyle.h"
+#include "Rendering/DrawElements.h"
+#include "Misc/App.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "CinematicOverlay"
 
@@ -119,6 +123,69 @@ void UCinematicOverlayWidget::SetCaption(const FText& Speaker, const FText& Line
 	CaptionText->SetText(Speaker.IsEmpty() ? Line : FText::Format(LOCTEXT("Caption", "{0}: {1}"), Speaker, Line));
 	CaptionText->SetColorAndOpacity(FSlateColor(Color));
 	CaptionText->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UCinematicOverlayWidget::SetHudBoot(float Alpha, const FText& Line, const FLinearColor& Color)
+{
+	const float A = FMath::Clamp(Alpha, 0.f, 1.f);
+	if (A > 0.f && HudAlpha <= 0.f) { HudAge = 0.f; }
+	HudAge += A > 0.f ? FApp::GetDeltaTime() : 0.f;
+	HudAlpha = A;
+	HudColor = Color;
+	if (!Line.IsEmpty()) { HudLine = Line; }
+	Invalidate(EInvalidateWidgetReason::Paint);
+}
+
+int32 UCinematicOverlayWidget::NativePaint(const FPaintArgs& Args, const FGeometry& G, const FSlateRect& MyCullingRect,
+	FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	LayerId = Super::NativePaint(Args, G, MyCullingRect, Out, LayerId, InWidgetStyle, bParentEnabled);
+	if (HudAlpha <= 0.01f) { return LayerId; }
+	// Inside-the-helmet boot: curved frame brackets, reticle rings that spin up, status lines typing in.
+	const FVector2D Size = G.GetLocalSize();
+	const FVector2D C = Size * 0.5f;
+	const float A = HudAlpha;
+	const FLinearColor Col = FLinearColor(HudColor.R, HudColor.G, HudColor.B, 0.85f * A);
+	const FLinearColor Dim = FLinearColor(HudColor.R, HudColor.G, HudColor.B, 0.35f * A);
+	const int32 L = LayerId + 1;
+	auto Lines = [&](const TArray<FVector2D>& P, const FLinearColor& K, float W) { FSlateDrawElement::MakeLines(Out, L, G.ToPaintGeometry(), P, ESlateDrawEffect::None, K, true, W); };
+	auto Arc = [&](float R, float From, float To, const FLinearColor& K, float W)
+	{
+		TArray<FVector2D> P;
+		for (int32 i = 0; i <= 32; ++i) { const float T = FMath::DegreesToRadians(FMath::Lerp(From, To, i / 32.f)); P.Add(C + FVector2D(FMath::Cos(T), FMath::Sin(T)) * R); }
+		Lines(P, K, W);
+	};
+	const float Spin = HudAge * 220.f;
+	const float R0 = Size.Y * 0.11f * (0.6f + 0.4f * FMath::Min(1.f, HudAge * 3.f));
+	Arc(R0, Spin, Spin + 250.f, Col, 2.f);
+	Arc(R0 * 1.5f, -Spin * 0.6f, -Spin * 0.6f + 140.f, Dim, 1.5f);
+	Arc(R0 * 1.5f, -Spin * 0.6f + 180.f, -Spin * 0.6f + 320.f, Dim, 1.5f);
+	Arc(Size.Y * 0.42f, 200.f, 340.f, Dim, 1.f);
+	Arc(Size.Y * 0.42f, 20.f, 160.f, Dim, 1.f);
+	// Corner brackets (helmet visor edge).
+	const float M = 60.f, Bk = 70.f;
+	Lines({ FVector2D(M, M + Bk), FVector2D(M, M), FVector2D(M + Bk, M) }, Col, 2.f);
+	Lines({ FVector2D(Size.X - M - Bk, M), FVector2D(Size.X - M, M), FVector2D(Size.X - M, M + Bk) }, Col, 2.f);
+	Lines({ FVector2D(M, Size.Y - M - Bk), FVector2D(M, Size.Y - M), FVector2D(M + Bk, Size.Y - M) }, Col, 2.f);
+	Lines({ FVector2D(Size.X - M - Bk, Size.Y - M), FVector2D(Size.X - M, Size.Y - M), FVector2D(Size.X - M, Size.Y - M - Bk) }, Col, 2.f);
+	// Status lines typing in.
+	static const TCHAR* Status[] = { TEXT("POWER .......... 100%"), TEXT("ARMOR SEAL ...... LOCKED"), TEXT("REPULSORS ....... ARMED"), TEXT("FLIGHT CTRL ..... ONLINE"), TEXT("HUD ............. ONLINE") };
+	const FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle("Mono", 13);
+	const int32 Chars = int32(HudAge * 90.f);
+	int32 Used = 0;
+	for (int32 i = 0; i < 5; ++i)
+	{
+		const FString S(Status[i]);
+		const int32 Take = FMath::Clamp(Chars - Used, 0, S.Len());
+		Used += S.Len();
+		if (Take <= 0) { break; }
+		FSlateDrawElement::MakeText(Out, L, G.ToPaintGeometry(FVector2D(420.f, 20.f), FSlateLayoutTransform(FVector2D(M + 20.f, Size.Y * 0.36f + i * 22.f))), S.Left(Take), Font, ESlateDrawEffect::None, Col);
+	}
+	if (!HudLine.IsEmpty())
+	{
+		FSlateDrawElement::MakeText(Out, L, G.ToPaintGeometry(FVector2D(420.f, 24.f), FSlateLayoutTransform(FVector2D(Size.X - M - 300.f, Size.Y * 0.36f))), HudLine, FCoreStyle::GetDefaultFontStyle("Bold", 16), ESlateDrawEffect::None, Col);
+	}
+	return L;
 }
 
 #undef LOCTEXT_NAMESPACE

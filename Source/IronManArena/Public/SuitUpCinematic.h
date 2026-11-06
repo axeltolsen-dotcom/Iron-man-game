@@ -1,17 +1,22 @@
-// ASuitUpCinematic: scripted suit-up sequence without any Level Sequence asset.
-//
-//  * Spawns an ACineCameraActor and drives it along a per-style camera path (orbit, low hero
-//    rise, drop-in, nano spiral, stealth push-in, suitcase tracking + whip pan, Ultron glitch).
-//  * Hides the real armour and flies runtime copies of the visible painted parts onto the body
-//    with a stagger, plus Niagara-free bursts (AArenaBlastFX); the real armour reappears at ~78%.
-//  * Letterbox bars + title card (suit name / mark / on-board AI) via UCinematicOverlayWidget.
-//  * The suit's AI speaks the intro (full version) or the handover line (in-game swap).
-//  * Full version 4.5-6.5 s (game start), short version 2 s (in-game swap). Space / click skips.
+// ASuitUpCinematic: film-style suit-up, built in code (no Level Sequence asset). Shot lists follow
+// contrib/research/suits_and_suitup.md section 3:
+//  * Garage gantry (Mark III, Assembly / Gantry / Stealth): robot arms (2-bone IK) carry each plate
+//    in bottom-up, weld sparks + hit-stop on the chest, helmet lowered from the ceiling carrier.
+//  * Mid-air assembly (XLII, Drop): the pilot falls while pieces streak in on curved paths with
+//    contrails, chest clamp hit-stop + shake, thrusters catch the fall.
+//  * Nanotech (L / LXXXV, Nano / Ultron): tap the reactor, wet-glow nanite plates flow radially out
+//    of the chest over the body with overshoot settle; the helmet forms last.
+//  * Suitcase (Mark V): case opens, plates unfold up the body ring by ring.
+//  Every version ends with the faceplate swinging shut on its hinge, the eyes igniting (0 -> 25 glow)
+//  and a HUD boot overlay. The pilot avatar stands in the middle until the armour closes.
+//  Shot-based CineCamera with hard cuts, per-shot focal length and focus on the subject; letterbox,
+//  title card. Full 6.5-9 s (game start), short 2.6 s (in-game swap). Space / click skips.
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "SuitTypes.h"
+#include "ArenaVisuals.h"
 #include "SuitUpCinematic.generated.h"
 
 class AIronManCharacter;
@@ -19,6 +24,7 @@ class ACineCameraActor;
 class UCinematicOverlayWidget;
 class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
+class UMaterialInterface;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSuitUpFinished, ASuitUpCinematic* /*Cinematic*/, bool /*bShortVersion*/);
 
@@ -52,25 +58,56 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	/** Film template the suit's ECinematicStyle maps to (contrib/research/suits_and_suitup.md section 3). */
+	enum class ETemplate : uint8 { Garage, Air, Nano, Suitcase };
+	/** Body group (assembly order). */
+	enum EGroup : uint8 { GBoots, GLegs, GTorso, GArms, GHelmet, GFace, GEyes, GNum };
+
 	struct FFlyer
 	{
 		TWeakObjectPtr<UStaticMeshComponent> Copy;
-		FTransform RelToRoot;      // final transform relative to the suit root
-		FVector StartLoc = FVector::ZeroVector;
-		FQuat StartRot = FQuat::Identity;
+		TWeakObjectPtr<UStaticMeshComponent> Trail;   // Air: contrail streak
+		TWeakObjectPtr<UMaterialInstanceDynamic> GlowMID; // Nano: wet-nanite glow / eyes: ignition ramp
+		TWeakObjectPtr<UMaterialInterface> RealMat;
+		FTransform RelToRoot;      // final transform in suit-root space
+		FVector StartRel = FVector::ZeroVector;  // start in suit-root space
+		FVector CtrlRel = FVector::ZeroVector;   // bezier control point in suit-root space
+		FQuat StartRot = FQuat::Identity;        // start rotation in suit-root space
 		float StartScale = 1.f;
 		float Delay = 0.f;         // normalized start time (0..1 of the sequence)
-		float FlyTime = 0.2f;      // normalized flight duration
+		float FlyTime = 0.1f;      // normalized flight duration
+		float BaseNits = 1.f;
+		int32 Arm = -1;            // Garage: robot arm carrying it
+		uint8 Group = GTorso;
 		bool bLanded = false;
+		FVector PrevLoc = FVector::ZeroVector;
 	};
+
+	struct FRobotArm
+	{
+		FVector BaseRel = FVector::ZeroVector;   // column foot in suit-root space
+		FVector RestRel = FVector::ZeroVector;   // claw rest point
+		FVector ClawRel = FVector::ZeroVector;   // current claw point (smoothed)
+		TWeakObjectPtr<UStaticMeshComponent> Column, Upper, Fore, ClawA, ClawB, Light;
+	};
+
+	struct FCamShot { float Start = 0.f; float Focal = 35.f; FVector PosA, PosB, LookA, LookB; bool bWorld = false; float OrbitA = 0.f; float OrbitB = 0.f; float Whip = 0.f; };
 
 	void Begin(AIronManCharacter* InPlayer, int32 InSuitIndex, bool bInShort);
 	void SpawnFlyers();
-	void TickFlyers(float Alpha);
+	void SpawnProps();
+	void BuildShots();
+	void TickFlyers(float Alpha, float Dt);
+	void TickProps(float Alpha, float Dt);
+	void TickBeats(float Alpha);
 	void UpdateCamera(float Alpha, float DeltaSeconds);
 	void Finish(bool bSkipped);
 	void DestroyFlyers();
 	float StyleDuration() const;
+	FTransform FrameXf(float Alpha, bool bWorldAnchor = false) const;
+	UStaticMeshComponent* Prop(EArenaShape Shape, const FLinearColor& Color, float Emissive, const FVector& Scale);
+	void Shake(float Amount) { ShakeAmp = FMath::Max(ShakeAmp, Amount); }
+	void PlaceBeam(UStaticMeshComponent* C, const FVector& A, const FVector& B, float Thick) const;
 
 	UPROPERTY(VisibleAnywhere, Category = "Cinematic")
 	TObjectPtr<USceneComponent> SceneRoot;
@@ -81,25 +118,63 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UCinematicOverlayWidget> Overlay;
 
-	/** Runtime copies of the armour parts (and the suitcase prop). */
+	/** Runtime copies of the armour parts, trails and set props (gantry, suitcase, platform). */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UStaticMeshComponent>> FlyingParts;
 
 	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> Props;
+
+	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> CaseProp;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> CaseLid;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USceneComponent> CaseHinge;
+
+	/** The pilot (avatar) standing in the middle while the armour closes around them. */
+	UPROPERTY(Transient)
+	TObjectPtr<AActor> PilotBody;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UStaticMeshComponent>> Thrusters;
+
 	TArray<FFlyer> Flyers;
+	TArray<FRobotArm> Arms;
+	TArray<FCamShot> Shots;
 	TWeakObjectPtr<AIronManCharacter> Player;
 	int32 SuitIndex = 0;
 	bool bShort = false;
 	bool bFinished = false;
 	bool bBodyShown = false;
+	bool bEyesLit = false;
+	bool bFaceClosed = false;
+	bool bChestHit = false;
+	bool bThrust = false;
+	bool bTapped = false;
+	bool bCaseOpened = false;
 	ECinematicStyle Style = ECinematicStyle::Assembly;
+	ETemplate Tpl = ETemplate::Garage;
 	float Elapsed = 0.f;
 	float Duration = 5.f;
+	float Clock = 0.f;          // sequence time (slows down during the chest hit-stop)
+	float HitStopLeft = 0.f;
+	float ShakeAmp = 0.f;
+	float LastLockSfx = -1.f;
 	float SizeScale = 1.f;
+	float SuitH = 185.f;
+	float EyesAt = 0.83f;
+	float RevealAt = 0.86f;
+	float FaceStart = 0.76f, FaceEnd = 0.81f;
+	FVector HingeRel = FVector(-6.f, 0.f, 186.f);
+	FVector FaceRel = FVector(10.f, 0.f, 172.f);
+	FVector ReactorRel = FVector(14.f, 0.f, 135.f);
+	FVector CaseRel = FVector(60.f, -45.f, 0.f);
 	FVector BaseFwd = FVector::ForwardVector;
 	FVector BaseRight = FVector::RightVector;
-	FVector CasePos = FVector::ZeroVector;
-	float NextBurstAt = 0.f;
+	FTransform Root0;
+	int32 LastShot = -1;
+	FVector LastCamLoc = FVector::ZeroVector;
 };

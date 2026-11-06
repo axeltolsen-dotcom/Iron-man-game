@@ -143,6 +143,9 @@ ACareerPreviewStage::ACareerPreviewStage()
 	Capture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
 	Capture->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 	Capture->bCaptureEveryFrame = true;
+	// The avatar / barber / clothing screens pause the game: the capture must keep rendering (it was an empty panel).
+	Capture->PrimaryComponentTick.bTickEvenWhenPaused = true;
+	Capture->bAlwaysPersistRenderingState = true;
 	Capture->FOVAngle = 30.f;
 	Capture->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
 	Capture->PostProcessSettings.AutoExposureMinBrightness = 2.f;
@@ -193,6 +196,7 @@ void ACareerPreviewStage::ShowAvatar(const FAvatarConfig& Config)
 	if (Avatar)
 	{
 		Avatar->ApplyConfig(Config, true);
+		UE_LOG(LogTemp, Log, TEXT("Career: avatar preview rebuilt (%s, skin %d, hair %d, face %d)"), Config.Body == EAvatarBody::Feminine ? TEXT("girl") : TEXT("boy"), Config.SkinTone, int32(Config.Hair), Config.Face);
 		Capture->ShowOnlyActors.Reset();
 		Capture->ShowOnlyActors.Add(Avatar);
 	}
@@ -216,6 +220,8 @@ void ACareerPreviewStage::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	if (Avatar) { Avatar->SetActorRelativeRotation(FRotator(0.f, Yaw, 0.f)); }
+	// Paused world: deferred every-frame captures don't run, so capture explicitly.
+	if (Capture && Capture->TextureTarget && GetWorld() && GetWorld()->IsPaused()) { Capture->CaptureScene(); }
 }
 
 void ACareerPreviewStage::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -736,9 +742,25 @@ TSharedRef<SWidget> UCareerScreen::BuildAvatar(bool bFirstLaunch)
 	Row(Selector(LOCTEXT("Body", "Boy / Girl"), bFem ? LOCTEXT("Girl", "GIRL") : LOCTEXT("Boy", "BOY"), [Change](int32) { Change([](FAvatarConfig& X)
 	{
 		X.Body = X.Body == EAvatarBody::Feminine ? EAvatarBody::Masculine : EAvatarBody::Feminine;
+		X.BodyModel = -1;
 		if (X.Body == EAvatarBody::Feminine) { X.FacialHair = EAvatarFacialHair::None; if (X.Hair == EAvatarHair::Short || X.Hair == EAvatarHair::Buzz) { X.Hair = EAvatarHair::Long; } X.bSlimArmor = true; }
 		else { X.bSlimArmor = false; if (X.Hair == EAvatarHair::Long || X.Hair == EAvatarHair::Bun) { X.Hair = EAvatarHair::Short; } }
 	}, true); }));
+	// Real character body (MetaHuman / Character Creator: Kevin / CityKit people) - the model the preview and the pawn use.
+	{
+		const TArray<int32> Bodies = AvatarCatalog::ForBody(bFem);
+		const int32 Cur = AvatarCatalog::Resolve(A);
+		if (Bodies.Num() > 0 && AvatarCatalog::All().IsValidIndex(Cur))
+		{
+			const FAvatarBodyEntry& E = AvatarCatalog::All()[Cur];
+			const int32 NB = Bodies.Num();
+			Row(Selector(LOCTEXT("BodyModel", "Character"), FText::FromString(FString::Printf(TEXT("%s  (%d/%d)"), *E.Label, Bodies.IndexOfByKey(Cur) + 1, NB)), [Change, NB, Bodies, Cur](int32 D)
+			{
+				const int32 Pos = FMath::Max(0, Bodies.IndexOfByKey(Cur));
+				Change([D, NB, Pos](FAvatarConfig& X) { X.BodyModel = Wrap(Pos + D, NB); }, true);
+			}));
+		}
+	}
 	Row(Selector(LOCTEXT("Skin", "Skin tone"), FText::AsNumber(A.SkinTone + 1), [Change, NSkin](int32 D) { Change([D, NSkin](FAvatarConfig& X) { X.SkinTone = Wrap(X.SkinTone + D, NSkin); }, true); }, Swatch(ColorOf(Career::SkinTones(), A.SkinTone))));
 	Row(Selector(LOCTEXT("Face", "Face"), Career::FaceNames().IsValidIndex(A.Face) ? Career::FaceNames()[A.Face] : FText::GetEmpty(), [Change, NFace](int32 D) { Change([D, NFace](FAvatarConfig& X) { X.Face = Wrap(X.Face + D, NFace); }, true); }));
 	Row(Selector(LOCTEXT("Hair", "Hair style"), Career::HairName(A.Hair), [Change](int32 D) { Change([D](FAvatarConfig& X) { X.Hair = EAvatarHair(Wrap(int32(X.Hair) + D, int32(EAvatarHair::Count))); }, true); }));
@@ -851,6 +873,7 @@ TSharedRef<SWidget> UCareerScreen::BuildAvatar(bool bFirstLaunch)
 		X.HairColor = R.RandRange(0, FMath::Max(0, Career::HairColors().Num() - 1));
 		X.Hair = EAvatarHair(R.RandRange(0, int32(EAvatarHair::Count) - 1));
 		X.Face = R.RandRange(0, FMath::Max(0, Career::FaceNames().Num() - 1));
+		X.BodyModel = R.RandRange(0, FMath::Max(0, AvatarCatalog::ForBody(X.Body == EAvatarBody::Feminine).Num() - 1));
 		X.Outfit.TopColor = R.RandRange(0, FMath::Max(0, Career::OutfitColors().Num() - 1));
 		X.Outfit.PantsColor = R.RandRange(0, FMath::Max(0, Career::OutfitColors().Num() - 1));
 		X.Outfit.ShoesColor = R.RandRange(0, FMath::Max(0, Career::OutfitColors().Num() - 1));
@@ -869,7 +892,15 @@ TSharedRef<SWidget> UCareerScreen::BuildAvatar(bool bFirstLaunch)
 	}, true, FLinearColor(0.1f, 0.35f, 0.15f), 15)];
 
 	TSharedRef<SWidget> Content = SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot().AutoWidth()[BuildPreview(390.f, 520.f)]
+		+ SHorizontalBox::Slot().AutoWidth()
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight()[BuildPreview(390.f, 520.f)]
+			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)
+			[
+				SNew(SBox).WidthOverride(390.f)[WrapTxt(FText::FromString(AvatarCatalog::SourceNote()), 10, AvatarCatalog::HasPremium() ? UiTeal : UiGold)]
+			]
+		]
 		+ SHorizontalBox::Slot().FillWidth(1.f).Padding(18.f, 0.f, 0.f, 0.f)
 		[
 			SNew(SVerticalBox)
@@ -1333,6 +1364,8 @@ int32 UCareerHUD::NativePaint(const FPaintArgs& Args, const FGeometry& G, const 
 	const UCareerSubsystem* C = UCareerSubsystem::Get(this);
 	APlayerController* PCtl = GetOwningPlayer();
 	if (!C || !PCtl) { return LayerId; }
+	// Title / pause menus own the screen: no credits, crosshair or super ring behind them.
+	if (const AArenaPlayerController* MenuPC = Cast<AArenaPlayerController>(PCtl)) { if (MenuPC->IsMenuOpen()) { return LayerId; } }
 	const FVector2D Size = G.GetLocalSize();
 	const TSharedRef<FSlateFontMeasure> Measure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	auto Text = [&](const FString& S, const FVector2D& Pos, int32 FontSize, const FLinearColor& Col, bool bRightAlign)
@@ -1596,6 +1629,7 @@ void UCareerInput::OpenScreen(ECareerScreen Screen, int32 Param)
 	APlayerController* P = PC();
 	if (!P) { return; }
 	if (Screen == ECareerScreen::DevBar && !IsDevMenuAllowed()) { return; }
+	UE_LOG(LogTemp, Log, TEXT("Career: open screen %d (avatar=3, first-launch=4)"), int32(Screen));
 	if (!ScreenWidget)
 	{
 		ScreenWidget = CreateWidget<UCareerScreen>(P, UCareerScreen::StaticClass());
@@ -1670,6 +1704,7 @@ void UCareerInput::OnFreePlayStarted()
 	if (C->NeedsCharacterSetup())
 	{
 		bFirstLaunchShown = true;
+		UE_LOG(LogTemp, Log, TEXT("Career: free play started without a character - opening the creator"));
 		OpenScreen(ECareerScreen::FirstLaunch);
 		return;
 	}
@@ -1914,6 +1949,18 @@ void UCareerInput::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	APlayerController* P = PC();
 	if (!P || !P->IsLocalController()) { return; }
+	// First launch: the character creator opens straight over the title screen (before any mode is picked).
+	if (!bFirstLaunchShown && !IsScreenOpen())
+	{
+		const AArenaPlayerController* TPC = Cast<AArenaPlayerController>(P);
+		const UCareerSubsystem* CS = UCareerSubsystem::Get(this);
+		if (TPC && TPC->IsMenuOpen() && TPC->GetLastMenuMode() == EMenuMode::Title && CS && CS->NeedsCharacterSetup())
+		{
+			bFirstLaunchShown = true;
+			UE_LOG(LogTemp, Log, TEXT("Career: no character yet - opening the first-launch creator on the title screen"));
+			OpenScreen(ECareerScreen::FirstLaunch);
+		}
+	}
 	{
 		const AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr;
 		const AArenaPlayerController* APC = Cast<AArenaPlayerController>(P);
