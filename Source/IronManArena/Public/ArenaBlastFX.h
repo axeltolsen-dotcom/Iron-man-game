@@ -54,6 +54,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "FX")
 	TObjectPtr<UStaticMeshComponent> Ring;
 
+	/** Thin outer shock ring — expands ahead of the plate for readable impact. */
+	UPROPERTY(VisibleAnywhere, Category = "FX")
+	TObjectPtr<UStaticMeshComponent> Shock;
+
 	UPROPERTY(VisibleAnywhere, Category = "FX")
 	TObjectPtr<UPointLightComponent> Light;
 
@@ -62,6 +66,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> RingMID;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> ShockMID;
 
 	float Age = 0.f;
 	bool bActiveBlast = true;

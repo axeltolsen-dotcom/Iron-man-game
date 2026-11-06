@@ -176,7 +176,7 @@ void AIronProjectile::Configure(float InDamage, bool bInHostile, float InBlastRa
 	{
 		MID->SetVectorParameterValue(TEXT("Color"), InColor);
 		// Bolts / missiles read hotter than soft orbs (film energy streak).
-		const float GlowNits = (VisualProfile == EIronProjectileVisual::Ball) ? 6.f : (VisualProfile == EIronProjectileVisual::Missile ? 8.f : 11.f);
+		const float GlowNits = (VisualProfile == EIronProjectileVisual::Ball) ? 6.f : (VisualProfile == EIronProjectileVisual::Missile ? 10.f : 14.f);
 		MID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(GlowNits));
 	}
 	SetLifeSpan(LifeSeconds);
@@ -193,20 +193,20 @@ void AIronProjectile::ApplyVisualProfile()
 	const float R = FMath::Max(4.f, VisualRadius);
 	if (VisualProfile == EIronProjectileVisual::Bolt)
 	{
-		// Thin energy streak along flight (actor X = velocity via bRotationFollowsVelocity).
+		// Needle energy streak (Pass 2: thinner / longer).
 		Visual->SetStaticMesh(ArenaVisuals::GetShapeMesh(EArenaShape::Cylinder));
 		Visual->SetRelativeRotation(FRotator(90.f, 0.f, 0.f)); // cylinder Z -> actor forward
-		const float Thick = FMath::Clamp(R * 0.55f, 3.f, 14.f);
-		const float Len = FMath::Clamp(R * 9.f, 55.f, 220.f);
+		const float Thick = FMath::Clamp(R * 0.38f, 2.2f, 9.f);
+		const float Len = FMath::Clamp(R * 12.f, 70.f, 280.f);
 		Visual->SetRelativeScale3D(FVector(Thick / 100.f, Thick / 100.f, Len / 100.f));
 	}
 	else if (VisualProfile == EIronProjectileVisual::Missile)
 	{
-		// Elongated rocket body (not a glowing ball).
+		// Slim rocket body (not a glowing ball).
 		Visual->SetStaticMesh(ArenaVisuals::GetShapeMesh(EArenaShape::Cylinder));
 		Visual->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
-		const float Thick = FMath::Clamp(R * 0.7f, 5.f, 16.f);
-		const float Len = FMath::Clamp(R * 6.5f, 40.f, 160.f);
+		const float Thick = FMath::Clamp(R * 0.48f, 3.5f, 11.f);
+		const float Len = FMath::Clamp(R * 8.5f, 55.f, 200.f);
 		Visual->SetRelativeScale3D(FVector(Thick / 100.f, Thick / 100.f, Len / 100.f));
 	}
 	else

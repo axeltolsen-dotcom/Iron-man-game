@@ -27,6 +27,14 @@ AArenaBlastFX::AArenaBlastFX()
 	Ring->SetRelativeRotation(FRotator(90.f, 0.f, 0.f)); // plate faces camera-ish along XY
 	Ring->SetRelativeScale3D(FVector(0.08f, 0.08f, 0.01f));
 
+	Shock = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Shock"));
+	Shock->SetupAttachment(Ball);
+	Shock->SetStaticMesh(ArenaVisuals::GetShapeMesh(EArenaShape::Cylinder));
+	Shock->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Shock->CastShadow = false;
+	Shock->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
+	Shock->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.006f));
+
 	Light = CreateDefaultSubobject<UPointLightComponent>(TEXT("Light"));
 	Light->SetupAttachment(Ball);
 	Light->SetCastShadows(false);
@@ -62,6 +70,7 @@ AArenaBlastFX* AArenaBlastFX::Spawn(UWorld* World, const FVector& Location, floa
 		FX->Light->SetAttenuationRadius(Radius * 6.f);
 		if (FX->MID) { FX->MID->SetVectorParameterValue(TEXT("Color"), InColor); }
 		if (FX->RingMID) { FX->RingMID->SetVectorParameterValue(TEXT("Color"), InColor); }
+		if (FX->ShockMID) { FX->ShockMID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(InColor, FLinearColor(1.f, 0.95f, 0.8f), 0.4f)); }
 	}
 	return FX;
 }
@@ -71,6 +80,7 @@ void AArenaBlastFX::BeginPlay()
 	Super::BeginPlay();
 	MID = ArenaVisuals::PaintComponent(this, Ball, Color, 8.f);
 	RingMID = ArenaVisuals::PaintComponent(this, Ring, Color, 10.f, EArenaSurface::Glow);
+	ShockMID = ArenaVisuals::PaintComponent(this, Shock, Color, 12.f, EArenaSurface::Glow);
 }
 
 void AArenaBlastFX::Tick(float DeltaSeconds)
@@ -79,27 +89,39 @@ void AArenaBlastFX::Tick(float DeltaSeconds)
 	Age += DeltaSeconds;
 	const float T = FMath::Clamp(Age / Duration, 0.f, 1.f);
 
-	// Film blast: bright core pops then dies; thin plate expands faster and fades sooner.
-	const float CoreGrow = 1.f - FMath::Square(1.f - FMath::Clamp(T / 0.55f, 0.f, 1.f));
-	const float CoreFade = 1.f - FMath::Pow(T, 0.65f);
-	const float PlateT = FMath::Clamp(T / 0.85f, 0.f, 1.f);
+	// Pass 2: tight white-hot core (dies fast) + plate + outer shock ring racing ahead.
+	const float CoreGrow = 1.f - FMath::Square(1.f - FMath::Clamp(T / 0.28f, 0.f, 1.f));
+	const float CoreFade = 1.f - FMath::Pow(FMath::Clamp(T / 0.55f, 0.f, 1.f), 0.5f);
+	const float PlateT = FMath::Clamp(T / 0.7f, 0.f, 1.f);
 	const float PlateGrow = 1.f - FMath::Square(1.f - PlateT);
 	const float PlateFade = 1.f - PlateT * PlateT;
-	const float CoreDiam = FMath::Max(0.01f, (MaxRadius * 1.15f / 100.f) * CoreGrow);
+	const float ShockT = FMath::Clamp(T / 0.55f, 0.f, 1.f);
+	const float ShockGrow = 1.f - FMath::Square(1.f - ShockT);
+	const float ShockFade = 1.f - FMath::Pow(ShockT, 0.7f);
+	const float CoreDiam = FMath::Max(0.008f, (MaxRadius * 0.55f / 100.f) * CoreGrow);
 	Ball->SetWorldScale3D(FVector(CoreDiam));
-	const float PlateXY = FMath::Max(0.02f, (MaxRadius * 2.4f / 100.f) * PlateGrow);
-	const float PlateZ = FMath::Max(0.004f, (MaxRadius * 0.08f / 100.f) * (0.55f + 0.45f * PlateFade));
+	const float PlateXY = FMath::Max(0.015f, (MaxRadius * 2.1f / 100.f) * PlateGrow);
+	const float PlateZ = FMath::Max(0.003f, (MaxRadius * 0.05f / 100.f) * (0.4f + 0.6f * PlateFade));
 	Ring->SetRelativeScale3D(FVector(PlateXY, PlateXY, PlateZ));
-	Light->SetIntensity(LightIntensity * CoreFade);
+	const float ShockXY = FMath::Max(0.02f, (MaxRadius * 3.2f / 100.f) * ShockGrow);
+	const float ShockZ = FMath::Max(0.002f, (MaxRadius * 0.03f / 100.f));
+	Shock->SetRelativeScale3D(FVector(ShockXY, ShockXY, ShockZ));
+	Light->SetIntensity(LightIntensity * 1.25f * CoreFade);
+	Light->SetAttenuationRadius(MaxRadius * (4.5f + 2.5f * CoreFade));
 	if (MID)
 	{
-		MID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(14.f * CoreFade));
-		MID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(Color, FLinearColor(1.f, 0.95f, 0.85f), 0.35f * (1.f - T)) * CoreFade);
+		MID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(22.f * CoreFade));
+		MID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(Color, FLinearColor(1.f, 0.98f, 0.9f), 0.55f * CoreFade));
 	}
 	if (RingMID)
 	{
-		RingMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(8.f * PlateFade));
+		RingMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(10.f * PlateFade));
 		RingMID->SetVectorParameterValue(TEXT("Color"), Color * PlateFade);
+	}
+	if (ShockMID)
+	{
+		ShockMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(14.f * ShockFade));
+		ShockMID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(Color, FLinearColor(1.f, 0.95f, 0.8f), 0.45f) * ShockFade);
 	}
 	if (T >= 1.f) { Park(); }
 }
@@ -136,6 +158,7 @@ void AArenaBlastFX::ReactivateFromPool(const FVector& Location)
 	SetActorLocation(Location, false, nullptr, ETeleportType::TeleportPhysics);
 	Ball->SetWorldScale3D(FVector(0.05f));
 	Ring->SetRelativeScale3D(FVector(0.08f, 0.08f, 0.01f));
+	Shock->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.006f));
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(true);
 	SetLifeSpan(3.f); // safety net, same as InitialLifeSpan

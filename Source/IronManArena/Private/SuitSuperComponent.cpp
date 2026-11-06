@@ -41,15 +41,16 @@ namespace
 		switch (K)
 		{
 		case ESuperKind::BeamStomp: return 2.2f;
-		case ESuperKind::NanoBlades: return 1.5f;
-		case ESuperKind::SpiderArms: return 1.7f;
+		case ESuperKind::NanoBlades: return 1.32f;
+		case ESuperKind::SpiderArms: return 1.5f;
 		case ESuperKind::MissileBarrage: return 1.6f;
 		case ESuperKind::RemoteStrike: return 1.9f;
 		case ESuperKind::SupportPulse: return 1.4f;
 		case ESuperKind::GroundPound: return 1.9f;
 		case ESuperKind::MinigunPod: return 3.6f;
-		case ESuperKind::CloakSlash: return 1.3f;
-		default: return 1.5f;
+		case ESuperKind::CloakSlash: return 1.15f;
+		case ESuperKind::HeavyBlast: return 1.25f;
+		default: return 1.35f;
 		}
 	}
 }
@@ -317,11 +318,12 @@ void USuitSuperComponent::FireSalvo(int32 Count, float Speed, float Homing, floa
 		if (AIronProjectile* P = AIronProjectile::SpawnPooled(W, Origin, Dir.Rotation(), C, C, false))
 		{
 			P->LifeSeconds = 4.f;
-			// Film micro-rockets: elongated bodies, not glowing balls.
-			P->Configure(Damage, false, Blast, Color, 8.f, true, EIronProjectileVisual::Missile);
+			// Film micro-rockets: slim bodies, not glowing balls.
+			P->Configure(Damage, false, Blast, Color, 5.5f, true, EIronProjectileVisual::Missile);
 			P->Launch(Dir * Speed, 0.f, (Tg && Homing > 0.f) ? Tg->GetRootComponent() : nullptr, Tg ? Homing : 0.f);
 		}
-		AArenaBlastFX::Spawn(W, Origin, 30.f, FLinearColor(1.f, 0.6f, 0.2f), 0.08f, false);
+		AArenaBlastFX::Spawn(W, Origin, 18.f, FLinearColor(1.f, 0.6f, 0.2f), 0.045f, false);
+		AArenaTracer::Spawn(W, Origin, Origin + Dir * 220.f, Color, 4.f, 0.05f, FLinearColor(1.f, 0.7f, 0.25f));
 	}
 	ArenaAudio::PlayAt(C, TEXT("missile_launch"), Me, 1.f);
 }
@@ -499,7 +501,7 @@ void USuitSuperComponent::TickMove(float Dt)
 			Temp[s]->SetRelativeScale3D(FVector(0.055f, 0.012f, FMath::Max(0.01f, L / 100.f)));
 		}
 		// Three slashes: R (down-right), L (down-left), R overhead finisher. Each: wind-up -> strike -> follow-through.
-		const float Hits[3] = { 0.32f, 0.66f, 1.02f };
+		const float Hits[3] = { 0.26f, 0.54f, 0.86f };
 		FRotator SL(60.f, 0.f, -20.f), SR(60.f, 0.f, 20.f), Root = FRotator(-8.f, 0.f, 0.f);
 		for (int32 h = 0; h < 3; ++h)
 		{
@@ -839,21 +841,28 @@ void USuitSuperComponent::TickMove(float Dt)
 	case ESuperKind::HeavyBlast:
 	default:
 	{
-		if (Once(0)) { ArenaAudio::PlayAt(C, TEXT("unibeam_charge"), Me, 1.f, 0.f); ArenaAudio::PlayAt(C, TEXT("reactor_overheat_vent"), Me, 0.4f); Punch(230.f, -7.f, 0.75f); }
-		const float Charge = Ph(T, 0.f, 0.6f);
-		if (T < 0.62f && FMath::FRand() < 0.5f) { AArenaSparks::Spawn(W, Chest + FMath::VRand() * 60.f, (Chest - Me).GetSafeNormal(), Tint, 2, 300.f); }
-		if (T >= 0.62f && Once(1))
+		if (Once(0)) { ArenaAudio::PlayAt(C, TEXT("unibeam_charge"), Me, 1.f, 0.f); ArenaAudio::PlayAt(C, TEXT("reactor_overheat_vent"), Me, 0.45f); Punch(210.f, -8.f, 0.55f); }
+		const float Charge = Ph(T, 0.f, 0.46f);
+		// Charge readability: denser reactor sparks + growing chest bloom.
+		if (T < 0.48f)
+		{
+			if (FMath::FRand() < 0.65f) { AArenaSparks::Spawn(W, Chest + FMath::VRand() * 40.f, (Chest - Me).GetSafeNormal(), Tint, 3, 420.f); }
+			if (FMath::FRand() < 0.25f) { AArenaBlastFX::Spawn(W, Chest, 12.f + 40.f * Charge, Tint, 0.04f, false); }
+		}
+		if (T >= 0.48f && Once(1))
 		{
 			const FVector Dir = Look;
-			const ArenaCombat::FShot S = ArenaCombat::FireHitscan(C, C->GetController(), Chest, Dir, 12000.f, 20.f, 380.f, 60.f, Tint, 2000.f);
-			AArenaTracer::Spawn(W, Chest, S.End, Tint, 95.f, 0.35f);
-			AArenaBlastFX::Spawn(W, Chest + Dir * 40.f, 90.f, Tint, 0.2f, false);
-			ArenaAudio::PlayAt(C, TEXT("unibeam_fire"), Chest, 1.2f, 0.f);
+			const ArenaCombat::FShot ShotHB = ArenaCombat::FireHitscan(C, C->GetController(), Chest, Dir, 12000.f, 20.f, 380.f, 60.f, Tint, 2000.f);
+			FLinearColor RimGold = Tint; RimGold.A = 1.f;
+			AArenaTracer::Spawn(W, Chest, ShotHB.End, FLinearColor::LerpUsingHSV(FLinearColor(0.9f, 0.98f, 1.f), Tint, 0.35f), 52.f, 0.18f, RimGold);
+			AArenaBlastFX::Spawn(W, Chest + Dir * 40.f, 70.f, Tint, 0.1f, false);
+			ArenaAudio::PlayAt(C, TEXT("unibeam_fire"), Chest, 1.25f, 0.f);
 			C->LaunchCharacter(-Dir * 900.f + FVector(0, 0, 150.f), false, false); // recoil
-			Beat(0.12f, 0.2f, TEXT("unibeam"), 1.f, 1.f);
+			Beat(0.1f, 0.18f, TEXT("unibeam"), 1.15f, 1.f);
+			Punch(180.f, -12.f, 0.4f); // clear fire punch-in
 		}
 		// Arms swing back (charge, chest out), snap forward on release, settle.
-		const float Rel = Ph(T, 0.62f, 0.8f);
+		const float Rel = Ph(T, 0.48f, 0.68f);
 		SetPose(Env, LerpR(FRotator(14.f * Charge, 0.f, 0.f), FRotator(-6.f, 0.f, 0.f), Rel), FVector(0, 0, -18.f * Charge * (1.f - Rel)),
 			LerpR(FRotator(-45.f * Charge, 0.f, -25.f * Charge), FRotator(35.f, 0.f, -20.f), Rel), LerpR(FRotator(-45.f * Charge, 0.f, 25.f * Charge), FRotator(35.f, 0.f, 20.f), Rel),
 			FRotator(-18.f * Charge, 0.f, 0.f), FRotator(22.f * Charge, 0.f, 0.f));
@@ -1097,8 +1106,8 @@ void USuitSuperComponent::EnsureIdleSpiderLegs()
 			IdleLegMeshes.Add(MeshComp);
 			return MeshComp;
 		};
-		AddMesh(EArenaShape::Cylinder, FVector(0.f, 0.f, 22.f), FVector(0.045f, 0.045f, 0.42f), GoldBody, 0.2f);
-		AddMesh(EArenaShape::Cone, FVector(0.f, 0.f, 46.f), FVector(0.05f, 0.05f, 0.09f), TipCol, 2.5f);
+		AddMesh(EArenaShape::Cylinder, FVector(0.f, 0.f, 20.f), FVector(0.038f, 0.038f, 0.38f), GoldBody, 0.35f);
+		AddMesh(EArenaShape::Cone, FVector(0.f, 0.f, 42.f), FVector(0.045f, 0.045f, 0.085f), TipCol, 4.f);
 	}
 }
 
@@ -1114,16 +1123,26 @@ void USuitSuperComponent::TickIdleSpiderLegs(float Dt)
 	}
 	EnsureIdleSpiderLegs();
 	// Folded rest; while swinging, fan tips slightly (extra-leg fighting silhouette without Ultron flight edits).
-	const float Fan = bWebAttached ? 1.f : (bSwingMode ? 0.35f : 0.f);
+	const float Fan = bWebAttached ? 1.f : (bSwingMode ? 0.45f : 0.08f); // slight unfold at rest so gold tips read
 	for (int32 LegIdx = 0; LegIdx < IdleLegPivots.Num(); ++LegIdx)
 	{
 		USceneComponent* Pivot = IdleLegPivots[LegIdx];
 		if (!Pivot) { continue; }
 		const float Side = (LegIdx % 2) ? 1.f : -1.f;
-		const FRotator Folded(-155.f, 0.f, Side * 18.f);
-		const FRotator Opened(-110.f - float(LegIdx) * 4.f, Side * 12.f * Fan, Side * (28.f + 20.f * Fan));
+		const FRotator Folded(-152.f, 0.f, Side * 16.f);
+		const FRotator Opened(-102.f - float(LegIdx) * 5.f, Side * 16.f * Fan, Side * (32.f + 24.f * Fan));
 		const FRotator WantRot = FQuat::Slerp(Folded.Quaternion(), Opened.Quaternion(), Fan).Rotator();
-		Pivot->SetRelativeRotation(FMath::RInterpTo(Pivot->GetRelativeRotation(), WantRot, Dt, 8.f));
+		Pivot->SetRelativeRotation(FMath::RInterpTo(Pivot->GetRelativeRotation(), WantRot, Dt, 10.f));
+	}
+	// Tip glow: last mesh of each leg pair is the cone — pulse while swinging (extra-leg fighting read).
+	const float TipPulse = bWebAttached ? (0.7f + 0.3f * FMath::Sin(float(FApp::GetCurrentTime()) * 14.f)) : (bSwingMode ? 0.55f : 0.35f);
+	for (int32 MeshIdx = 0; MeshIdx < IdleLegMeshes.Num(); ++MeshIdx)
+	{
+		if ((MeshIdx % 2) == 0 || !IdleLegMeshes[MeshIdx]) { continue; }
+		if (UMaterialInstanceDynamic* TipMID = Cast<UMaterialInstanceDynamic>(IdleLegMeshes[MeshIdx]->GetMaterial(0)))
+		{
+			TipMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(3.5f + 6.f * TipPulse));
+		}
 	}
 }
 

@@ -23,18 +23,20 @@ class IRONMANARENA_API AArenaTracer : public AActor
 	GENERATED_BODY()
 public:
 	AArenaTracer();
-	static void Spawn(UWorld* World, const FVector& From, const FVector& To, const FLinearColor& Color, float Width, float Life = 0.09f);
+	/** CoreColor = white-hot beam body; RimColor (A>0) = gold/suit sleeve. Life ~0.05–0.08 = film flash. */
+	static void Spawn(UWorld* World, const FVector& From, const FVector& To, const FLinearColor& CoreColor, float Width, float Life = 0.07f, FLinearColor RimColor = FLinearColor(0.f, 0.f, 0.f, 0.f));
 	virtual void Tick(float DeltaSeconds) override;
 protected:
 	virtual void BeginPlay() override;
-	void Begin(const FVector& From, const FVector& To, const FLinearColor& Color, float Width, float Life);
+	void Begin(const FVector& From, const FVector& To, const FLinearColor& CoreColor, float Width, float Life, const FLinearColor& InRim);
 	UPROPERTY() TObjectPtr<USceneComponent> Pivot;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Core;
 	UPROPERTY() TObjectPtr<UStaticMeshComponent> Glow;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> CoreMID;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> GlowMID;
 	FLinearColor Color = FLinearColor::White;
-	float Age = 0.f, Life = 0.09f, Width = 6.f, Length = 100.f;
+	FLinearColor Rim = FLinearColor::White;
+	float Age = 0.f, Life = 0.07f, Width = 6.f, Length = 100.f;
 	bool bActive = false;
 };
 

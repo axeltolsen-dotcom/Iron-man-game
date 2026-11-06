@@ -57,47 +57,61 @@ void AArenaTracer::BeginPlay()
 	GlowMID = ArenaVisuals::PaintComponent(this, Glow, Color, 6.f, EArenaSurface::Glow);
 }
 
-void AArenaTracer::Spawn(UWorld* World, const FVector& From, const FVector& To, const FLinearColor& InColor, float InWidth, float InLife)
+void AArenaTracer::Spawn(UWorld* World, const FVector& From, const FVector& To, const FLinearColor& CoreColor, float InWidth, float InLife, FLinearColor InRim)
 {
 	if (!World || World->GetNetMode() == NM_DedicatedServer) { return; }
-	AArenaTracer* T = nullptr;
+	AArenaTracer* Tracer = nullptr;
 	GTracerPool.RemoveAll([](const TWeakObjectPtr<AArenaTracer>& W) { return !W.IsValid(); });
 	for (const TWeakObjectPtr<AArenaTracer>& W : GTracerPool)
 	{
-		if (W->GetWorld() == World && !W->bActive) { T = W.Get(); break; }
+		if (W->GetWorld() == World && !W->bActive) { Tracer = W.Get(); break; }
 	}
-	if (!T)
+	if (!Tracer)
 	{
 		if (GTracerPool.Num() >= MaxTracers)
 		{
 			// Steal the oldest in this world.
-			for (const TWeakObjectPtr<AArenaTracer>& W : GTracerPool) { if (W->GetWorld() == World) { T = W.Get(); break; } }
+			for (const TWeakObjectPtr<AArenaTracer>& W : GTracerPool) { if (W->GetWorld() == World) { Tracer = W.Get(); break; } }
 		}
-		if (!T)
+		if (!Tracer)
 		{
 			FActorSpawnParameters P;
 			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			T = World->SpawnActor<AArenaTracer>(AArenaTracer::StaticClass(), From, FRotator::ZeroRotator, P);
-			if (!T) { return; }
-			GTracerPool.Add(T);
+			Tracer = World->SpawnActor<AArenaTracer>(AArenaTracer::StaticClass(), From, FRotator::ZeroRotator, P);
+			if (!Tracer) { return; }
+			GTracerPool.Add(Tracer);
 		}
 	}
-	T->Begin(From, To, InColor, InWidth, InLife);
+	Tracer->Begin(From, To, CoreColor, InWidth, InLife, InRim);
 }
 
-void AArenaTracer::Begin(const FVector& From, const FVector& To, const FLinearColor& InColor, float InWidth, float InLife)
+void AArenaTracer::Begin(const FVector& From, const FVector& To, const FLinearColor& CoreColor, float InWidth, float InLife, const FLinearColor& InRim)
 {
 	const FVector D = To - From;
 	Length = FMath::Max(10.f, float(D.Size()));
-	Color = InColor;
+	Color = CoreColor;
+	// Gold / suit rim: explicit A>0, else warm gold when core is cyan-white (Mark), else tinted core.
+	if (InRim.A > 0.01f)
+	{
+		Rim = InRim;
+		Rim.A = 1.f;
+	}
+	else
+	{
+		const float Cool = Color.B - FMath::Max(Color.R, Color.G) * 0.35f;
+		Rim = (Cool > 0.15f)
+			? FLinearColor(1.f, 0.78f, 0.32f) // Mark-style gold sleeve on cyan-white core
+			: FLinearColor::LerpUsingHSV(Color, FLinearColor(1.f, 0.85f, 0.45f), 0.35f);
+	}
 	Width = InWidth;
-	Life = FMath::Max(0.03f, InLife);
+	Life = FMath::Max(0.028f, InLife);
 	Age = 0.f;
 	bActive = true;
 	SetActorLocationAndRotation(From, FRotationMatrix::MakeFromZ(D.GetSafeNormal()).Rotator());
 	Core->SetRelativeLocation(FVector(0, 0, Length * 0.5f));
 	Glow->SetRelativeLocation(FVector(0, 0, Length * 0.5f));
-	if (GlowMID) { GlowMID->SetVectorParameterValue(TEXT("Color"), Color); }
+	if (GlowMID) { GlowMID->SetVectorParameterValue(TEXT("Color"), Rim); }
+	if (CoreMID) { CoreMID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(FLinearColor(1.f, 1.f, 1.f), Color, 0.18f)); }
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(true);
 	Tick(0.f);
@@ -109,27 +123,26 @@ void AArenaTracer::Tick(float DeltaSeconds)
 	if (!bActive) { return; }
 	Age += DeltaSeconds;
 	const float T = FMath::Clamp(Age / Life, 0.f, 1.f);
-	// Film beam: white-hot core snaps bright then collapses; soft bloom sleeve fades slower.
-	const float CoreFade = 1.f - FMath::Pow(T, 0.55f);
-	const float BloomFade = 1.f - T * T;
-	const float Pulse = (T < 0.12f) ? (1.f + 0.55f * (1.f - T / 0.12f)) : 1.f; // muzzle flash kick
-	const float WCore = Width * (0.28f + 0.42f * CoreFade) * Pulse;
-	const float WBloom = Width * (0.85f + 0.55f * BloomFade) * Pulse;
-	// Slight foreshorten from the tip as it dies (streak shrinks toward the muzzle).
-	const float LenNow = Length * (0.72f + 0.28f * CoreFade);
+	// Pass 2 film beam: needle core + gold rim sleeve; hard foreshorten; no soft orb bloom.
+	const float CoreFade = 1.f - FMath::Pow(T, 0.42f);
+	const float BloomFade = 1.f - FMath::Pow(T, 0.85f);
+	const float Pulse = (T < 0.08f) ? (1.f + 0.85f * (1.f - T / 0.08f)) : 1.f;
+	const float WCore = Width * (0.10f + 0.16f * CoreFade) * Pulse;
+	const float WBloom = Width * (0.42f + 0.28f * BloomFade) * Pulse;
+	const float LenNow = Length * (0.48f + 0.52f * CoreFade);
 	Core->SetRelativeLocation(FVector(0, 0, LenNow * 0.5f));
 	Glow->SetRelativeLocation(FVector(0, 0, LenNow * 0.5f));
 	Core->SetRelativeScale3D(FVector(WCore / 100.f, WCore / 100.f, LenNow / 100.f));
 	Glow->SetRelativeScale3D(FVector(WBloom / 100.f, WBloom / 100.f, LenNow / 100.f));
 	if (CoreMID)
 	{
-		CoreMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(18.f * CoreFade * Pulse));
-		CoreMID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(FLinearColor(1.f, 1.f, 1.f), Color, 0.25f));
+		CoreMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(28.f * CoreFade * Pulse));
+		CoreMID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(FLinearColor(1.f, 1.f, 1.f), Color, 0.18f));
 	}
 	if (GlowMID)
 	{
-		GlowMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(7.f * BloomFade));
-		GlowMID->SetVectorParameterValue(TEXT("Color"), Color);
+		GlowMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(9.f * BloomFade));
+		GlowMID->SetVectorParameterValue(TEXT("Color"), Rim);
 	}
 	if (T >= 1.f)
 	{
@@ -329,15 +342,17 @@ ArenaCombat::FShot ArenaCombat::FireHitscan(AActor* Shooter, AController* Inst, 
 	{
 		HitEnemy(E, Damage, true);
 		ArenaAudio::PlayAt(Shooter, TEXT("hit_metal"), Impact, 1.f, 0.1f);
-		AArenaSparks::Spawn(World, Impact, -D, Color, 10, 1100.f);
+		AArenaSparks::Spawn(World, Impact, -D, Color, 12, 1300.f);
 	}
 	else
 	{
-		AArenaSparks::Spawn(World, Impact, Normal, Color, 7, 800.f);
-		ArenaAudio::PlayAt(Shooter, TEXT("repulsor_impact"), Impact, 0.9f, 0.1f);
+		AArenaSparks::Spawn(World, Impact, Normal, Color, 8, 950.f);
+		ArenaAudio::PlayAt(Shooter, TEXT("repulsor_impact"), Impact, 0.95f, 0.1f);
 		if (Use->Component.IsValid() && Use->Component->GetCollisionObjectType() == ECC_WorldStatic)
 		{
-			ArenaFeel::SpawnImpactDecal(World, Impact, Normal, BlastRadius > 0.f ? FMath::Clamp(BlastRadius * 0.8f, 60.f, 300.f) : 34.f);
+			// Existing ArenaFeel decal path — brief scorch (not a new system).
+			const float DecalSize = BlastRadius > 0.f ? FMath::Clamp(BlastRadius * 0.75f, 55.f, 280.f) : 28.f;
+			ArenaFeel::SpawnImpactDecal(World, Impact, Normal, DecalSize, 5.5f);
 		}
 	}
 	// City: cars and pedestrians (direct or splash). Responders (drones / tanks) are enemies above.
@@ -361,13 +376,14 @@ ArenaCombat::FShot ArenaCombat::FireHitscan(AActor* Shooter, AController* Inst, 
 			HitEnemy(E, Damage * 0.6f, false);
 			if (IsValid(E) && !E->IsDead()) { Knockback(E, E->GetActorLocation() - Impact, KnockStrength * 0.8f); }
 		}
-		AArenaBlastFX::Spawn(World, Impact, BlastRadius, FLinearColor(1.f, 0.5f, 0.15f), 0.35f, true);
-		ArenaAudio::PlayAt(Shooter, TEXT("explosion_near"), Impact, 0.9f);
+		AArenaBlastFX::Spawn(World, Impact, BlastRadius, FLinearColor(1.f, 0.55f, 0.2f), 0.22f, true);
+		ArenaAudio::PlayAt(Shooter, TEXT("explosion_near"), Impact, 0.95f);
+		ArenaFeel::SpawnImpactDecal(World, Impact, Normal, FMath::Clamp(BlastRadius * 0.85f, 70.f, 320.f), 6.5f);
 	}
 	else
 	{
-		// Impact bloom: plate + hot core (ArenaBlastFX film pass), sized from the sweep radius.
-		AArenaBlastFX::Spawn(World, Impact + Normal * 4.f, FMath::Clamp(Radius * 3.6f, 26.f, 72.f), Color, 0.14f, false);
+		// Punchier impact bloom: tighter, faster plate + shock (Pass 2).
+		AArenaBlastFX::Spawn(World, Impact + Normal * 4.f, FMath::Clamp(Radius * 2.8f, 18.f, 52.f), Color, 0.09f, false);
 	}
 	if (R.bEnemy || R.bKill) { RegisterHit(R.bKill); }
 	return R;
