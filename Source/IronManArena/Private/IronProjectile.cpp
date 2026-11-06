@@ -92,6 +92,8 @@ void AIronProjectile::ReactivateFromPool(const FVector& Location, const FRotator
 	bDestroyableByPlayer = false;
 	InterceptScore = 25;
 	LifeSeconds = 3.f;
+	VisualProfile = EIronProjectileVisual::Ball;
+	VisualRadius = 12.f;
 	SetOwner(InOwner);
 	SetInstigator(InInstigator);
 	SetActorLocationAndRotation(Location, Rotation, false, nullptr, ETeleportType::ResetPhysics);
@@ -158,21 +160,61 @@ void AIronProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AIronProjectile::Configure(float InDamage, bool bInHostile, float InBlastRadius, const FLinearColor& InColor, float InRadius, bool bWantLight)
+void AIronProjectile::Configure(float InDamage, bool bInHostile, float InBlastRadius, const FLinearColor& InColor, float InRadius, bool bWantLight, EIronProjectileVisual InVisual)
 {
 	Damage = InDamage;
 	bHostile = bInHostile;
 	BlastRadius = InBlastRadius;
 	Color = InColor;
+	VisualRadius = InRadius;
+	VisualProfile = InVisual;
 	Collision->SetSphereRadius(InRadius);
-	Visual->SetRelativeScale3D(FVector(InRadius * 2.f / 100.f));
 	Glow->SetLightColor(InColor);
 	SetGlowEnabled(bWantLight); // minigun / flamethrower shots pass false: emissive only
+	ApplyVisualProfile();
 	if (MID)
 	{
 		MID->SetVectorParameterValue(TEXT("Color"), InColor);
+		// Bolts / missiles read hotter than soft orbs (film energy streak).
+		const float GlowNits = (VisualProfile == EIronProjectileVisual::Ball) ? 6.f : (VisualProfile == EIronProjectileVisual::Missile ? 8.f : 11.f);
+		MID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(GlowNits));
 	}
 	SetLifeSpan(LifeSeconds);
+}
+
+void AIronProjectile::SetVisualProfile(EIronProjectileVisual InVisual)
+{
+	VisualProfile = InVisual;
+	ApplyVisualProfile();
+}
+
+void AIronProjectile::ApplyVisualProfile()
+{
+	const float R = FMath::Max(4.f, VisualRadius);
+	if (VisualProfile == EIronProjectileVisual::Bolt)
+	{
+		// Thin energy streak along flight (actor X = velocity via bRotationFollowsVelocity).
+		Visual->SetStaticMesh(ArenaVisuals::GetShapeMesh(EArenaShape::Cylinder));
+		Visual->SetRelativeRotation(FRotator(90.f, 0.f, 0.f)); // cylinder Z -> actor forward
+		const float Thick = FMath::Clamp(R * 0.55f, 3.f, 14.f);
+		const float Len = FMath::Clamp(R * 9.f, 55.f, 220.f);
+		Visual->SetRelativeScale3D(FVector(Thick / 100.f, Thick / 100.f, Len / 100.f));
+	}
+	else if (VisualProfile == EIronProjectileVisual::Missile)
+	{
+		// Elongated rocket body (not a glowing ball).
+		Visual->SetStaticMesh(ArenaVisuals::GetShapeMesh(EArenaShape::Cylinder));
+		Visual->SetRelativeRotation(FRotator(90.f, 0.f, 0.f));
+		const float Thick = FMath::Clamp(R * 0.7f, 5.f, 16.f);
+		const float Len = FMath::Clamp(R * 6.5f, 40.f, 160.f);
+		Visual->SetRelativeScale3D(FVector(Thick / 100.f, Thick / 100.f, Len / 100.f));
+	}
+	else
+	{
+		Visual->SetStaticMesh(ArenaVisuals::GetShapeMesh(EArenaShape::Sphere));
+		Visual->SetRelativeRotation(FRotator::ZeroRotator);
+		Visual->SetRelativeScale3D(FVector(R * 2.f / 100.f));
+	}
 }
 
 void AIronProjectile::Launch(const FVector& InVelocity, float GravityScale, USceneComponent* HomingTarget, float HomingAcceleration)

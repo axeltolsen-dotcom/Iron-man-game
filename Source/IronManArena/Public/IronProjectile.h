@@ -18,6 +18,15 @@ class UPointLightComponent;
 class UProjectileMovementComponent;
 class UMaterialInstanceDynamic;
 
+/** Film-style shot look: Ball = enemy orbs; Bolt = thin energy streak; Missile = elongated rocket body. */
+UENUM()
+enum class EIronProjectileVisual : uint8
+{
+	Ball,
+	Bolt,
+	Missile
+};
+
 UCLASS()
 class IRONMANARENA_API AIronProjectile : public AActor
 {
@@ -34,7 +43,10 @@ public:
 	 * @param InColor         glow colour
 	 * @param InRadius        visual / collision radius (uu)
 	 */
-	void Configure(float InDamage, bool bInHostile, float InBlastRadius, const FLinearColor& InColor, float InRadius, bool bWantLight = true);
+	void Configure(float InDamage, bool bInHostile, float InBlastRadius, const FLinearColor& InColor, float InRadius, bool bWantLight = true, EIronProjectileVisual InVisual = EIronProjectileVisual::Ball);
+
+	/** Swap the mesh/scale after Configure (or alone) so pooled shots can look like bolts/missiles instead of glowing balls. */
+	void SetVisualProfile(EIronProjectileVisual InVisual);
 
 	/**
 	 * Pooled spawn (UArenaFXPool). Use this instead of SpawnActor: shots are parked and reused,
@@ -119,4 +131,8 @@ protected:
 	bool bExploded = false;
 	bool bActiveShot = true;
 	bool bHasLight = false;
+	EIronProjectileVisual VisualProfile = EIronProjectileVisual::Ball;
+	float VisualRadius = 12.f;
+
+	void ApplyVisualProfile();
 };

@@ -89,6 +89,10 @@ protected:
 	UStaticMeshComponent* MakePart(USceneComponent* Parent, int32 Shape, const FVector& Loc, const FVector& Scale, const FRotator& Rot, const FLinearColor& Color, float Glow);
 	void ClearParts();
 	void FireSalvo(int32 Count, float Speed, float Homing, float Damage, float Blast, const FLinearColor& Color, bool bFromShoulders);
+	/** Iron Spider: folded gold waldoes on the back while not mid-super (extra-leg silhouette; no ripped meshes). */
+	void EnsureIdleSpiderLegs();
+	void ClearIdleSpiderLegs();
+	void TickIdleSpiderLegs(float Dt);
 
 	// state
 	bool bActive = false;
@@ -116,6 +120,9 @@ protected:
 	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> Temp;      // blades / legs / pieces
 	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> TempMID;
 	TArray<FVector> PieceVel;
+
+	UPROPERTY(Transient) TArray<TObjectPtr<USceneComponent>> IdleLegPivots;
+	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> IdleLegMeshes;
 
 	// camera punch
 	float PunchLeft = 0.f, PunchTotal = 0.f, PunchArm = 0.f, PunchFov = 0.f, BaseArm = -1.f;

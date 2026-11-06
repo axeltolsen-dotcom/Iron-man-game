@@ -109,12 +109,28 @@ void AArenaTracer::Tick(float DeltaSeconds)
 	if (!bActive) { return; }
 	Age += DeltaSeconds;
 	const float T = FMath::Clamp(Age / Life, 0.f, 1.f);
-	const float Fade = 1.f - T * T;
-	const float W = Width * (0.35f + 0.65f * Fade);
-	Core->SetRelativeScale3D(FVector(W * 0.35f / 100.f, W * 0.35f / 100.f, Length / 100.f));
-	Glow->SetRelativeScale3D(FVector(W / 100.f, W / 100.f, Length / 100.f));
-	if (CoreMID) { CoreMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(14.f * Fade)); }
-	if (GlowMID) { GlowMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(6.f * Fade)); }
+	// Film beam: white-hot core snaps bright then collapses; soft bloom sleeve fades slower.
+	const float CoreFade = 1.f - FMath::Pow(T, 0.55f);
+	const float BloomFade = 1.f - T * T;
+	const float Pulse = (T < 0.12f) ? (1.f + 0.55f * (1.f - T / 0.12f)) : 1.f; // muzzle flash kick
+	const float WCore = Width * (0.28f + 0.42f * CoreFade) * Pulse;
+	const float WBloom = Width * (0.85f + 0.55f * BloomFade) * Pulse;
+	// Slight foreshorten from the tip as it dies (streak shrinks toward the muzzle).
+	const float LenNow = Length * (0.72f + 0.28f * CoreFade);
+	Core->SetRelativeLocation(FVector(0, 0, LenNow * 0.5f));
+	Glow->SetRelativeLocation(FVector(0, 0, LenNow * 0.5f));
+	Core->SetRelativeScale3D(FVector(WCore / 100.f, WCore / 100.f, LenNow / 100.f));
+	Glow->SetRelativeScale3D(FVector(WBloom / 100.f, WBloom / 100.f, LenNow / 100.f));
+	if (CoreMID)
+	{
+		CoreMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(18.f * CoreFade * Pulse));
+		CoreMID->SetVectorParameterValue(TEXT("Color"), FLinearColor::LerpUsingHSV(FLinearColor(1.f, 1.f, 1.f), Color, 0.25f));
+	}
+	if (GlowMID)
+	{
+		GlowMID->SetScalarParameterValue(TEXT("EmissiveStrength"), ArenaVisuals::EmissiveToNits(7.f * BloomFade));
+		GlowMID->SetVectorParameterValue(TEXT("Color"), Color);
+	}
 	if (T >= 1.f)
 	{
 		bActive = false;
@@ -350,7 +366,8 @@ ArenaCombat::FShot ArenaCombat::FireHitscan(AActor* Shooter, AController* Inst, 
 	}
 	else
 	{
-		AArenaBlastFX::Spawn(World, Impact + Normal * 4.f, FMath::Clamp(Radius * 3.f, 22.f, 60.f), Color, 0.12f, false);
+		// Impact bloom: plate + hot core (ArenaBlastFX film pass), sized from the sweep radius.
+		AArenaBlastFX::Spawn(World, Impact + Normal * 4.f, FMath::Clamp(Radius * 3.6f, 26.f, 72.f), Color, 0.14f, false);
 	}
 	if (R.bEnemy || R.bKill) { RegisterHit(R.bKill); }
 	return R;

@@ -50,11 +50,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "FX")
 	TObjectPtr<UStaticMeshComponent> Ball;
 
+	/** Flat expanding blast plate (film shell) — sits on Ball so pool relocate still works. */
+	UPROPERTY(VisibleAnywhere, Category = "FX")
+	TObjectPtr<UStaticMeshComponent> Ring;
+
 	UPROPERTY(VisibleAnywhere, Category = "FX")
 	TObjectPtr<UPointLightComponent> Light;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> MID;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> RingMID;
 
 	float Age = 0.f;
 	bool bActiveBlast = true;

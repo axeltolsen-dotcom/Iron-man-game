@@ -148,6 +148,7 @@ bool USuitSuperComponent::CanSwing() const { const AIronManCharacter* C = Char()
 void USuitSuperComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	ClearParts();
+	ClearIdleSpiderLegs();
 	if (Face) { Face->Destroy(); Face = nullptr; }
 	Super::EndPlay(Reason);
 }
@@ -316,7 +317,8 @@ void USuitSuperComponent::FireSalvo(int32 Count, float Speed, float Homing, floa
 		if (AIronProjectile* P = AIronProjectile::SpawnPooled(W, Origin, Dir.Rotation(), C, C, false))
 		{
 			P->LifeSeconds = 4.f;
-			P->Configure(Damage, false, Blast, Color, 11.f);
+			// Film micro-rockets: elongated bodies, not glowing balls.
+			P->Configure(Damage, false, Blast, Color, 8.f, true, EIronProjectileVisual::Missile);
 			P->Launch(Dir * Speed, 0.f, (Tg && Homing > 0.f) ? Tg->GetRootComponent() : nullptr, Tg ? Homing : 0.f);
 		}
 		AArenaBlastFX::Spawn(W, Origin, 30.f, FLinearColor(1.f, 0.6f, 0.2f), 0.08f, false);
@@ -356,6 +358,7 @@ void USuitSuperComponent::Begin(ESuperKind Kind)
 	TargetPoint = Target.IsValid() ? Target->GetActorLocation() : C->ComputeAimPoint();
 	C->bSuperActive = true;
 	C->bFireHeld = false;
+	ClearIdleSpiderLegs(); // super owns Temp legs/blades; rebuild idle silhouette after End
 	const FSuperDef D = CurrentDef();
 	CooldownTotal = D.Cooldown;
 	ArenaAudio::Play2D(C, TEXT("hud_target_lock"), 0.6f);
@@ -481,7 +484,7 @@ void USuitSuperComponent::TickMove(float Dt)
 			for (int32 s = 0; s < 2; ++s)
 			{
 				USceneComponent* Sh = s == 0 ? C->ShoulderL.Get() : C->ShoulderR.Get();
-				MakePart(Sh, int32(EArenaShape::Cylinder), FVector(0.f, 0.f, -95.f), FVector(0.07f, 0.015f, 0.01f), Z, Tint, 9.f);
+				MakePart(Sh, int32(EArenaShape::Cylinder), FVector(0.f, 0.f, -95.f), FVector(0.055f, 0.012f, 0.01f), Z, Tint, 12.f);
 			}
 			ArenaAudio::PlayAt(C, TEXT("suitup_plate_lock"), Me, 1.f);
 			ArenaAudio::PlayAt(C, TEXT("hb_deploy"), Me, 0.6f);
@@ -493,7 +496,7 @@ void USuitSuperComponent::TickMove(float Dt)
 			if (!Temp[s]) { continue; }
 			const float L = 110.f * Grow;
 			Temp[s]->SetRelativeLocation(FVector(0.f, 0.f, -78.f - L * 0.5f));
-			Temp[s]->SetRelativeScale3D(FVector(0.07f, 0.015f, FMath::Max(0.01f, L / 100.f)));
+			Temp[s]->SetRelativeScale3D(FVector(0.055f, 0.012f, FMath::Max(0.01f, L / 100.f)));
 		}
 		// Three slashes: R (down-right), L (down-left), R overhead finisher. Each: wind-up -> strike -> follow-through.
 		const float Hits[3] = { 0.32f, 0.66f, 1.02f };
@@ -538,8 +541,8 @@ void USuitSuperComponent::TickMove(float Dt)
 				Pivot->RegisterComponent();
 				Pivot->SetRelativeLocation(FVector(-16.f, (l % 2 ? 1.f : -1.f) * 13.f, l < 2 ? 140.f : 118.f));
 				Pivot->SetRelativeRotation(FRotator(-150.f, 0.f, (l % 2 ? 1.f : -1.f) * 20.f));
-				MakePart(Pivot, int32(EArenaShape::Cylinder), FVector(0, 0, 30.f), FVector(0.06f, 0.06f, 0.6f), Z, FLinearColor(0.8f, 0.6f, 0.15f), 0.f);
-				MakePart(Pivot, int32(EArenaShape::Cone), FVector(0, 0, 62.f), FVector(0.07f, 0.07f, 0.12f), Z, FLinearColor(1.f, 0.75f, 0.3f), 3.f);
+				MakePart(Pivot, int32(EArenaShape::Cylinder), FVector(0, 0, 30.f), FVector(0.055f, 0.055f, 0.6f), Z, FLinearColor(0.82f, 0.62f, 0.18f), 0.4f);
+				MakePart(Pivot, int32(EArenaShape::Cone), FVector(0, 0, 62.f), FVector(0.07f, 0.07f, 0.12f), Z, FLinearColor(1.f, 0.82f, 0.35f), 7.f);
 			}
 			ArenaAudio::PlayAt(C, TEXT("suitup_servo"), Me, 1.f);
 			Punch(260.f, -5.f, 0.5f);
@@ -882,6 +885,7 @@ void USuitSuperComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 		if (bActive) { TickMove(DeltaTime); }
 	}
 	TickSwing(DeltaTime);
+	TickIdleSpiderLegs(DeltaTime);
 	TickMask(RealDt);
 	TickCameraPunch(RealDt);
 }
@@ -1044,6 +1048,83 @@ void USuitSuperComponent::TickSwing(float Dt)
 		CamRoll = FMath::FInterpTo(CamRoll, 0.f, Dt, 5.f);
 	}
 	if (C->FollowCamera && (bWebAttached || FMath::Abs(CamRoll) > 0.01f)) { FRotator R = C->FollowCamera->GetRelativeRotation(); R.Roll = CamRoll; C->FollowCamera->SetRelativeRotation(R); }
+}
+
+// -------------------------------------------------------------------------------------------- Iron Spider idle waldoes
+
+void USuitSuperComponent::ClearIdleSpiderLegs()
+{
+	for (UStaticMeshComponent* M : IdleLegMeshes)
+	{
+		if (M) { M->DestroyComponent(); }
+	}
+	IdleLegMeshes.Empty();
+	for (USceneComponent* Piv : IdleLegPivots)
+	{
+		if (Piv) { Piv->DestroyComponent(); }
+	}
+	IdleLegPivots.Empty();
+}
+
+void USuitSuperComponent::EnsureIdleSpiderLegs()
+{
+	AIronManCharacter* C = Char();
+	if (!C || !C->SuitRoot || IdleLegPivots.Num() == 4) { return; }
+	ClearIdleSpiderLegs();
+	const FLinearColor GoldBody(0.85f, 0.65f, 0.2f);
+	const FLinearColor TipCol(1.f, 0.8f, 0.35f);
+	for (int32 LegIdx = 0; LegIdx < 4; ++LegIdx)
+	{
+		USceneComponent* Pivot = NewObject<USceneComponent>(C, *FString::Printf(TEXT("IdleSpiderPivot%d"), LegIdx));
+		Pivot->SetupAttachment(C->SuitRoot);
+		Pivot->RegisterComponent();
+		const float Side = (LegIdx % 2) ? 1.f : -1.f;
+		Pivot->SetRelativeLocation(FVector(-18.f, Side * 12.f, LegIdx < 2 ? 138.f : 116.f));
+		Pivot->SetRelativeRotation(FRotator(-155.f, 0.f, Side * 18.f));
+		IdleLegPivots.Add(Pivot);
+
+		auto AddMesh = [&](EArenaShape Shape, const FVector& Loc, const FVector& Scale, const FLinearColor& Col, float GlowAmt) -> UStaticMeshComponent*
+		{
+			UStaticMeshComponent* MeshComp = NewObject<UStaticMeshComponent>(C);
+			MeshComp->SetStaticMesh(ArenaVisuals::GetShapeMesh(Shape));
+			MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			MeshComp->CastShadow = GlowAmt <= 0.f;
+			MeshComp->SetupAttachment(Pivot);
+			MeshComp->RegisterComponent();
+			MeshComp->SetRelativeLocationAndRotation(Loc, FRotator::ZeroRotator);
+			MeshComp->SetRelativeScale3D(Scale);
+			ArenaVisuals::PaintComponent(C, MeshComp, Col, GlowAmt, GlowAmt > 0.f ? EArenaSurface::Glow : EArenaSurface::Auto);
+			IdleLegMeshes.Add(MeshComp);
+			return MeshComp;
+		};
+		AddMesh(EArenaShape::Cylinder, FVector(0.f, 0.f, 22.f), FVector(0.045f, 0.045f, 0.42f), GoldBody, 0.2f);
+		AddMesh(EArenaShape::Cone, FVector(0.f, 0.f, 46.f), FVector(0.05f, 0.05f, 0.09f), TipCol, 2.5f);
+	}
+}
+
+void USuitSuperComponent::TickIdleSpiderLegs(float Dt)
+{
+	AIronManCharacter* C = Char();
+	if (!C) { return; }
+	const bool bWant = CanSwing() && !bActive && !C->IsDead() && !C->bCareerSuitOff && !C->IsInCinematic();
+	if (!bWant)
+	{
+		if (IdleLegPivots.Num()) { ClearIdleSpiderLegs(); }
+		return;
+	}
+	EnsureIdleSpiderLegs();
+	// Folded rest; while swinging, fan tips slightly (extra-leg fighting silhouette without Ultron flight edits).
+	const float Fan = bWebAttached ? 1.f : (bSwingMode ? 0.35f : 0.f);
+	for (int32 LegIdx = 0; LegIdx < IdleLegPivots.Num(); ++LegIdx)
+	{
+		USceneComponent* Pivot = IdleLegPivots[LegIdx];
+		if (!Pivot) { continue; }
+		const float Side = (LegIdx % 2) ? 1.f : -1.f;
+		const FRotator Folded(-155.f, 0.f, Side * 18.f);
+		const FRotator Opened(-110.f - float(LegIdx) * 4.f, Side * 12.f * Fan, Side * (28.f + 20.f * Fan));
+		const FRotator WantRot = FQuat::Slerp(Folded.Quaternion(), Opened.Quaternion(), Fan).Rotator();
+		Pivot->SetRelativeRotation(FMath::RInterpTo(Pivot->GetRelativeRotation(), WantRot, Dt, 8.f));
+	}
 }
 
 // -------------------------------------------------------------------------------------------- faceplate

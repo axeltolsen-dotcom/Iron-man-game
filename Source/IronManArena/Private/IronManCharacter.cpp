@@ -1432,57 +1432,61 @@ void AIronManCharacter::FireRepulsor()
 	{
 		if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->PlayShake(TEXT("repulsor_fire"), 0.6f); }
 	}
-	// Shooting overhaul: everything but the sonic fan and the flamethrower is an instant hitscan blast with a tracer.
-	const bool bHitscan = S.PrimaryWeapon != ESuitPrimaryWeapon::Sonic && S.PrimaryWeapon != ESuitPrimaryWeapon::Flamethrower;
+	// Edith combat-feel: ALL player primaries are film-style hitscan beams/blasts (no glowing balls).
+	// Sonic = short fan of thick tracers; Flamethrower = short cone of soft orange streaks.
 	const bool bCharged = bNextShotCharged;
 	if (bCharged) { Damage *= 3.5f; Blast = FMath::Max(Blast, 260.f); Radius *= 2.f; FireCooldown = FMath::Max(FireCooldown, 0.45f); }
 	Spread += ShotBloom * (bRapidFireWeapon ? 2.5f : 1.2f) * (1.f - 0.7f * FocusAlpha);
 	ShotBloom = FMath::Min(1.f, ShotBloom + (bRapidFireWeapon ? 0.08f : 0.25f));
-	if (bHitscan)
+	float Range = 11000.f;
+	float TracerW = bCharged ? 30.f : 9.f;
+	float TracerLife = bCharged ? 0.2f : 0.09f;
+	FName FireSfx = TEXT("repulsor_fire");
+	float FireVol = bRapidFireWeapon ? 0.45f : 1.f;
+	float FirePitch = bRapidFireWeapon ? 0.12f : 0.06f;
+	switch (S.PrimaryWeapon)
 	{
-		const float Range = S.PrimaryWeapon == ESuitPrimaryWeapon::Laser ? 14000.f : 11000.f;
-		bool bAnyKill = false, bAnyHit = false;
-		for (int32 i = 0; i < Count; ++i)
-		{
-			FVector ShotDir = Dir;
-			if (Spread > 0.f) { ShotDir = FMath::VRandCone(ShotDir, FMath::DegreesToRadians(Spread)); }
-			const ArenaCombat::FShot Shot = ArenaCombat::FireHitscan(this, GetController(), Muzzle, ShotDir, Range, Damage, Blast, Radius, Color, bCharged ? 1400.f : 420.f);
-			const float TW = bCharged ? 30.f : S.PrimaryWeapon == ESuitPrimaryWeapon::Minigun ? 3.5f : S.PrimaryWeapon == ESuitPrimaryWeapon::Laser ? 5.f : 9.f;
-			AArenaTracer::Spawn(World, Muzzle, Shot.End, Color, TW, bCharged ? 0.2f : bRapidFireWeapon ? 0.05f : 0.09f);
-			bAnyKill |= Shot.bKill;
-			bAnyHit |= Shot.bEnemy;
-		}
-		// Muzzle flash, punchy sound, gauntlet kick, rumble, camera kick.
-		AArenaBlastFX::Spawn(World, Muzzle, bCharged ? 55.f : bRapidFireWeapon ? 12.f : 22.f, Color, bCharged ? 0.16f : 0.07f, false);
-		ArenaAudio::PlayAt(this, TEXT("repulsor_fire"), Muzzle, bRapidFireWeapon ? 0.45f : 1.f, bRapidFireWeapon ? 0.12f : 0.06f);
-		if (bCharged) { ArenaAudio::PlayAt(this, TEXT("explosion_near"), Muzzle, 0.6f); }
-		ArenaCombat::Rumble(this, bCharged ? 0.9f : bRapidFireWeapon ? 0.15f : 0.35f, bCharged ? 0.25f : 0.07f, bCharged);
-		if (bAnyKill) { ArenaCombat::Rumble(this, 0.7f, 0.18f, true); ArenaAudio::Play2D(this, TEXT("hud_target_lock"), 0.6f); }
-		else if (bAnyHit) { ArenaAudio::Play2D(this, TEXT("hud_beep_select"), 0.35f, 1.2f); }
-		if (bCharged && bAnyHit) { if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->HitStop(0.06f, 0.15f); Feel->PlayShake(TEXT("repulsor_fire"), 1.4f); } }
-		if (AController* Ctrl = GetController())
-		{
-			const float Kick = (bCharged ? 1.6f : bRapidFireWeapon ? 0.12f : 0.35f) * (1.f - 0.5f * FocusAlpha);
-			Ctrl->SetControlRotation(Ctrl->GetControlRotation() + FRotator(Kick, FMath::FRandRange(-0.3f, 0.3f) * Kick, 0.f));
-		}
-		FPKick = bCharged ? 1.6f : 1.f;
-		Count = 0; // no projectiles
+	case ESuitPrimaryWeapon::Laser:        Range = 14000.f; TracerW = 5.f; break;
+	case ESuitPrimaryWeapon::Minigun:      Range = 10000.f; TracerW = 3.5f; TracerLife = 0.05f; break;
+	case ESuitPrimaryWeapon::Frost:        Range = 4800.f; TracerW = 11.f; TracerLife = 0.11f; break;
+	case ESuitPrimaryWeapon::RedBlast:     Range = 9000.f; TracerW = 12.f; TracerLife = 0.11f; break;
+	case ESuitPrimaryWeapon::Sonic:
+		Range = 2200.f; TracerW = 22.f; TracerLife = 0.12f;
+		FireSfx = TEXT("unibeam_impact"); FireVol = 0.55f; FirePitch = 0.1f;
+		break;
+	case ESuitPrimaryWeapon::Flamethrower:
+		Range = 950.f; TracerW = 18.f; TracerLife = 0.06f;
+		FireSfx = TEXT("thruster_boost"); FireVol = 0.35f; FirePitch = 0.12f;
+		break;
+	default: break;
 	}
-	else { Speed *= 1.8f; } // weapons that stay projectiles (sonic fan, flamethrower): much faster = responsive
+	if (bCharged) { TracerW = FMath::Max(TracerW, 30.f); TracerLife = FMath::Max(TracerLife, 0.2f); }
+	bool bAnyKill = false, bAnyHit = false;
 	for (int32 i = 0; i < Count; ++i)
 	{
 		FVector ShotDir = Dir;
 		if (Count > 1) { ShotDir = Dir.RotateAngleAxis((i - (Count - 1) * 0.5f) * FanDegrees, FVector::UpVector); }
 		if (Spread > 0.f) { ShotDir = FMath::VRandCone(ShotDir, FMath::DegreesToRadians(Spread)); }
-		if (i == 0) { ArenaAudio::PlayAt(this, S.PrimaryWeapon == ESuitPrimaryWeapon::Sonic ? FName(TEXT("unibeam_impact")) : FName(TEXT("thruster_boost")), Muzzle, 0.4f, 0.1f); }
-		if (AIronProjectile* P = AIronProjectile::SpawnPooled(World, Muzzle, ShotDir.Rotation(), this, this, false))
-		{
-			P->LifeSeconds = Life;
-			// Perf budget §5.3: no point light on minigun / flamethrower shots (emissive only).
-			P->Configure(Damage, false, Blast, Color, Radius, !bRapidFireWeapon);
-			P->Launch(ShotDir * Speed);
-		}
+		const ArenaCombat::FShot Shot = ArenaCombat::FireHitscan(this, GetController(), Muzzle, ShotDir, Range, Damage, Blast, Radius, Color, bCharged ? 1400.f : 420.f);
+		AArenaTracer::Spawn(World, Muzzle, Shot.End, Color, TracerW, TracerLife);
+		bAnyKill |= Shot.bKill;
+		bAnyHit |= Shot.bEnemy;
 	}
+	// Muzzle flash, punchy sound, gauntlet kick, rumble, camera kick.
+	AArenaBlastFX::Spawn(World, Muzzle, bCharged ? 55.f : bRapidFireWeapon ? 12.f : (S.PrimaryWeapon == ESuitPrimaryWeapon::Sonic ? 36.f : 22.f), Color, bCharged ? 0.16f : 0.07f, false);
+	ArenaAudio::PlayAt(this, FireSfx, Muzzle, FireVol, FirePitch);
+	if (bCharged) { ArenaAudio::PlayAt(this, TEXT("explosion_near"), Muzzle, 0.6f); }
+	ArenaCombat::Rumble(this, bCharged ? 0.9f : bRapidFireWeapon ? 0.15f : 0.35f, bCharged ? 0.25f : 0.07f, bCharged);
+	if (bAnyKill) { ArenaCombat::Rumble(this, 0.7f, 0.18f, true); ArenaAudio::Play2D(this, TEXT("hud_target_lock"), 0.6f); }
+	else if (bAnyHit) { ArenaAudio::Play2D(this, TEXT("hud_beep_select"), 0.35f, 1.2f); }
+	if (bCharged && bAnyHit) { if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->HitStop(0.06f, 0.15f); Feel->PlayShake(TEXT("repulsor_fire"), 1.4f); } }
+	if (AController* Ctrl = GetController())
+	{
+		const float Kick = (bCharged ? 1.6f : bRapidFireWeapon ? 0.12f : 0.35f) * (1.f - 0.5f * FocusAlpha);
+		Ctrl->SetControlRotation(Ctrl->GetControlRotation() + FRotator(Kick, FMath::FRandRange(-0.3f, 0.3f) * Kick, 0.f));
+	}
+	FPKick = bCharged ? 1.6f : 1.f;
+	(void)Speed; (void)Life; // projectile path retired for player primaries (missiles / supers still use AIronProjectile)
 	RepulsorLight->AttachToComponent(Palm, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	RepulsorFlash = 1.f;
 	RepulsorLight->SetIntensity(bFirstPerson ? 0.f : SuitLightLumens::PalmFlash);
