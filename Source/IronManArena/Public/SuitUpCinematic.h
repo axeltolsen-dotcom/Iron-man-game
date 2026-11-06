@@ -33,8 +33,11 @@ public:
 	/** Starts a suit-up for Player into suit SuitIndex. Returns nullptr if it can't run. */
 	static ASuitUpCinematic* Play(AIronManCharacter* Player, int32 SuitIndex, bool bShortVersion);
 
-	/** Jump to the end (armour on, camera back to the player). */
+	/** Jump to the end (armour on, camera back to the player). Ignores the first 0.15 s (click that started the game). */
 	void Skip();
+
+	/** Force-end immediately (quit/restart/ReturnToTitle — B08). */
+	void Abort();
 
 	bool IsShortVersion() const { return bShort; }
 	bool IsFinished() const { return bFinished; }

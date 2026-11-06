@@ -435,6 +435,11 @@ void ASuitUpCinematic::Skip()
 	if (!bFinished && Elapsed > 0.15f) { Finish(true); } // ignore the click that started the game
 }
 
+void ASuitUpCinematic::Abort()
+{
+	Finish(true);
+}
+
 void ASuitUpCinematic::DestroyFlyers()
 {
 	for (UStaticMeshComponent* C : FlyingParts)

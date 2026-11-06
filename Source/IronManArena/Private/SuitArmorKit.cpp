@@ -1373,14 +1373,25 @@ namespace SuitArmorKit
 		}
 		ArenaVisuals::PaintAll(Owner, NewParts);
 
-		// Hide the placeholder shapes the plates replace. Kept: thruster flames, Hulkbuster plates and
-		// the first-person gauntlets.
+		// Hide the placeholder shapes the plates replace. Kept: thruster flames, Hulkbuster plates,
+		// first-person gauntlets, and arc-reactor glow (Mounted / Forearm / Arc / Tri — B02).
 		for (FArenaPaintedPart& Old : Parts)
 		{
 			UStaticMeshComponent* C = Old.Component;
 			if (!C || !IsUnder(C, Rig.Root.Get())) { continue; }
 			if (C == Rig.FlameBootL || C == Rig.FlameBootR || C == Rig.FlameHandL || C == Rig.FlameHandR) { continue; }
 			if ((Rig.HulkbusterPlates && IsUnder(C, Rig.HulkbusterPlates)) || (Rig.FPRoot && IsUnder(C, Rig.FPRoot))) { continue; }
+			if ((Rig.MountedReactor && IsUnder(C, Rig.MountedReactor)) || (Rig.ForearmReactor && IsUnder(C, Rig.ForearmReactor))) { continue; }
+			if (C == Rig.ArcReactor || C == Rig.TriReactor) { continue; }
+			{
+				// Match SuitRig::ClassifyGlow Reactor tokens so story/kit arc glows stay visible.
+				const FString CompName = C->GetName();
+				if (CompName.Contains(TEXT("Reactor")) || CompName.Contains(TEXT("Core"))
+					|| CompName.Contains(TEXT("Arc")) || CompName.Contains(TEXT("Tri")))
+				{
+					continue;
+				}
+			}
 			if (C->bHiddenInGame) { continue; }
 			C->SetHiddenInGame(true);
 			State.Hidden.Add(C);

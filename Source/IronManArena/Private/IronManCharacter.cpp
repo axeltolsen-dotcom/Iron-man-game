@@ -318,6 +318,7 @@ void AIronManCharacter::ClearPlayArea()
 
 void AIronManCharacter::ResetForNewGame()
 {
+	TrySkipCinematic(); // B08: don't leak suit-up state into the next run
 	CloseSuitWheel(false);
 	if (IsHulkbusterActive()) { RevertHulkbuster(); }
 	HulkbusterTimeLeft = 0.f;
@@ -453,7 +454,8 @@ void AIronManCharacter::SetCinematicMode(bool bEnable, ASuitUpCinematic* Cinemat
 bool AIronManCharacter::TrySkipCinematic()
 {
 	if (!bInCinematic) { return false; }
-	if (ASuitUpCinematic* C = ActiveCinematic.Get()) { C->Skip(); }
+	// Abort (not Skip): Skip ignores the first 0.15 s, which left B08 leaks on early Quit/Restart.
+	if (ASuitUpCinematic* C = ActiveCinematic.Get()) { C->Abort(); }
 	else if (CinematicSkipHandler) { CinematicSkipHandler(false); }
 	return true;
 }
@@ -884,10 +886,10 @@ void AIronManCharacter::Input_Hulkbuster(const FInputActionValue& Value)
 void AIronManCharacter::Input_Pause(const FInputActionValue& Value)
 {
 	CloseSuitWheel(false);
-	// Story cutscene: Esc skips the whole scene instead of pausing.
-	if (bInCinematic && !ActiveCinematic.IsValid() && CinematicSkipHandler)
+	// Suit-up or story cutscene: Esc skips instead of opening pause (B08).
+	if (bInCinematic)
 	{
-		CinematicSkipHandler(true);
+		TrySkipCinematic();
 		return;
 	}
 	if (AArenaPlayerController* PC = Cast<AArenaPlayerController>(GetController()))
@@ -910,7 +912,14 @@ void AIronManCharacter::Input_WheelOpen(const FInputActionValue& Value)
 	WheelSelection = INDEX_NONE;
 	WheelPage = FMath::Clamp(SuitIndex / WheelSlots, 0, GetWheelPageCount() - 1);
 	bFireHeld = false;
-	UGameplayStatics::SetGlobalTimeDilation(this, FMath::Clamp(SuitWheelTimeDilation, 0.05f, 1.f));
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
+	{
+		Feel->PushDilation(TEXT("SuitWheel"), FMath::Clamp(SuitWheelTimeDilation, 0.05f, 1.f));
+	}
+	else
+	{
+		UGameplayStatics::SetGlobalTimeDilation(this, FMath::Clamp(SuitWheelTimeDilation, 0.05f, 1.f));
+	}
 }
 
 void AIronManCharacter::Input_WheelClose(const FInputActionValue& Value)
@@ -932,7 +941,14 @@ void AIronManCharacter::CloseSuitWheel(bool bApply)
 {
 	if (!bWheelOpen) { return; }
 	bWheelOpen = false;
-	UGameplayStatics::SetGlobalTimeDilation(this, 1.f);
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
+	{
+		Feel->PopDilation(TEXT("SuitWheel"));
+	}
+	else
+	{
+		UGameplayStatics::SetGlobalTimeDilation(this, 1.f);
+	}
 	const int32 Target = GetWheelSuit(WheelSelection);
 	WheelSelection = INDEX_NONE;
 	if (bApply && Target != INDEX_NONE && Target != SuitIndex)
@@ -1282,7 +1298,7 @@ FVector AIronManCharacter::ComputeAimPoint() const
 
 void AIronManCharacter::TickWeapons(float DeltaSeconds)
 {
-	FireCooldown = FMath::Max(0.f, FireCooldown - DeltaSeconds);
+	FireCooldown -= DeltaSeconds;
 	AimPoseTime = FMath::Max(0.f, AimPoseTime - DeltaSeconds);
 	if (bSuperActive) { return; } // the super move owns the arms
 
@@ -1326,9 +1342,19 @@ void AIronManCharacter::TickWeapons(float DeltaSeconds)
 		ChargeTime = 0.f;
 		return;
 	}
-	if (bFireHeld && FireCooldown <= 0.f && !IsBeamActive() && !bWheelOpen && Reactor->CanDrawPower())
+	// B03: carry the cooldown remainder and catch up (cap ~4 shots/frame) so fire rate is fps-independent.
+	if (bFireHeld && !IsBeamActive() && !bWheelOpen && Reactor->CanDrawPower())
 	{
-		FireRepulsor(); // sets FireCooldown for the suit's weapon
+		int32 ShotsThisFrame = 0;
+		while (FireCooldown <= 0.f && ShotsThisFrame < 4 && bFireHeld && !IsBeamActive() && !bWheelOpen && Reactor->CanDrawPower())
+		{
+			FireRepulsor(); // adds Interval onto FireCooldown
+			++ShotsThisFrame;
+		}
+	}
+	else
+	{
+		FireCooldown = FMath::Max(0.f, FireCooldown); // don't bank negative while not firing
 	}
 }
 
@@ -1373,7 +1399,7 @@ void AIronManCharacter::FireRepulsor()
 	// Heat scales with time spent firing, so fast and slow weapons heat equally per second.
 	Reactor->AddHeat(Reactor->HeatPerFiringSecond * Interval);
 	if (OverdriveLeft > 0.f) { Interval *= 0.5f; }
-	FireCooldown = Interval;
+	FireCooldown += Interval; // B03: preserve remainder instead of resetting
 	Damage *= SuitDamageMul * (CloakLeft > 0.f ? 1.5f : 1.f);
 	const FLinearColor Color = PrimaryWeaponColor(S.PrimaryWeapon, S.EmissiveColor);
 

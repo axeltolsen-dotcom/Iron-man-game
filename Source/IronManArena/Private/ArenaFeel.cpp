@@ -47,20 +47,53 @@ bool UArenaFeelSubsystem::ShakeAllowed() const
 	return !S || S->bCameraShake; // reduced motion = 0.35x via GetShakeIntensity (camera_shake.json presets.reduced)
 }
 
+float UArenaFeelSubsystem::GetStackDilation() const
+{
+	float MinVal = 1.f;
+	for (const TPair<FName, float>& Pair : DilationStack)
+	{
+		MinVal = FMath::Min(MinVal, Pair.Value);
+	}
+	return MinVal;
+}
+
+void UArenaFeelSubsystem::ApplyDilation()
+{
+	UWorld* World = GetWorld();
+	if (!World) { return; }
+	float Target = GetStackDilation();
+	if (HitStopLeft > 0.f)
+	{
+		Target = FMath::Min(Target, HitStopDilation);
+	}
+	Target = FMath::Clamp(Target, 0.0001f, 20.f);
+	AppliedDilation = Target;
+	UGameplayStatics::SetGlobalTimeDilation(World, Target);
+}
+
+void UArenaFeelSubsystem::PushDilation(FName Source, float Value)
+{
+	if (Source.IsNone()) { return; }
+	DilationStack.Add(Source, FMath::Clamp(Value, 0.0001f, 20.f));
+	ApplyDilation();
+}
+
+void UArenaFeelSubsystem::PopDilation(FName Source)
+{
+	if (Source.IsNone()) { return; }
+	DilationStack.Remove(Source);
+	ApplyDilation();
+}
+
 void UArenaFeelSubsystem::HitStop(float RealSeconds, float Dilation)
 {
 	if (CVarHitStop.GetValueOnGameThread() == 0 || RealSeconds <= 0.f) { return; }
 	const UArenaGameUserSettings* S = UArenaGameUserSettings::GetArenaSettings();
 	if (S && S->bHudReducedMotion) { RealSeconds *= 0.5f; } // shorter freeze for motion-sensitive players
+	const bool bWasHitStopping = HitStopLeft > 0.f;
 	HitStopLeft = FMath::Max(HitStopLeft, FMath::Min(RealSeconds, 0.3f));
-	HitStopDilation = FMath::Clamp(FMath::Min(bDilated ? HitStopDilation : 1.f, Dilation), 0.02f, 1.f);
-	if (UWorld* World = GetWorld())
-	{
-		if (!bDilated) { BaseDilation = FMath::Max(0.0001f, UGameplayStatics::GetGlobalTimeDilation(World)); }
-		AppliedDilation = FMath::Clamp(BaseDilation * HitStopDilation, 0.0001f, 20.f);
-		UGameplayStatics::SetGlobalTimeDilation(World, AppliedDilation);
-		bDilated = true;
-	}
+	HitStopDilation = FMath::Clamp(FMath::Min(bWasHitStopping ? HitStopDilation : 1.f, Dilation), 0.02f, 1.f);
+	ApplyDilation();
 }
 
 void UArenaFeelSubsystem::AddTrauma(float Amount)
@@ -255,17 +288,16 @@ void UArenaFeelSubsystem::Tick(float DeltaTime)
 	ShakeClock += RealDt;
 	Trauma = FMath::Max(0.f, Trauma - 1.6f * RealDt);
 	if (Trauma <= 0.f) { ActiveShake = NAME_None; }
-	if (bDilated)
+	if (HitStopLeft > 0.f)
 	{
 		UWorld* World = GetWorld();
 		const float Now = World ? UGameplayStatics::GetGlobalTimeDilation(World) : AppliedDilation;
 		if (!FMath::IsNearlyEqual(Now, AppliedDilation, 0.001f))
 		{
-			// Someone else (suit wheel, autopilot, cutscene) changed the dilation mid-freeze: they own it now.
+			// External owner (autopilot / legacy SetGlobalTimeDilation): abandon the freeze and resync.
 			HitStopLeft = 0.f;
-			bDilated = false;
 			HitStopDilation = 1.f;
-			BaseDilation = Now;
+			AppliedDilation = Now;
 		}
 		else
 		{
@@ -273,9 +305,8 @@ void UArenaFeelSubsystem::Tick(float DeltaTime)
 			if (HitStopLeft <= 0.f)
 			{
 				HitStopLeft = 0.f;
-				bDilated = false;
 				HitStopDilation = 1.f;
-				if (World) { UGameplayStatics::SetGlobalTimeDilation(World, BaseDilation); } // B01: restore, not reset to 1
+				ApplyDilation(); // B01: restore to stack (suit wheel etc.), not hard 1.0
 			}
 		}
 	}
@@ -283,11 +314,11 @@ void UArenaFeelSubsystem::Tick(float DeltaTime)
 
 void UArenaFeelSubsystem::Deinitialize()
 {
-	if (bDilated)
-	{
-		if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, BaseDilation); }
-		bDilated = false;
-	}
+	DilationStack.Empty();
+	HitStopLeft = 0.f;
+	HitStopDilation = 1.f;
+	if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); }
+	AppliedDilation = 1.f;
 	Super::Deinitialize();
 }
 

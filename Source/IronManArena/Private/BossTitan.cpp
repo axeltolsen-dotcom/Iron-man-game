@@ -82,6 +82,9 @@ void ABossTitan::BeginPlay()
 	// Entering: spawn high in the sky, descend to hover height.
 	State = EBossState::Entering;
 	InvulnerableLeft = 99.f;
+	EnterElapsed = 0.f;
+	EnterStuckTime = 0.f;
+	EnterPrevLoc = GetActorLocation();
 	EnterTarget = GetActorLocation() - FVector(0.f, 0.f, 1500.f);
 	float Z = 0.f;
 	if (FindFloorZ(GetActorLocation(), Z)) { EnterTarget.Z = Z + HoverHeight; }
@@ -168,7 +171,13 @@ void ABossTitan::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 		const FVector To = EnterTarget - Loc;
 		MoveBy(To.GetClampedToMaxSize(700.f * DeltaSeconds));
 		if (Player) { FaceToward(Player->GetActorLocation(), DeltaSeconds, 60.f); }
-		if (To.Size() < 30.f)
+		// B05: timeout / no-progress so a blocked descent can't leave the boss shielded forever.
+		EnterElapsed += DeltaSeconds;
+		const float Progress = FVector::Dist(Loc, EnterPrevLoc);
+		EnterStuckTime = (Progress < 1.f) ? (EnterStuckTime + DeltaSeconds) : 0.f;
+		EnterPrevLoc = Loc;
+		const bool bArrived = To.Size() < 30.f || EnterElapsed >= 4.f || EnterStuckTime >= 0.5f;
+		if (bArrived)
 		{
 			State = EBossState::Fighting;
 			InvulnerableLeft = 0.f;

@@ -13,6 +13,7 @@
 #include "SettingsWidget.h"
 #include "StoryMenuWidget.h"
 #include "ArenaGameMode.h"
+#include "IronManCharacter.h"
 #include "ArenaGameUserSettings.h"
 #include "JarvisComponent.h"
 #include "Blueprint/UserWidget.h"
@@ -213,6 +214,11 @@ void AArenaPlayerController::TogglePauseMenu()
 {
 	const AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr;
 	if (!GM || GM->GetArenaState() != EArenaGameState::Playing) { return; }
+	// B08: don't pause mid suit-up (Esc skips via the character instead).
+	if (const AIronManCharacter* Hero = Cast<AIronManCharacter>(GetPawn()))
+	{
+		if (Hero->IsInCinematic()) { return; }
+	}
 
 	if (IsMenuOpen()) { HideMenu(); }
 	else { ShowMenu(EMenuMode::Paused); }

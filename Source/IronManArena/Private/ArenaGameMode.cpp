@@ -333,6 +333,7 @@ bool AArenaGameMode::StartSideMission(FName MissionId, bool bIgnoreAvailability)
 
 void AArenaGameMode::RestartCurrentMode()
 {
+	if (AIronManCharacter* P = GetPlayer()) { P->SimulateSkipKey(); } // B08: end suit-up before restart
 	if (PlayMode == EArenaPlayMode::Story && StoryDirector && StoryDirector->IsSideMission())
 	{
 		AIronManCharacter* Player = GetPlayer();
@@ -365,6 +366,7 @@ void AArenaGameMode::ReturnToTitle()
 	ArenaState = EArenaGameState::Menu;
 	if (AIronManCharacter* Player = GetPlayer())
 	{
+		Player->SimulateSkipKey(); // B08: Finish ActiveCinematic so next New Game can Play again
 		Player->SetAllowedSuits(TArray<FName>());
 		if (UReactorComponent* R = Player->GetReactor()) { R->ClearStage(); R->SetCoreDark(false); }
 	}

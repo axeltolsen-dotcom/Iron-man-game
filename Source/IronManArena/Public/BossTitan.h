@@ -194,6 +194,9 @@ protected:
 	float OrbitAngle = 0.f;
 	float OrbitDir = 1.f;
 	FVector EnterTarget = FVector::ZeroVector;
+	FVector EnterPrevLoc = FVector::ZeroVector;
+	float EnterElapsed = 0.f;
+	float EnterStuckTime = 0.f;
 	float VentLeft = 0.f;
 	int32 VentWindowsOpened = 0;
 	bool bVentHintShown = false;

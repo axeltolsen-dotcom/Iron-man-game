@@ -21,8 +21,17 @@ class IRONMANARENA_API UArenaFeelSubsystem : public UTickableWorldSubsystem
 public:
 	static UArenaFeelSubsystem* Get(const UObject* WorldContext);
 
-	/** Slow the whole game to Dilation for RealSeconds of wall-clock time (longest request wins). */
+	/** Slow the whole game to Dilation for RealSeconds of wall-clock time (longest request wins).
+	 *  Restores to the dilation stack (suit wheel, etc.), not a hard 1.0. */
 	void HitStop(float RealSeconds, float Dilation = 0.05f);
+
+	/**
+	 * B01: shared global time-dilation stack. Push/Pop by named Source; applied value is min(active).
+	 * Suit wheel, cutscenes and similar should go through this so HitStop can restore correctly.
+	 */
+	void PushDilation(FName Source, float Value);
+	void PopDilation(FName Source);
+	float GetStackDilation() const;
 
 	/** Add camera trauma (0..1, squared into shake amplitude, decays ~1.6/s). */
 	void AddTrauma(float Amount);
@@ -67,15 +76,15 @@ public:
 
 private:
 	bool ShakeAllowed() const;
+	void ApplyDilation();
 
 	float Trauma = 0.f;
 	float HitStopLeft = 0.f;
 	float HitStopDilation = 1.f;
-	bool bDilated = false;
-	/** B01 fix: the dilation that was active before the hit-stop (suit-wheel slow-mo, autopilot, cutscene) - restored
-	 *  afterwards instead of a hard 1.0, and the freeze is applied on top of it (multiplied). */
-	float BaseDilation = 1.f;
+	/** Last value we wrote via ApplyDilation (for detecting external overrides). */
 	float AppliedDilation = 1.f;
+	/** Named sources (SuitWheel, ...). Applied = min(values), or 1 if empty; HitStop mins on top. */
+	TMap<FName, float> DilationStack;
 	double ShakeClock = 0.0;
 	bool bCinematicCamera = false;
 	FName ActiveShake;
