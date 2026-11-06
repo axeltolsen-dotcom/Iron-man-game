@@ -113,6 +113,11 @@ public:
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
 	bool bCameraShake = true;
 
+	/** Camera shake intensity 0..1.5 (0-150 %, Vison camera_shake.json accessibility.intensity_multiplier).
+	 *  Scales every gameplay shake and the cutscene handheld; bCameraShake=false still means off. */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	float CameraShakeIntensity = 1.f;
+
 	// ---- helmet HUD (EDITH hud_spec.md sections 13 / 16) ----
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Accessibility")
 	bool bHudColorBlindSafe = false;

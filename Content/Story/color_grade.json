@@ -1,0 +1,1769 @@
+{
+  "metadata": {
+    "name": "Vison camera color grade",
+    "version": "1.0.0",
+    "date": "2026-10-30",
+    "generated_by": "gen_camera_realism.py",
+    "composition": "look values are deltas on top of each environment's lighting_presets grade: Saturation/Contrast/Gamma/Gain multiply per channel, Offset/Vignette/Grain add, everything else sets. ColorSaturation result clamped to <= 1.0 (ApplyPhotorealGrade); composed ColorGain* R/G/B clamped to 0.95-1.05 and ColorOffset* R/G/B to +-0.006 (keeps looks subtle).",
+    "keys": "C++ FPostProcessSettings names (apply script converts to snake_case)"
+  },
+  "tonemapper": {
+    "sdr_default": {
+      "TonemappingMethod": "Filmic",
+      "why": "keeps the per-environment Film Slope/Toe/Shoulder/BlackClip/WhiteClip authored in lighting_presets (ACES-fitted filmic curve)",
+      "film_reference": {
+        "FilmSlope": 0.88,
+        "FilmToe": 0.55,
+        "FilmShoulder": 0.26,
+        "FilmBlackClip": 0.0,
+        "FilmWhiteClip": 0.04
+      },
+      "ExpandGamut": 1.0,
+      "BlueCorrection": 0.6,
+      "ToneCurveAmount": 1.0,
+      "cvars": {
+        "r.Tonemapper.Quality": 5,
+        "r.Tonemapper.Sharpen": "0.5 (live DefaultEngine)",
+        "r.LUT.TonemappingMethod": -1
+      }
+    },
+    "hdr_output": {
+      "TonemappingMethod": "StandardACES",
+      "cvars": {
+        "r.AllowHDR": "1 (ini only)",
+        "r.HDR.EnableHDROutput": 1,
+        "r.HDR.Aces.Version": 2,
+        "r.HDR.PaperWhite": 203,
+        "r.HDR.Display.MaxLuminance": "from OS / user calibration",
+        "r.HDR.Display.OverrideOSMaxLuminance": "only if the user calibrates"
+      },
+      "note": "Film* parameters do not apply to Standard ACES; grades still apply (pre-tonemap). The LUT is SDR-only."
+    }
+  },
+  "white_balance": {
+    "prologue": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 3900.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "workshop": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 4600.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "rooftops": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 5600.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "city": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 6000.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "ruins": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 5800.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "titan_battlefield": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 5600.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "finale": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 5800.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "workshop_night": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 4800.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "rooftops_storm": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 4200.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "city_night": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 3800.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    },
+    "city_overcast": {
+      "TemperatureType": "TEMP_WHITE_BALANCE",
+      "WhiteTemp": 6500.0,
+      "WhiteTint": 0.0,
+      "meaning": "the illuminant being neutralised (camera white-balanced to the dominant light); copied from lighting_presets"
+    }
+  },
+  "grades": {
+    "neutral_realistic": {
+      "description": "Reference camera look: the environment's own grade only (lighting_presets), no extra stylisation.",
+      "mode": "look",
+      "values": {}
+    },
+    "cinematic_teal_orange": {
+      "description": "Subtle complementary split: cool shadows, warm highlights, <=4% per channel so skin and gold titanium stay true.",
+      "mode": "look",
+      "values": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0005,
+          "Z": 0.004,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.035,
+          "Y": 1.0,
+          "Z": 0.955,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.03
+        }
+      }
+    },
+    "night": {
+      "description": "Mesopic vision: lower saturation (shadows most), slight blue shift in the darks (Purkinje), mild contrast.",
+      "mode": "look",
+      "values": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.0,
+          "Z": 0.002,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.04
+        }
+      }
+    },
+    "overcast": {
+      "description": "Soft diffuse light: slightly lower saturation, a touch more contrast to restore shape, faint cool highlights.",
+      "mode": "look",
+      "values": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.94
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.04
+        },
+        "ColorGainHighlights": {
+          "X": 0.99,
+          "Y": 1.0,
+          "Z": 1.02,
+          "W": 1.0
+        }
+      }
+    },
+    "combat": {
+      "description": "Overlay, not a look: weighted PPV (BlendWeight 0..1 from combat intensity) on top of the environment look.",
+      "mode": "overlay",
+      "blend": {
+        "weight_source": "combat intensity 0..1 (enemies engaged / damage taken in last 3 s)",
+        "fade_in_s": 0.6,
+        "fade_out_s": 2.5,
+        "priority": 2
+      },
+      "values": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.08
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.92
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 0.0,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.08,
+        "FilmGrainIntensity": 0.015,
+        "AutoExposureSpeedUp": 2.0
+      }
+    }
+  },
+  "environment_default_grade": {
+    "prologue": "neutral_realistic",
+    "workshop": "neutral_realistic",
+    "rooftops": "cinematic_teal_orange",
+    "city": "neutral_realistic",
+    "ruins": "neutral_realistic",
+    "titan_battlefield": "cinematic_teal_orange",
+    "finale": "cinematic_teal_orange",
+    "workshop_night": "night",
+    "rooftops_storm": "night",
+    "city_night": "night",
+    "city_overcast": "overcast"
+  },
+  "composed": {
+    "prologue": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.92
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.05
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0025,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 1.0,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0815
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.92
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.782
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.002,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.092
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.8648
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.092
+        },
+        "ColorGainHighlights": {
+          "X": 1.0197,
+          "Y": 1.0,
+          "Z": 0.9792,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.134
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.8464
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 0.0,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.48,
+        "FilmGrainIntensity": 0.08,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "workshop": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.04
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0005,
+          "Z": 0.004,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.035,
+          "Y": 1.0,
+          "Z": 0.9741,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0712
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.0,
+          "Z": 0.002,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0816
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.94
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0816
+        },
+        "ColorGainHighlights": {
+          "X": 0.99,
+          "Y": 1.0,
+          "Z": 1.0404,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.1232
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.92
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 0.0,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.38,
+        "FilmGrainIntensity": 0.075,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "rooftops": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.04
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0015,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 1.0,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0712
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.8925
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.001,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0816
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.987
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0816
+        },
+        "ColorGainHighlights": {
+          "X": 1.0296,
+          "Y": 1.0,
+          "Z": 0.9588,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.1569
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.92
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.912
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 1.0,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0015,
+          "Z": 0.006,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.38,
+        "FilmGrainIntensity": 0.065,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "city": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.03
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0005,
+          "Z": 0.004,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.035,
+          "Y": 1.0,
+          "Z": 0.955,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0609
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.0,
+          "Z": 0.002,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0712
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.94
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0712
+        },
+        "ColorGainHighlights": {
+          "X": 0.99,
+          "Y": 1.0,
+          "Z": 1.02,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.1124
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.92
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 0.0,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.28,
+        "FilmGrainIntensity": 0.045,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "ruins": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.82
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0015,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.035,
+          "Y": 1.0,
+          "Z": 0.955,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.816
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.82
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.697
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.001,
+          "Z": 0.005,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.7708
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorGainHighlights": {
+          "X": 0.99,
+          "Y": 1.0,
+          "Z": 1.02,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.2096
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.7544
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 0.0,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.53,
+        "FilmGrainIntensity": 0.08,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "titan_battlefield": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.15
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0035,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 0.98,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.15
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.7225
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.003,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.15
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.799
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.15
+        },
+        "ColorGainHighlights": {
+          "X": 1.0395,
+          "Y": 0.98,
+          "Z": 0.95,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.242
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.782
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.912
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 0.98,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0035,
+          "Z": 0.006,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.58,
+        "FilmGrainIntensity": 0.08,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "finale": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.05
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0005,
+          "Y": 0.0005,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 1.0,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0815
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": 0.001,
+          "Y": 0.0,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.092
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.94
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.092
+        },
+        "ColorGainHighlights": {
+          "X": 1.0296,
+          "Y": 1.0,
+          "Z": 0.9588,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.168
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.92
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.912
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 1.0,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.0005,
+          "Y": 0.0005,
+          "Z": 0.006,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.43,
+        "FilmGrainIntensity": 0.08,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "workshop_night": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.9
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.1
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0035,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.035,
+          "Y": 1.0,
+          "Z": 0.955,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.864
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.9
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.765
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.003,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.846
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorGainHighlights": {
+          "X": 0.99,
+          "Y": 1.0,
+          "Z": 1.02,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.2096
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.7038
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.003,
+          "Z": 0.006,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.53,
+        "FilmGrainIntensity": 0.08,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "rooftops_storm": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0025,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.035,
+          "Y": 1.0,
+          "Z": 0.955,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.85
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.7225
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.002,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.799
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorGainHighlights": {
+          "X": 0.99,
+          "Y": 1.0,
+          "Z": 1.02,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.2096
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.6647
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.002,
+          "Z": 0.006,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.53,
+        "FilmGrainIntensity": 0.08,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "city_night": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.1
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0035,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.05,
+          "Y": 1.0,
+          "Z": 0.95,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.8075
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.003,
+          "Z": 0.006,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.893
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.12
+        },
+        "ColorGainHighlights": {
+          "X": 1.0197,
+          "Y": 1.0,
+          "Z": 0.969,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.2096
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.7429
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.03,
+          "Y": 1.0,
+          "Z": 0.97,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.003,
+          "Z": 0.006,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.53,
+        "FilmGrainIntensity": 0.08,
+        "AutoExposureSpeedUp": 2.0
+      }
+    },
+    "city_overcast": {
+      "neutral_realistic": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.88
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.0
+        }
+      },
+      "cinematic_teal_orange": {
+        "ColorOffsetShadows": {
+          "X": -0.0025,
+          "Y": 0.0005,
+          "Z": 0.004,
+          "W": 0.0
+        },
+        "ColorGainHighlights": {
+          "X": 1.035,
+          "Y": 1.0,
+          "Z": 0.955,
+          "W": 1.0
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.96
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.03
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.88
+        }
+      },
+      "night": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.748
+        },
+        "ColorSaturationShadows": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.75
+        },
+        "ColorGainShadows": {
+          "X": 0.97,
+          "Y": 1.0,
+          "Z": 1.05,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": -0.001,
+          "Y": 0.0,
+          "Z": 0.002,
+          "W": 0.0
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.04
+        }
+      },
+      "overcast": {
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.8272
+        },
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.04
+        },
+        "ColorGainHighlights": {
+          "X": 0.99,
+          "Y": 1.0,
+          "Z": 1.02,
+          "W": 1.0
+        }
+      },
+      "combat_overlay_at_weight_1": {
+        "ColorContrast": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 1.1232
+        },
+        "ColorSaturation": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.761
+        },
+        "ColorSaturationHighlights": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0,
+          "W": 0.95
+        },
+        "ColorGainHighlights": {
+          "X": 1.0197,
+          "Y": 1.0,
+          "Z": 0.9894,
+          "W": 1.0
+        },
+        "ColorOffsetShadows": {
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 0.0,
+          "W": -0.002
+        },
+        "VignetteIntensity": 0.33,
+        "FilmGrainIntensity": 0.075,
+        "AutoExposureSpeedUp": 2.0
+      }
+    }
+  },
+  "lut": {
+    "optional": true,
+    "format": "256 x 16 px strip = 16^3 cube, sRGB PNG, red along x within each 16 px tile, green down y, blue across tiles",
+    "import": {
+      "TextureGroup": "TEXTUREGROUP_ColorLookupTable",
+      "MipGenSettings": "NoMipmaps",
+      "sRGB": true,
+      "CompressionSettings": "TC_Default (ColorLookupTable group disables compression)"
+    },
+    "applied": "display-referred, after the tonemapper; ColorGradingIntensity 0..1. SDR only - ignored with HDR output.",
+    "files": {
+      "neutral": "textures/T_LUT_Neutral_16.png (identity; start point for a colourist)",
+      "teal_orange_subtle": "textures/T_LUT_TealOrange_Subtle_16.png (display-space twin of cinematic_teal_orange, use at 0.5)"
+    },
+    "recommendation": "prefer the post-process grade values (work in HDR and SDR); use the LUT only for a final colourist pass"
+  }
+}

@@ -28,13 +28,31 @@ bool ContribLighting::IsPhotorealGradeEnabled() { return CVarPhotorealGrade.GetV
 void ContribLighting::ApplyPhotorealGrade(FPostProcessSettings& S, bool bCinematic)
 {
 	if (!IsPhotorealGradeEnabled()) { return; }
-	S.bOverride_SceneFringeIntensity = true;
-	S.SceneFringeIntensity = 0.f;
-	const float GrainMax = bCinematic ? 0.15f : 0.08f;
-	if (S.bOverride_FilmGrainIntensity) { S.FilmGrainIntensity = FMath::Clamp(S.FilmGrainIntensity, 0.02f, GrainMax); }
+	// Limits = Vison's camera layer rules (contrib/vison/camera/camera_notes.md "Lens effects" / "Grades"), so this
+	// pass and Vison's lighting presets agree instead of fighting:
+	//  - chromatic aberration: gameplay 0 (helmet visor adds its own split); cutscenes subtle, <= 0.25
+	//    (Vison cutscene spec 0.10-0.25; needs r.SceneColorFringeQuality=1, set at High/Epic)
+	//  - grain: gameplay <= 0.05 (night presets; 0.03 if unset), cutscenes <= 0.08 (native ISO 1600)
+	//  - bloom: SOG with threshold -1 (energy conserving): gameplay <= 0.8 (city_night), cutscenes <= 1.0
+	//  - lens flare: gameplay = min(env, 0.4) x 0.5, cutscenes <= 1.0 (threshold 8 assumes physical emissive)
+	//  - saturation <= 1 (Vison grade clamp)
+	if (bCinematic)
+	{
+		if (S.bOverride_SceneFringeIntensity) { S.SceneFringeIntensity = FMath::Clamp(S.SceneFringeIntensity, 0.f, 0.25f); }
+	}
+	else
+	{
+		S.bOverride_SceneFringeIntensity = true;
+		S.SceneFringeIntensity = 0.f;
+	}
+	const float GrainMax = bCinematic ? 0.08f : 0.05f;
+	if (S.bOverride_FilmGrainIntensity) { S.FilmGrainIntensity = FMath::Clamp(S.FilmGrainIntensity, 0.f, GrainMax); }
 	else if (!bCinematic) { S.bOverride_FilmGrainIntensity = true; S.FilmGrainIntensity = 0.03f; }
-	if (S.bOverride_BloomIntensity) { S.BloomIntensity = FMath::Min(S.BloomIntensity, 0.6f); }
-	if (S.bOverride_LensFlareIntensity) { S.LensFlareIntensity = FMath::Min(S.LensFlareIntensity, 0.4f); }
+	if (S.bOverride_BloomIntensity) { S.BloomIntensity = FMath::Min(S.BloomIntensity, bCinematic ? 1.f : 0.8f); }
+	if (S.bOverride_LensFlareIntensity)
+	{
+		S.LensFlareIntensity = bCinematic ? FMath::Min(S.LensFlareIntensity, 1.f) : FMath::Min(S.LensFlareIntensity, 0.4f) * 0.5f;
+	}
 	if (S.bOverride_ColorSaturation)
 	{
 		S.ColorSaturation = FVector4(FMath::Min(S.ColorSaturation.X, 1.0), FMath::Min(S.ColorSaturation.Y, 1.0),

@@ -40,6 +40,13 @@
 
 #define LOCTEXT_NAMESPACE "IronManCharacter"
 
+namespace SuitLightLumens
+{
+	// Physical light output (lumens) of the two suit point lights; emissive surfaces carry the visible glow.
+	constexpr float Reactor = 300.f;
+	constexpr float PalmFlash = 400.f;
+}
+
 // =====================================================================================
 // Construction: camera rig + placeholder suit
 // =====================================================================================
@@ -81,7 +88,7 @@ AIronManCharacter::AIronManCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
-	FollowCamera->SetFieldOfView(90.f);
+	FollowCamera->SetFieldOfView(85.f); // third person = first-person FOV - 10 (Vison camera_notes #7: 85 deg at 95)
 
 	// The inherited skeletal Mesh stays empty; assign one in a Blueprint child to replace the shapes.
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -BaseCapsuleHalfHeight));
@@ -113,6 +120,17 @@ AIronManCharacter::AIronManCharacter()
 	FirstPersonCamera->SetRelativeLocation(FVector(12.f, 0.f, FirstPersonEyeHeight));
 	FirstPersonCamera->bUsePawnControlRotation = true;
 	FirstPersonCamera->SetFieldOfView(FirstPersonFOV);
+	// Helmet view: EDITH's visor already adds barrel warp, a 1.5 px chromatic split, 0.02 noise and a warning
+	// vignette, so the scene versions are off here (no doubling), grain is halved, and there is no motion blur
+	// (camera decision 6). Camera post-process blends over the environment volume.
+	{
+		FPostProcessSettings& PP = FirstPersonCamera->PostProcessSettings;
+		PP.bOverride_VignetteIntensity = true;   PP.VignetteIntensity = 0.f;
+		PP.bOverride_SceneFringeIntensity = true; PP.SceneFringeIntensity = 0.f;
+		PP.bOverride_FilmGrainIntensity = true;  PP.FilmGrainIntensity = 0.015f; // half the 0.03 gameplay grain
+		PP.bOverride_MotionBlurAmount = true;    PP.MotionBlurAmount = 0.f;
+		FirstPersonCamera->PostProcessBlendWeight = 1.f;
+	}
 
 	SuitRig::BuildGauntlets(this, FirstPersonCamera, Rig, FPParts);
 	for (FArenaPaintedPart& P : FPParts)
@@ -124,8 +142,10 @@ AIronManCharacter::AIronManCharacter()
 	FPPalmLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("FPPalmLight"));
 	FPPalmLight->SetupAttachment(Rig.FPArmR);
 	FPPalmLight->SetRelativeLocation(FVector(50.f, 0.f, 6.f));
+	FPPalmLight->SetIntensityUnits(ELightUnits::Lumens);
 	FPPalmLight->SetIntensity(0.f);
 	FPPalmLight->SetAttenuationRadius(250.f);
+	FPPalmLight->SetSourceRadius(2.f);
 	FPPalmLight->SetCastShadows(false);
 
 	// --- Shield special: six glowing orbs orbiting the suit (hidden until used) ---
@@ -151,16 +171,24 @@ AIronManCharacter::AIronManCharacter()
 	// Lights
 	ArcLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("ArcLight"));
 	ArcLight->SetupAttachment(ArcReactor);
+	// Suit light budget (Vison suits #4): two point lights per suit - the reactor and ONE palm slot, which is a
+	// pool of two components (third-person RepulsorLight / first-person FPPalmLight); only the one for the current
+	// view is visible (the other is out of the renderer). Real-world scale: reactor <= 300 lm, palm flash 400 lm,
+	// 2-4 cm sources, no shadows (High and below; Epic too - the emissive and Lumen carry the look).
 	ArcLight->SetLightColor(ArenaVisuals::ArcBlue);
-	ArcLight->SetIntensity(3000.f);
+	ArcLight->SetIntensityUnits(ELightUnits::Lumens);
+	ArcLight->SetIntensity(SuitLightLumens::Reactor);
 	ArcLight->SetAttenuationRadius(300.f);
+	ArcLight->SetSourceRadius(4.f);
 	ArcLight->SetCastShadows(false);
 
 	RepulsorLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("RepulsorLight"));
 	RepulsorLight->SetupAttachment(PalmR);
 	RepulsorLight->SetLightColor(ArenaVisuals::ArcBlue);
+	RepulsorLight->SetIntensityUnits(ELightUnits::Lumens);
 	RepulsorLight->SetIntensity(0.f);
 	RepulsorLight->SetAttenuationRadius(400.f);
+	RepulsorLight->SetSourceRadius(3.f);
 	RepulsorLight->SetCastShadows(false);
 
 	// Chest beam (attached to the capsule so the Hulkbuster scale doesn't stretch it).
@@ -479,7 +507,7 @@ void AIronManCharacter::RefreshSuitVisibility()
 void AIronManCharacter::SetCameraFOV(float NewFOV)
 {
 	FirstPersonFOV = FMath::Clamp(NewFOV, 60.f, 120.f);
-	FollowCamera->SetFieldOfView(FirstPersonFOV - 5.f);
+	FollowCamera->SetFieldOfView(FirstPersonFOV - 10.f); // 95 -> 85 deg third person (less edge stretch on a 4.2 m chase)
 	UpdateCameraForSuit();
 }
 
@@ -1124,6 +1152,15 @@ void AIronManCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	// Camera decision 6: no motion blur while aiming (arm raised after a shot, or the beam is on) in third person;
+	// the helmet camera has it off permanently.
+	if (FollowCamera)
+	{
+		const bool bAimingNow = !bInCinematic && (AimPoseTime > 0.f || IsBeamActive());
+		FollowCamera->PostProcessSettings.bOverride_MotionBlurAmount = bAimingNow;
+		FollowCamera->PostProcessSettings.MotionBlurAmount = 0.f;
+	}
+
 	if (!bDead && !bInCinematic)
 	{
 		InvulnerableLeft = FMath::Max(0.f, InvulnerableLeft - DeltaSeconds);
@@ -1239,6 +1276,23 @@ void AIronManCharacter::TickWeapons(float DeltaSeconds)
 	}
 }
 
+void AIronManCharacter::Landed(const FHitResult& Hit)
+{
+	// Vertical speed is still the falling speed here (CharacterMovement calls Landed before zeroing it).
+	const float DownSpeed = -float(GetVelocity().Z);
+	Super::Landed(Hit);
+	if (DownSpeed < 600.f || bInCinematic || IsDead()) { return; } // camera_shake.json: > 6 m/s
+	UWorld* World = GetWorld();
+	if (!World) { return; }
+	++HardLandings;
+	const float K = FMath::Clamp((DownSpeed - 600.f) / 1400.f, 0.f, 1.f); // 6..20 m/s
+	const FVector Ground = Hit.ImpactPoint;
+	// Same frame: dust ring flash (no shake of its own), scorch mark, then the landing shake.
+	AArenaBlastFX::Spawn(World, Ground + Hit.ImpactNormal * 5.f, FMath::Lerp(90.f, 180.f, K), FLinearColor(0.55f, 0.5f, 0.45f), 0.35f, false);
+	ArenaFeel::SpawnImpactDecal(World, Ground, Hit.ImpactNormal, FMath::Lerp(80.f, 160.f, K), 10.f);
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->PlayShake(TEXT("superhero_landing"), FMath::Lerp(0.6f, 1.f, K)); }
+}
+
 void AIronManCharacter::FireRepulsor()
 {
 	UWorld* World = GetWorld();
@@ -1292,6 +1346,10 @@ void AIronManCharacter::FireRepulsor()
 	const FVector Dir = (Target - Muzzle).GetSafeNormal();
 
 	const bool bRapidFireWeapon = S.PrimaryWeapon == ESuitPrimaryWeapon::Minigun || S.PrimaryWeapon == ESuitPrimaryWeapon::Flamethrower;
+	if (!bRapidFireWeapon && !bInCinematic)
+	{
+		if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->PlayShake(TEXT("repulsor_fire"), 0.6f); }
+	}
 	for (int32 i = 0; i < Count; ++i)
 	{
 		FVector ShotDir = Dir;
@@ -1307,7 +1365,7 @@ void AIronManCharacter::FireRepulsor()
 	}
 	RepulsorLight->AttachToComponent(Palm, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	RepulsorFlash = 1.f;
-	RepulsorLight->SetIntensity(bFirstPerson ? 0.f : 8000.f);
+	RepulsorLight->SetIntensity(bFirstPerson ? 0.f : SuitLightLumens::PalmFlash);
 
 	// Shots also knock down boss missiles they pass close to (cheap proximity check).
 	for (TActorIterator<AIronProjectile> It(World); It; ++It)
@@ -1392,6 +1450,7 @@ void AIronManCharacter::UseSpecial()
 	default:
 		bBeamWhip = false;
 		BeamTimeLeft = BeamDuration;
+		if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->PlayShake(TEXT("unibeam")); }
 		BeamDamageAccum.Empty();
 		break;
 	}
@@ -1686,7 +1745,11 @@ float AIronManCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	InvulnerableLeft = InvulnerabilityAfterHit;
 	HitFlashLeft = 0.15f;
 	ArenaVisuals::FlashAll(Parts, FLinearColor(1.f, 0.5f, 0.3f), false);
-	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->AddTrauma(FMath::Clamp(Applied / 25.f, 0.12f, 0.55f)); }
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
+	{
+		// Vison shakes, driven by ArenaFeel trauma (the one gameplay shake source).
+		Feel->PlayShake(Applied >= 25.f ? FName(TEXT("hit_heavy")) : FName(TEXT("hit_light")), FMath::Clamp(Applied / 25.f, 0.25f, 1.f));
+	}
 
 	if (Health <= 0.f)
 	{
@@ -1815,7 +1878,14 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 	if (RepulsorLight && DeltaSeconds > 0.f)
 	{
 		RepulsorFlash = FMath::Max(0.f, RepulsorFlash - 8.f * DeltaSeconds);
-		RepulsorLight->SetIntensity(bFirstPerson ? 0.f : 8000.f * RepulsorFlash);
+		RepulsorLight->SetIntensity(bFirstPerson ? 0.f : SuitLightLumens::PalmFlash * RepulsorFlash);
+	}
+	// Palm light pool: exactly one of the two palm components is in the scene.
+	if (RepulsorLight && FPPalmLight)
+	{
+		const bool bFP = bFirstPerson && !bInCinematic;
+		if (RepulsorLight->IsVisible() == bFP) { RepulsorLight->SetVisibility(!bFP); }
+		if (FPPalmLight->IsVisible() != bFP) { FPPalmLight->SetVisibility(bFP); }
 	}
 
 	// Damage flash (back to the suit colours, or to the cloak tint).
@@ -1834,7 +1904,7 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 	{
 		const float EnergyFrac = MaxEnergy > 0.f ? Energy / MaxEnergy : 0.f;
 		const float ReactorMul = GetSuit().Reactor == ESuitReactor::None ? 0.25f : 1.f;
-		ArcLight->SetIntensity(ReactorMul * (1000.f + 3000.f * EnergyFrac * (0.85f + 0.15f * FMath::Sin(Time * 4.f))));
+		ArcLight->SetIntensity(SuitLightLumens::Reactor * ReactorMul * (0.25f + 0.75f * EnergyFrac * (0.85f + 0.15f * FMath::Sin(Time * 4.f))));
 	}
 
 	// Makeshift mounted reactor: the exposed core shifts blue -> orange -> red with heat and
@@ -1923,7 +1993,7 @@ void AIronManCharacter::TickFirstPerson(float DeltaSeconds)
 			ArenaVisuals::SetPartGlow(FPParts[PalmIdx], 4.f + 60.f * Fire);
 		}
 	}
-	FPPalmLight->SetIntensity(6000.f * FMath::Max(FlashL, FlashR));
+	FPPalmLight->SetIntensity(SuitLightLumens::PalmFlash * 0.75f * FMath::Max(FlashL, FlashR));
 }
 
 // =====================================================================================

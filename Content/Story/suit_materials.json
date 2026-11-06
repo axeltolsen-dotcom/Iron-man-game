@@ -25,7 +25,7 @@
       "substrateColorLinear": "linear [r,g,b] of bare metal exposed by edge wear -> \"WearColor\""
     },
     "emissive.{eyes,reactor,repulsors}": "{colorLinear [r,g,b] linear normalised so the max channel = 1, intensity, optional coreWhite 0-1 (M_ArcGlow \"CoreWhite\"), optional note} or null when the suit has no such light source (Mark I repulsors, Arachnid reactor). Game code should skip a null channel or fall back to no glow.",
-    "emissiveIntensityUnit": "Unreal emissive multiplier = M_ArcGlow / M_CarPaint \"EmissiveStrength\" scalar (Emissive = colorLinear * intensity, linear HDR, before exposure). Matches SuitRig.cpp conventions (eyes 20-25, reactor 25). These are idle/steady values; firing flashes multiply on top. Values assume the project's default auto-exposure in daylight; with fixed physical exposure (EV100 ~10+) scale up roughly x10-50 or drive point lights instead.",
+    "emissiveIntensityUnit": "Unreal emissive multiplier = M_ArcGlow / M_CarPaint \"EmissiveStrength\" scalar (Emissive = colorLinear * intensity, linear HDR, before exposure). Matches SuitRig.cpp conventions (eyes 20-25, reactor 25). These are idle/steady values; firing flashes multiply on top. In game 1 unit = 1000 nits (ima.EmissiveNitsPerUnit, ArenaVisuals::EmissiveToNits); do not add extra per-exposure multipliers.",
     "panelLineDepth": "groove depth of panel seams in cm (Unreal units, 1 uu = 1 cm). Typical 0.04 (nano, near-seamless) to 0.35 (Mark I welded plates). For a normal-map bake/height-to-normal, normal strength ~= depth_cm * 4 is a reasonable starting point.",
     "look": "reference film appearance in one or two sentences",
     "emissiveNotes": "why an emissive channel deviates from the input emissive hex or is null",
@@ -36,7 +36,8 @@
     "Red/gold classics (Mark III-VII, XLII-XLVII): metallic hot-rod car paint (metallic 0.7, flake 0.4, roughness ~0.3) under a clearcoat of 1.0 with clearcoat roughness 0.04; gold-titanium secondary metallic 1, roughness ~0.24 under a thin 0.8 clearcoat.",
     "Eyes/reactors use film-accurate cool white-blue unless the film suit differs (Ultron red; Mark I dim). Where the input emissive hex is warm it is kept for eyes only on industrial House Party suits (Striker, Igor) and Midas/Hot Rod warm whites, as per the game data.",
     "Wear scales with how battered the suit is on screen: Mark I 0.6, Mark XLII/XLVI ~0.3, Igor/Striker 0.45-0.5, nano suits 0.04-0.06.",
-    "Params map 1:1 to M_CarPaint in Content/Python/build_realism_materials.py; the existing SuitRig::ApplyColors heuristics can be replaced by a lookup into this file."
+    "Params map 1:1 to M_CarPaint in Content/Python/build_realism_materials.py; the existing SuitRig::ApplyColors heuristics can be replaced by a lookup into this file.",
+    "2026-10-30: Vison's reconciliation rows 1 (dark coated metals -> dielectric, albedo ~0.07, specular 0.65), 2 (War Machine metallic-flake paint), 3 (no fractional metallic on coatings), 8 (Igor enamel), 9 (clear-coat roughness floor 0.03) merged from contrib/vison/suits; row 11 in armor_kit.json. Other rows not merged."
   ],
   "suits": {
     "mark-i": {
@@ -59,16 +60,17 @@
         "secondary": {
           "finish": "blackened forged iron / mill scale",
           "baseColorLinear": [
-            0.19,
-            0.19,
-            0.195
+            0.0699,
+            0.0699,
+            0.0717
           ],
-          "metallic": 0.6,
+          "metallic": 0.0,
           "roughness": 0.78,
           "clearcoat": 0,
           "clearcoatRoughness": 0.5,
           "metalFlake": 0,
-          "flakeScale": 2
+          "flakeScale": 2,
+          "specular": 0.65
         },
         "accent": {
           "finish": "rust bloom and brass/bronze scrap fittings",
@@ -160,16 +162,17 @@
         "accent": {
           "finish": "dark anodised joints / undersuit mechanics",
           "baseColorLinear": [
-            0.295,
-            0.3108,
-            0.3369
+            0.0668,
+            0.0703,
+            0.0762
           ],
-          "metallic": 0.9,
+          "metallic": 0.0,
           "roughness": 0.45,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -664,11 +667,11 @@
             0.0762,
             0.0887
           ],
-          "metallic": 0.35,
+          "metallic": 0.0,
           "roughness": 0.6,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.5,
-          "metalFlake": 0.05,
+          "metalFlake": 0.0,
           "flakeScale": 3
         },
         "secondary": {
@@ -678,7 +681,7 @@
             0.0262,
             0.0307
           ],
-          "metallic": 0.3,
+          "metallic": 0.0,
           "roughness": 0.65,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.5,
@@ -688,16 +691,17 @@
         "accent": {
           "finish": "satin steel trim",
           "baseColorLinear": [
-            0.3542,
-            0.371,
-            0.3975
+            0.0671,
+            0.0703,
+            0.0753
           ],
-          "metallic": 0.9,
+          "metallic": 0.0,
           "roughness": 0.45,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -752,11 +756,11 @@
             0.023,
             0.026
           ],
-          "metallic": 0.2,
+          "metallic": 0.0,
           "roughness": 0.55,
           "clearcoat": 0.15,
           "clearcoatRoughness": 0.4,
-          "metalFlake": 0.03,
+          "metalFlake": 0.0,
           "flakeScale": 3
         },
         "secondary": {
@@ -766,26 +770,28 @@
             0.0273,
             0.0331
           ],
-          "metallic": 0.5,
+          "metallic": 0.0,
           "roughness": 0.5,
           "clearcoat": 0.1,
           "clearcoatRoughness": 0.4,
-          "metalFlake": 0.05,
-          "flakeScale": 3
+          "metalFlake": 0.0,
+          "flakeScale": 3,
+          "specular": 0.65
         },
         "accent": {
           "finish": "blued steel trim",
           "baseColorLinear": [
-            0.3505,
-            0.3707,
-            0.4111
+            0.0664,
+            0.0703,
+            0.0779
           ],
-          "metallic": 0.9,
+          "metallic": 0.0,
           "roughness": 0.4,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -1220,12 +1226,13 @@
             0.0284,
             0.0369
           ],
-          "metallic": 0.6,
+          "metallic": 0.0,
           "roughness": 0.4,
           "clearcoat": 0.2,
           "clearcoatRoughness": 0.2,
           "metalFlake": 0.0,
-          "flakeScale": 2
+          "flakeScale": 2,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -1294,7 +1301,7 @@
             0.1946,
             0.0137
           ],
-          "metallic": 0.1,
+          "metallic": 0.0,
           "roughness": 0.45,
           "clearcoat": 0.3,
           "clearcoatRoughness": 0.25,
@@ -1304,16 +1311,17 @@
         "accent": {
           "finish": "dark gunmetal hydraulics",
           "baseColorLinear": [
-            0.2967,
-            0.3106,
-            0.3335
+            0.0671,
+            0.0703,
+            0.0755
           ],
-          "metallic": 0.9,
+          "metallic": 0.0,
           "roughness": 0.5,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -1540,15 +1548,15 @@
         "primary": {
           "finish": "industrial yellow-gold heavy-lift armour, worn paint",
           "baseColorLinear": [
-            0.895,
+            0.85,
             0.6243,
             0.2237
           ],
-          "metallic": 0.85,
+          "metallic": 0.0,
           "roughness": 0.45,
           "clearcoat": 0.25,
           "clearcoatRoughness": 0.2,
-          "metalFlake": 0.1,
+          "metalFlake": 0.0,
           "flakeScale": 1.6
         },
         "secondary": {
@@ -1568,16 +1576,17 @@
         "accent": {
           "finish": "dark hydraulic steel",
           "baseColorLinear": [
-            0.2968,
-            0.3103,
-            0.3359
+            0.0672,
+            0.0702,
+            0.076
           ],
-          "metallic": 0.9,
+          "metallic": 0.0,
           "roughness": 0.55,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -1730,16 +1739,17 @@
         "secondary": {
           "finish": "dark gunmetal frame",
           "baseColorLinear": [
-            0.2983,
-            0.3103,
-            0.3324
+            0.0675,
+            0.0702,
+            0.0752
           ],
-          "metallic": 0.9,
+          "metallic": 0.0,
           "roughness": 0.45,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         },
         "accent": {
           "finish": "red paint accents",
@@ -2251,7 +2261,7 @@
           "metallic": 0.75,
           "roughness": 0.24,
           "clearcoat": 1.0,
-          "clearcoatRoughness": 0.02,
+          "clearcoatRoughness": 0.03,
           "metalFlake": 0.25,
           "flakeScale": 4.0
         },
@@ -2272,16 +2282,17 @@
         "accent": {
           "finish": "black nano under-layer / joints",
           "baseColorLinear": [
-            0.2976,
-            0.3103,
-            0.3337
+            0.0674,
+            0.0702,
+            0.0755
           ],
-          "metallic": 0.95,
+          "metallic": 0.0,
           "roughness": 0.35,
           "clearcoat": 0.4,
           "clearcoatRoughness": 0.08,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -2339,7 +2350,7 @@
           "metallic": 0.75,
           "roughness": 0.24,
           "clearcoat": 1.0,
-          "clearcoatRoughness": 0.02,
+          "clearcoatRoughness": 0.03,
           "metalFlake": 0.25,
           "flakeScale": 4.0
         },
@@ -2424,26 +2435,27 @@
             0.3105,
             0.3339
           ],
-          "metallic": 0.9,
-          "roughness": 0.42,
+          "metallic": 0.8,
+          "roughness": 0.4,
           "clearcoat": 0.2,
-          "clearcoatRoughness": 0.35,
+          "clearcoatRoughness": 0.15,
           "metalFlake": 0.0,
           "flakeScale": 2.0
         },
         "secondary": {
           "finish": "dark parkerised steel",
           "baseColorLinear": [
-            0.1875,
-            0.1904,
-            0.1988
+            0.0689,
+            0.07,
+            0.0731
           ],
-          "metallic": 0.85,
+          "metallic": 0.0,
           "roughness": 0.5,
           "clearcoat": 0.1,
           "clearcoatRoughness": 0.4,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         },
         "accent": {
           "finish": "bare machined steel / weapon metal",
@@ -2531,11 +2543,11 @@
             0.8,
             0.8
           ],
-          "metallic": 0.1,
+          "metallic": 0.0,
           "roughness": 0.32,
           "clearcoat": 1.0,
           "clearcoatRoughness": 0.04,
-          "metalFlake": 0.05,
+          "metalFlake": 0.0,
           "flakeScale": 1.6
         },
         "accent": {
@@ -2631,9 +2643,9 @@
           "baseColorLinear": [
             0.2122,
             0.6308,
-            1.0
+            0.85
           ],
-          "metallic": 0.3,
+          "metallic": 0.0,
           "roughness": 0.15,
           "clearcoat": 0.6,
           "clearcoatRoughness": 0.05,
@@ -2721,12 +2733,13 @@
             0.025,
             0.025
           ],
-          "metallic": 0.6,
+          "metallic": 0.0,
           "roughness": 0.35,
           "clearcoat": 0.3,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 4
+          "flakeScale": 4,
+          "specular": 0.65
         }
       },
       "wear": {
@@ -2785,16 +2798,17 @@
         "secondary": {
           "finish": "dark gunmetal undershell",
           "baseColorLinear": [
-            0.2962,
-            0.3105,
-            0.3364
+            0.067,
+            0.0703,
+            0.0761
           ],
-          "metallic": 1.0,
+          "metallic": 0.0,
           "roughness": 0.35,
           "clearcoat": 0.0,
           "clearcoatRoughness": 0.1,
           "metalFlake": 0.0,
-          "flakeScale": 2.0
+          "flakeScale": 2.0,
+          "specular": 0.65
         },
         "accent": {
           "finish": "red detailing (emissive-adjacent)",

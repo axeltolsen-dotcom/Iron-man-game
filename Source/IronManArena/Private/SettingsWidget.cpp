@@ -185,6 +185,7 @@ void USettingsWidget::BuildTree()
 	AddHeader(Box, LOCTEXT("Access", "ACCESSIBILITY"));
 	SubtitlesCheck = AddCheck(Box, LOCTEXT("Subtitles", "Subtitles"));
 	ShakeCheck = AddCheck(Box, LOCTEXT("Shake", "Camera shake"));
+	ShakeSlider = AddSlider(Box, LOCTEXT("ShakeAmt", "Camera shake intensity"), 0.f, 1.5f, 0.05f, Tmp); ShakeValue = Tmp;
 	SubtitleScaleSlider = AddSlider(Box, LOCTEXT("SubSize", "Subtitle size"), 0.8f, 1.6f, 0.05f, Tmp); SubtitleScaleValue = Tmp;
 
 	AddHeader(Box, LOCTEXT("HelmetHud", "HELMET HUD"));
@@ -255,6 +256,7 @@ void USettingsWidget::RefreshFromSettings()
 	MotionBlurCheck->SetIsChecked(S->bMotionBlur);
 	DofCheck->SetIsChecked(S->bCinematicDOF);
 	ShakeCheck->SetIsChecked(S->bCameraShake);
+	ShakeSlider->SetValue(S->CameraShakeIntensity);
 	SubtitleScaleSlider->SetValue(S->SubtitleScale);
 	HudColorBlindCheck->SetIsChecked(S->bHudColorBlindSafe);
 	HudReducedMotionCheck->SetIsChecked(S->bHudReducedMotion);
@@ -270,6 +272,7 @@ void USettingsWidget::UpdateSliderLabels()
 	if (FovValue) { FovValue->SetText(FText::FromString(FString::Printf(TEXT("%d"), FMath::RoundToInt(FovSlider->GetValue())))); }
 	if (SensValue) { SensValue->SetText(FText::FromString(FString::Printf(TEXT("%.2f"), SensSlider->GetValue()))); }
 	Pct(MasterValue, MasterSlider);
+	Pct(ShakeValue, ShakeSlider);
 	Pct(SfxValue, SfxSlider);
 	Pct(VoiceValue, VoiceSlider);
 	Pct(MusicValue, MusicSlider);
@@ -294,6 +297,7 @@ void USettingsWidget::ApplyLiveOptions()
 	S->bMotionBlur = MotionBlurCheck->IsChecked();
 	S->bCinematicDOF = DofCheck->IsChecked();
 	S->bCameraShake = ShakeCheck->IsChecked();
+	S->CameraShakeIntensity = FMath::Clamp(ShakeSlider->GetValue(), 0.f, 1.5f);
 	S->SubtitleScale = SubtitleScaleSlider->GetValue();
 	S->bHudColorBlindSafe = HudColorBlindCheck->IsChecked();
 	S->bHudReducedMotion = HudReducedMotionCheck->IsChecked();

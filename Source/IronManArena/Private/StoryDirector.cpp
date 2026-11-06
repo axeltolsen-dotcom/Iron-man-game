@@ -8,6 +8,7 @@
 #include "ArenaSaveGame.h"
 #include "ArenaGameUserSettings.h"
 #include "ArenaBlastFX.h"
+#include "ArenaFeel.h"
 #include "IronManCharacter.h"
 #include "ReactorComponent.h"
 #include "JarvisComponent.h"
@@ -1183,6 +1184,13 @@ void AStoryDirector::Tick(float DeltaSeconds)
 	if (AllyCooldownLeft > 0.f) { AllyCooldownLeft = FMath::Max(0.f, AllyCooldownLeft - DeltaSeconds); }
 	if (Ally && Ally->IsActorBeingDestroyed()) { Ally = nullptr; }
 
+	// One shake source: gameplay shake (ArenaFeel) is muted while a cutscene / suit-up owns the camera.
+	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
+	{
+		const AIronManCharacter* P = GetPlayer();
+		Feel->SetCinematicCamera(IsInCutscene() || Step == EStoryStep::SuitUp || (P && P->IsInCinematic()));
+	}
+
 	switch (Step)
 	{
 	case EStoryStep::Cutscene:
@@ -1581,16 +1589,22 @@ void AStoryDirector::UpdateCamera(float Alpha)
 	FRotator Rot = (ShotLookAt - Pos).Rotation();
 	if (bCamHandheld)
 	{
+		// The cutscene's only shake (ArenaFeel is muted in cutscenes), scaled by the 0-150 % setting.
+		const float K = UArenaFeelSubsystem::GetShakeIntensity();
 		const float T = ShotTime;
-		Pos += FVector(FMath::Sin(T * 1.7f) * 4.f, FMath::Sin(T * 2.3f + 1.f) * 4.f, FMath::Sin(T * 3.1f) * 3.f);
-		Rot.Pitch += FMath::Sin(T * 2.9f) * 0.8f;
-		Rot.Yaw += FMath::Sin(T * 1.9f + 2.f) * 0.8f;
-		Rot.Roll += FMath::Sin(T * 1.3f) * 0.6f;
+		Pos += FVector(FMath::Sin(T * 1.7f) * 4.f, FMath::Sin(T * 2.3f + 1.f) * 4.f, FMath::Sin(T * 3.1f) * 3.f) * K;
+		Rot.Pitch += FMath::Sin(T * 2.9f) * 0.8f * K;
+		Rot.Yaw += FMath::Sin(T * 1.9f + 2.f) * 0.8f * K;
+		Rot.Roll += FMath::Sin(T * 1.3f) * 0.6f * K;
 	}
 	Cam->SetActorLocationAndRotation(Pos, Rot);
 	if (UCineCameraComponent* CC = Cam->GetCineCameraComponent())
 	{
-		CC->SetCurrentFocalLength(CamFocal);
+		// Shot focal lengths are authored for Super 35 framing; ContribLighting::ApplyCamera may have swapped in an
+		// IMAX / ALEXA LF / anamorphic filmback, so scale by the crop factor (Vison camera_realism.json
+		// cutscene_packages.*.focal_scale_vs_s35 = SensorWidth x squeeze / 24.89) to keep the same framing.
+		const float CropScale = FMath::Clamp(CC->Filmback.SensorWidth * FMath::Max(CC->LensSettings.SqueezeFactor, 1.f) / 24.89f, 0.5f, 3.5f);
+		CC->SetCurrentFocalLength(CamFocal * CropScale);
 		if (CC->FocusSettings.FocusMethod == ECameraFocusMethod::Manual)
 		{
 			CC->FocusSettings.ManualFocusDistance = FMath::Max(50.f, FVector::Dist(Pos, ShotLookAt));

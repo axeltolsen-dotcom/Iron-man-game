@@ -79,6 +79,8 @@ namespace
 		bool bValid = false;
 		FLinearColor Color = FLinearColor::White;
 		float Metallic = 0.7f, Roughness = 0.3f, ClearCoat = 1.f, ClearCoatRoughness = 0.04f, Flake = 0.35f, FlakeScale = 1.2f;
+		// M_SuitMaster (Vison gap list): dielectric F0 scale and brushed-metal anisotropy.
+		float Specular = 0.5f, Anisotropy = 0.f, AnisotropyAngle = 0.f;
 	};
 	struct FSuitGlowMat
 	{
@@ -163,6 +165,13 @@ namespace
 					M.ClearCoatRoughness = ReadNum(*L, TEXT("clearcoatRoughness"), M.ClearCoatRoughness);
 					M.Flake = ReadNum(*L, TEXT("metalFlake"), M.Flake);
 					M.FlakeScale = ReadNum(*L, TEXT("flakeScale"), M.FlakeScale);
+					M.Specular = FMath::Clamp(ReadNum(*L, TEXT("specular"), M.Specular), 0.f, 1.f);
+					// Brushed finishes get a default anisotropy unless the table sets one.
+					FString Finish;
+					(*L)->TryGetStringField(TEXT("finish"), Finish);
+					const float AnisoDefault = (Finish.Contains(TEXT("brush")) && M.Metallic > 0.5f) ? 0.4f : 0.f;
+					M.Anisotropy = FMath::Clamp(ReadNum(*L, TEXT("anisotropy"), AnisoDefault), -1.f, 1.f);
+					M.AnisotropyAngle = ReadNum(*L, TEXT("anisotropyAngle"), 0.f);
 				}
 			}
 			const TSharedPtr<FJsonObject>* Wear = nullptr;
@@ -496,7 +505,7 @@ namespace SuitRig
 			P.Color.A = 1.f;
 			if (P.MID)
 			{
-				P.MID->SetScalarParameterValue(TEXT("Metallic"), 0.1f);
+				P.MID->SetScalarParameterValue(TEXT("Metallic"), 0.f); // pearl / pale-blue trim is a dielectric (Vison row 3)
 				P.MID->SetScalarParameterValue(TEXT("Roughness"), 0.32f);
 				P.MID->SetScalarParameterValue(TEXT("ClearCoat"), 0.8f);
 				P.MID->SetScalarParameterValue(TEXT("FlakeAmount"), 0.f);
@@ -559,6 +568,9 @@ namespace SuitRig
 					P.MID->SetScalarParameterValue(TEXT("ClearCoatRoughness"), M.ClearCoatRoughness);
 					P.MID->SetScalarParameterValue(TEXT("FlakeAmount"), M.Flake);
 					P.MID->SetScalarParameterValue(TEXT("FlakeScale"), M.FlakeScale);
+					P.MID->SetScalarParameterValue(TEXT("Specular"), M.Specular);       // M_SuitMaster only (ignored elsewhere)
+					P.MID->SetScalarParameterValue(TEXT("Anisotropy"), M.Anisotropy);
+					P.MID->SetScalarParameterValue(TEXT("AnisotropyAngle"), M.AnisotropyAngle);
 					P.MID->SetScalarParameterValue(TEXT("EdgeWear"), Def->EdgeWear);
 					P.MID->SetScalarParameterValue(TEXT("Scorch"), Def->Scorch);
 					P.MID->SetScalarParameterValue(TEXT("Dirt"), Def->Dirt);

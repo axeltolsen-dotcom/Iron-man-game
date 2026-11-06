@@ -36,6 +36,30 @@ public:
 	/** Current shake offsets (already scaled by trauma^2 and the settings). */
 	void GetShake(FRotator& OutRot, FVector& OutLoc) const;
 
+	/**
+	 * The ONE gameplay shake source (Vison camera_notes #4): play shake Id from Content/Story/camera_shake.json.
+	 * It becomes the active profile (axes/amplitudes/frequencies in real units) and adds its
+	 * arenafeel_trauma_equivalent x Scale as trauma; trauma^2 then drives the profile's amplitude, so the
+	 * old AddTrauma callers and the Vison shakes never stack. Cutscene-only shakes (supersonic_flight,
+	 * handheld_cutscene) are ignored here; StoryDirector owns the cutscene handheld.
+	 * If Epicenter is given: falloff inner R, outer 6R + 400 cm, exponent 1.6 (camera_shake.json falloff).
+	 * Returns false if the shake is unknown/cutscene-only/out of range.
+	 */
+	bool PlayShake(FName Id, float Scale = 1.f, const FVector* Epicenter = nullptr, float InnerRadius = 0.f);
+
+	/** Settings intensity (0..1.5) x accessibility (off / reduced) x ima.ShakeScale. */
+	static float GetShakeIntensity();
+
+	/** Set by AStoryDirector while a cutscene owns the camera: gameplay shake is muted (no stacking). */
+	void SetCinematicCamera(bool bOn) { bCinematicCamera = bOn; }
+	bool IsCinematicCamera() const { return bCinematicCamera; }
+
+	/** Shake profiles loaded (0 if camera_shake.json is missing: falls back to the built-in trauma noise). */
+	int32 NumShakeProfiles() const;
+	FName GetActiveShake() const { return ActiveShake; }
+	/** True if Id is in the json and tagged cutscene-only. */
+	static bool IsCutsceneOnlyShake(FName Id);
+
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
@@ -49,6 +73,9 @@ private:
 	float HitStopDilation = 1.f;
 	bool bDilated = false;
 	double ShakeClock = 0.0;
+	bool bCinematicCamera = false;
+	FName ActiveShake;
+	float ActiveTraumaRef = 0.f;
 };
 
 /** Camera modifier that applies UArenaFeelSubsystem's shake; added by AArenaPlayerController. */

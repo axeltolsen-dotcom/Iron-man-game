@@ -240,12 +240,14 @@
   "fixed.baresteel": {
    "material": "M_CarPaint",
    "color": [
-    0.3,
-    0.3,
-    0.32
+    0.562,
+    0.565,
+    0.578
    ],
-   "roughness": 0.35,
-   "metallic": 1.0
+   "roughness": 0.32,
+   "metallic": 1.0,
+   "anisotropy": 0.5,
+   "_note": "iron F0 (Vison reconciliation row 11)"
   },
   "nullChannelRule": "If the bound emissive channel is null in suit_materials, set EmissiveStrength 0 and don't spawn a light (mark-i repulsors, arachnid reactor)."
  },

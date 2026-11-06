@@ -28,10 +28,11 @@ AArenaBlastFX::AArenaBlastFX()
 	InitialLifeSpan = 3.f; // safety net
 }
 
-AArenaBlastFX* AArenaBlastFX::Spawn(UWorld* World, const FVector& Location, float Radius, const FLinearColor& InColor, float InDuration)
+AArenaBlastFX* AArenaBlastFX::Spawn(UWorld* World, const FVector& Location, float Radius, const FLinearColor& InColor, float InDuration, bool bShake)
 {
 	if (!World) { return nullptr; }
-	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(World)) { Feel->AddBlastTrauma(Location, Radius); }
+	// Epicenter + blast radius -> Vison explosion_nearby shake (falloff inner R .. 6R + 400 cm).
+	if (bShake) { if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(World)) { Feel->PlayShake(TEXT("explosion_nearby"), 1.f, &Location, Radius); } }
 	AArenaBlastFX* FX = nullptr;
 	if (UArenaFXPool* Pool = UArenaFXPool::Get(World))
 	{

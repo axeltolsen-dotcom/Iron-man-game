@@ -536,10 +536,13 @@ def main():
     LOG.append("== instances ==")
     try:
         paint = unreal.load_asset(MAT_DIR + "/M_CarPaint")
-        make_mi("MI_SuitHotRod", paint, {"FlakeAmount": 0.4, "EdgeWear": 0.1},
-                {"Color": (0.42, 0.012, 0.01), "WearColor": (0.7, 0.68, 0.66)})
-        make_mi("MI_SuitGold", paint, {"Metallic": 1.0, "Roughness": 0.22, "FlakeAmount": 0.25, "EdgeWear": 0.08},
-                {"Color": (0.9, 0.6, 0.18), "WearColor": (0.75, 0.72, 0.7)})
+        # MI_SuitHotRod / MI_SuitGold are parented to the single suit master /Game/Edith/Suits/M_SuitMaster by
+        # suit_master.py (2026-10-30); only create them here on M_CarPaint if that master was never built.
+        if not unreal.EditorAssetLibrary.does_asset_exist("/Game/Edith/Suits/M_SuitMaster"):
+            make_mi("MI_SuitHotRod", paint, {"FlakeAmount": 0.4, "EdgeWear": 0.1},
+                    {"Color": (0.42, 0.012, 0.01), "WearColor": (0.7, 0.68, 0.66)})
+            make_mi("MI_SuitGold", paint, {"Metallic": 1.0, "Roughness": 0.22, "FlakeAmount": 0.25, "EdgeWear": 0.08},
+                    {"Color": (0.9, 0.6, 0.18), "WearColor": (0.75, 0.72, 0.7)})
         make_mi("MI_RobotMetal", paint, {"Metallic": 0.95, "Roughness": 0.42, "ClearCoat": 0.15, "FlakeAmount": 0.0,
                                          "EdgeWear": 0.3}, {"Color": (0.2, 0.21, 0.24), "WearColor": (0.65, 0.65, 0.68)})
         surf = unreal.load_asset(MAT_DIR + "/M_SurfacePBR")

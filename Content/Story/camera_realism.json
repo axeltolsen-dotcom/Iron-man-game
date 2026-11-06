@@ -1,0 +1,1930 @@
+{
+  "metadata": {
+    "name": "Vison camera realism layer",
+    "version": "1.0.0",
+    "date": "2026-10-30",
+    "engine": "Unreal Engine 5.8",
+    "generated_by": "contrib/vison/camera/gen_camera_realism.py (edit the generator, not this file)",
+    "sources": [
+      "../lighting_presets.json",
+      "../postprocess_realism.json",
+      "IronManArena/Config/*.ini (read only)",
+      "Source: IronManCharacter, ArenaFeel, StoryDirector, SuitUpCinematic, ContribLighting, ArenaGameUserSettings (read only)"
+    ],
+    "layer_order": [
+      "lighting_presets (apply_lighting_preset.py)",
+      "postprocess_realism (apply_realism.py)",
+      "camera layer (apply_camera_realism.py) - camera/lens/exposure/grade keys only"
+    ],
+    "not_authored_here": "sun/sky/fog/clouds/lights, VFX, destruction (Ultron); suit materials (contrib/vison/suits)",
+    "target": "RTX 2070 SUPER, 1080p, ~60 fps on High",
+    "environments": [
+      "prologue",
+      "workshop",
+      "rooftops",
+      "city",
+      "ruins",
+      "titan_battlefield",
+      "finale",
+      "workshop_night",
+      "rooftops_storm",
+      "city_night",
+      "city_overcast"
+    ],
+    "chapter_mapping": {
+      "_source": "Content/Story/story.json (chapter id -> location) + EnvironmentPresets::ForChapter in Source/IronManArena/Private/EnvironmentPreset.cpp",
+      "story_to_preset": {
+        "prologue": "prologue",
+        "ch1_dust": "workshop",
+        "ch2_first_flight": "rooftops",
+        "ch3_static": "city",
+        "ch4_eyes": "city_night",
+        "ch5_titan": "titan_battlefield",
+        "ch6_heavy": "ruins",
+        "ch7_skyline": "rooftops_storm",
+        "ch8_legacy": "city_overcast",
+        "ch9_ghost": "workshop_night",
+        "finale": "finale",
+        "arena (free play)": null
+      },
+      "FEnvironmentPreset_Id_to_preset": {
+        "workshop": "workshop",
+        "workshop_night": "workshop_night",
+        "rooftops_dusk": "rooftops",
+        "rooftops_storm": "rooftops_storm",
+        "city_day": "city",
+        "city_night": "city_night",
+        "city_overcast": "city_overcast",
+        "ruins": "ruins",
+        "battlefield": "titan_battlefield",
+        "finale_dawn": "finale",
+        "arena": null
+      },
+      "_arena_note": "Free-play 'arena' has no story look. Reuse 'city' or keep the project defaults."
+    },
+    "photoreal_runtime_caps": {
+      "FilmGrainIntensity_gameplay": 0.08,
+      "FilmGrainIntensity_cinematic": 0.15,
+      "BloomIntensity": 0.6,
+      "LensFlareIntensity": 0.4,
+      "ColorSaturation": 1.0,
+      "SceneFringeIntensity": 0.0
+    }
+  },
+  "bodies": {
+    "super35_4perf": {
+      "label": "Super 35 4-perf (UE 'Super 35mm')",
+      "Filmback": {
+        "SensorWidth": 24.89,
+        "SensorHeight": 18.66
+      },
+      "ue_filmback_preset": "Super 35mm",
+      "squeeze": 1.0,
+      "native_iso": 800,
+      "coc_mm": 0.025,
+      "use": "cutscene default body; StoryDirector focal lengths are authored against this width"
+    },
+    "super35_16x9": {
+      "label": "Super 35 16:9 (24.89 x 14.00 mm, digital S35 16:9 crop class)",
+      "Filmback": {
+        "SensorWidth": 24.89,
+        "SensorHeight": 14.0
+      },
+      "ue_filmback_preset": null,
+      "squeeze": 1.0,
+      "native_iso": 800,
+      "coc_mm": 0.025,
+      "use": "handheld / documentary style inserts if a 16:9 native gate is wanted"
+    },
+    "full_frame": {
+      "label": "Full frame 36 x 24 mm (16:9 active 36 x 20.25)",
+      "Filmback": {
+        "SensorWidth": 36.0,
+        "SensorHeight": 24.0
+      },
+      "ue_filmback_preset": "Full Frame DSLR (verify name in 5.8 CineCamera settings)",
+      "squeeze": 1.0,
+      "native_iso": 800,
+      "coc_mm": 0.03,
+      "use": "reference body for gameplay FOV -> focal-length equivalents"
+    },
+    "alexa_lf_open_gate": {
+      "label": "ARRI ALEXA LF Open Gate",
+      "Filmback": {
+        "SensorWidth": 36.7,
+        "SensorHeight": 25.54
+      },
+      "ue_filmback_preset": "ARRI ALEXA LF (Open Gate)",
+      "squeeze": 1.0,
+      "native_iso": 800,
+      "coc_mm": 0.03,
+      "use": "workshop / overcast chapters (large-format, shallow DOF, clean shadows)"
+    },
+    "anamorphic_35_2x": {
+      "label": "35mm 4-perf 2x anamorphic (2.39:1 after desqueeze)",
+      "Filmback": {
+        "SensorWidth": 21.95,
+        "SensorHeight": 18.59
+      },
+      "ue_filmback_preset": "35mm 4-perf Anamorphic",
+      "squeeze": 2.0,
+      "native_iso": 800,
+      "coc_mm": 0.025,
+      "use": "rooftops chapters (oval bokeh, horizontal flares)"
+    },
+    "imax_70mm": {
+      "label": "IMAX 15/70",
+      "Filmback": {
+        "SensorWidth": 70.41,
+        "SensorHeight": 52.63
+      },
+      "ue_filmback_preset": "IMAX 70mm",
+      "squeeze": 1.0,
+      "native_iso": 800,
+      "coc_mm": 0.06,
+      "use": "city / titan / finale chapters (scale, very shallow DOF for a given FOV)"
+    }
+  },
+  "lens_sets": {
+    "s35_spherical_primes": {
+      "label": "Modern S35 spherical primes (Master-Prime class)",
+      "focal_lengths_mm": [
+        14,
+        18,
+        21,
+        25,
+        27,
+        32,
+        35,
+        40,
+        50,
+        65,
+        75,
+        100,
+        135
+      ],
+      "LensSettings": {
+        "MinFocalLength": 14.0,
+        "MaxFocalLength": 135.0,
+        "MinFStop": 1.3,
+        "MaxFStop": 22.0,
+        "MinimumFocusDistance": 350.0,
+        "SqueezeFactor": 1.0,
+        "DiaphragmBladeCount": 9
+      },
+      "natural_vignette_stops_wide_open": 0.8,
+      "lateral_ca_px_1080": 0.4,
+      "distortion_brown_conrady": {
+        "18": {
+          "k1": -0.035,
+          "k2": 0.006
+        },
+        "35": {
+          "k1": -0.012,
+          "k2": 0.0
+        },
+        "50": {
+          "k1": 0.004,
+          "k2": 0.0
+        },
+        "100": {
+          "k1": 0.008,
+          "k2": 0.0
+        }
+      },
+      "flare_character": "low; small 9-blade ghosts, faint veiling glare"
+    },
+    "lf_spherical_primes": {
+      "label": "Large-format spherical primes (Signature-Prime class)",
+      "focal_lengths_mm": [
+        21,
+        25,
+        29,
+        35,
+        40,
+        47,
+        58,
+        75,
+        105,
+        125
+      ],
+      "LensSettings": {
+        "MinFocalLength": 21.0,
+        "MaxFocalLength": 125.0,
+        "MinFStop": 1.8,
+        "MaxFStop": 22.0,
+        "MinimumFocusDistance": 350.0,
+        "SqueezeFactor": 1.0,
+        "DiaphragmBladeCount": 11
+      },
+      "natural_vignette_stops_wide_open": 1.0,
+      "lateral_ca_px_1080": 0.3,
+      "distortion_brown_conrady": {
+        "29": {
+          "k1": -0.02,
+          "k2": 0.004
+        },
+        "58": {
+          "k1": 0.003,
+          "k2": 0.0
+        }
+      },
+      "flare_character": "very low; soft veiling glare, round ghosts"
+    },
+    "anamorphic_2x_primes": {
+      "label": "2x front-anamorphic primes",
+      "focal_lengths_mm": [
+        40,
+        50,
+        75,
+        100,
+        135
+      ],
+      "LensSettings": {
+        "MinFocalLength": 40.0,
+        "MaxFocalLength": 135.0,
+        "MinFStop": 2.0,
+        "MaxFStop": 22.0,
+        "MinimumFocusDistance": 900.0,
+        "SqueezeFactor": 2.0,
+        "DiaphragmBladeCount": 9
+      },
+      "natural_vignette_stops_wide_open": 1.2,
+      "lateral_ca_px_1080": 1.0,
+      "distortion_brown_conrady": {
+        "40": {
+          "k1": -0.05,
+          "k2": 0.02,
+          "note": "mustache; horizontal-axis bend dominates"
+        },
+        "75": {
+          "k1": -0.02,
+          "k2": 0.008
+        }
+      },
+      "petzval_and_barrel": {
+        "DepthOfFieldPetzvalBokeh": 0.5,
+        "DepthOfFieldPetzvalBokehFalloff": 1.0,
+        "DepthOfFieldBarrelRadius": 5.0,
+        "DepthOfFieldBarrelLength": 6.0
+      },
+      "flare_character": "horizontal blue streaks + oval ghosts (anamorphic option below)"
+    },
+    "imax_primes": {
+      "label": "IMAX 65mm primes (Hasselblad-derived class)",
+      "focal_lengths_mm": [
+        40,
+        50,
+        80,
+        110,
+        150
+      ],
+      "LensSettings": {
+        "MinFocalLength": 40.0,
+        "MaxFocalLength": 150.0,
+        "MinFStop": 2.8,
+        "MaxFStop": 32.0,
+        "MinimumFocusDistance": 600.0,
+        "SqueezeFactor": 1.0,
+        "DiaphragmBladeCount": 7
+      },
+      "natural_vignette_stops_wide_open": 1.1,
+      "lateral_ca_px_1080": 0.5,
+      "distortion_brown_conrady": {
+        "40": {
+          "k1": -0.025,
+          "k2": 0.005
+        },
+        "80": {
+          "k1": 0.002,
+          "k2": 0.0
+        }
+      },
+      "flare_character": "moderate; heptagonal ghosts"
+    }
+  },
+  "shot_types": {
+    "_convention": "Gameplay cameras are UCameraComponent with a HORIZONTAL FOV; the user's FieldOfView setting (ArenaGameUserSettings, default 95, slider 70-120) stays authoritative. Shot types are expressed as multipliers/offsets on it plus the full-frame (36 mm wide) equivalent focal length so cinematography and gameplay talk the same units: f_ff = 18 / tan(hFOV/2).",
+    "gameplay_third_person": {
+      "camera": "IronManCharacter.FollowCamera on SpringArm (TargetArmLength 420 cm, Hulkbuster 650)",
+      "hfov_rule": "user_fov - 5 (current code: SetCameraFOV TP = FP - 5)",
+      "reference_hfov_deg": 90.0,
+      "ff_equivalent_focal_mm": 18.0,
+      "recommended_hfov_rule": "user_fov - 10 (85 at default 95 = 19.6 mm FF); 90 deg at 4.2 m stretches the suit at frame edges",
+      "spring_arm": {
+        "TargetArmLength": 420.0,
+        "SocketOffset": [
+          0.0,
+          70.0,
+          70.0
+        ],
+        "CameraLagSpeed": 14.0,
+        "recommended_CameraRotationLagSpeed": 0.0
+      },
+      "depth_of_field": "off (DepthOfFieldFocalDistance overridden to 0). At 18-20 mm FF and f/4+ the hyperfocal distance is ~3 m, so a real lens would render everything past the suit sharp.",
+      "motion_blur": "per tier; camera + object"
+    },
+    "aim": {
+      "hfov_multiplier": 0.8,
+      "reference_hfov_deg": 72.0,
+      "ff_equivalent_focal_mm": 24.8,
+      "blend_in_s": 0.15,
+      "blend_out_s": 0.2,
+      "ease": "cubic in/out",
+      "spring_arm": {
+        "TargetArmLength": 250.0,
+        "SocketOffset": [
+          0.0,
+          80.0,
+          60.0
+        ],
+        "CameraLagSpeed": 20.0
+      },
+      "depth_of_field": {
+        "default": "off",
+        "epic_optional": {
+          "DepthOfFieldFstop": 2.8,
+          "DepthOfFieldSensorWidth": 36.0,
+          "DepthOfFieldMinFstop": 1.2,
+          "DepthOfFieldBladeCount": 9,
+          "DepthOfFieldFocalDistance": "aim trace hit distance (cm), interp 6/s",
+          "note": "only near geometry (<~3 m) visibly blurs; hyperfocal at 22.5 mm f/2.8 is ~6 m"
+        }
+      },
+      "motion_blur_amount_scale": 0.7,
+      "camera_rotation_blur": "recommend off while aiming (needs C++ bCameraMotionBlur=false, see notes)"
+    },
+    "flight": {
+      "fov_vs_speed_deg_add": [
+        {
+          "speed_ms": 0.0,
+          "add": 0.0
+        },
+        {
+          "speed_ms": 13.5,
+          "add": 3.0
+        },
+        {
+          "speed_ms": 22.3,
+          "add": 6.0
+        },
+        {
+          "speed_ms": 29.0,
+          "add": 8.0
+        },
+        {
+          "speed_ms": 100.0,
+          "add": 10.0
+        },
+        {
+          "speed_ms": 343.0,
+          "add": 12.0
+        }
+      ],
+      "speed_source": "velocity cm/s / 100 (same as HelmetHUDWidget SpeedMs)",
+      "fov_interp_speed": 3.0,
+      "boost_onset_fov_kick_deg": 2.0,
+      "boost_onset_kick_s": 0.25,
+      "max_hfov_deg": 120.0,
+      "note": "non-physical perceptual cue (a real camera does not widen with speed); kept modest. Reduced-motion: x0.5.",
+      "spring_arm": {
+        "CameraLagSpeed": 10.0,
+        "CameraRotationLagSpeed": 12.0,
+        "note": "slight rotation lag reads as a chase drone instead of a rigid boom"
+      }
+    },
+    "helmet_hud_pov": {
+      "camera": "FirstPersonCamera, eye height 74 cm, FirstPersonFOV 95 (60-120)",
+      "reference_hfov_deg": 95.0,
+      "ff_equivalent_focal_mm": 16.5,
+      "post_overrides": {
+        "VignetteIntensity": 0.0,
+        "SceneFringeIntensity": 0.0,
+        "FilmGrainIntensity_scale": 0.5,
+        "LensFlareIntensity_cap": 0.1,
+        "DepthOfFieldFocalDistance": 0.0,
+        "MotionBlurAmount_scale": 0.7
+      },
+      "why": "EDITH's visor widget already adds barrel warp (K1 .06/K2 .015), chromatic edge split 1.5 px, 0.02 noise and a warning vignette (contrib/edith/hud_spec.md). Adding scene-level vignette, CA, grain or lens distortion would double them. The visor is a display, not a lens, so the scene behind it should look clean.",
+      "exposure": "same histogram as gameplay; consider AutoExposureMeterMask (center-weighted) so HUD-lit visor frame does not meter"
+    },
+    "cutscene": {
+      "camera": "ACineCameraActor spawned by StoryDirector / SuitUpCinematic",
+      "story_director_focal_mm_s35": {
+        "wide": 20,
+        "aerial": 22,
+        "medium": 35,
+        "close": 50,
+        "rack": 60,
+        "ecu": 70
+      },
+      "focal_scale_rule": "f_body = f_s35 * (SensorWidth * SqueezeFactor / 24.89) keeps StoryDirector horizontal framing on non-S35 filmbacks",
+      "aperture_rule_by_shot": {
+        "wide": "max(preset, f/4 S35-equiv)",
+        "aerial": "max(preset, f/5.6 S35-equiv)",
+        "medium": "preset",
+        "close": "preset",
+        "rack": "preset (wide open)",
+        "ecu": "max(preset, f/2.8 S35-equiv) - wider than that leaves eyelashes soft"
+      },
+      "dof_equivalence": "N_body = N_s35 * SensorWidth/24.89 gives the same DOF for the same framing",
+      "focus": {
+        "FocusMethod": "Tracking (face/eye socket) or Manual from look-at distance",
+        "bSmoothFocusChanges": true,
+        "FocusSmoothingInterpSpeed": 4.0,
+        "rack_focus_s": 0.8,
+        "eye_offset_cm": [
+          0.0,
+          0.0,
+          8.0
+        ]
+      },
+      "shutter": "180 deg at 24 fps (1/48); ruins + titan_battlefield 90 deg (1/96, combat staccato) - from lighting_presets"
+    }
+  },
+  "cutscene_packages": {
+    "prologue": {
+      "body": "super35_4perf",
+      "lens_set": "s35_spherical_primes",
+      "FilmbackPreset": "Super 35mm",
+      "Filmback": {
+        "SensorWidth": 24.89,
+        "SensorHeight": 18.66
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 35.0,
+      "CurrentAperture": 2.0,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 320.0,
+      "native_iso": 320,
+      "nd_filter": "none",
+      "camera_ev100": 5.91,
+      "scene_ev100": 5.91,
+      "focal_scale_vs_s35": 1.0,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 20.0,
+          "focal_prime_mm": 21,
+          "hfov_deg": 61.3,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 22.0,
+          "focal_prime_mm": 21,
+          "hfov_deg": 61.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 35.0,
+          "focal_prime_mm": 35,
+          "hfov_deg": 39.1,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 50.0,
+          "focal_prime_mm": 50,
+          "hfov_deg": 28.0,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 60.0,
+          "focal_prime_mm": 65,
+          "hfov_deg": 21.7,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 70.0,
+          "focal_prime_mm": 65,
+          "hfov_deg": 21.7,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 9,
+      "film_grain_cinematic": 0.037,
+      "hyperfocal_m_at_base": 24.5
+    },
+    "workshop": {
+      "body": "alexa_lf_open_gate",
+      "lens_set": "lf_spherical_primes",
+      "FilmbackPreset": "ARRI ALEXA LF (Open Gate)",
+      "Filmback": {
+        "SensorWidth": 36.7,
+        "SensorHeight": 25.54
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 40.0,
+      "CurrentAperture": 2.8,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 160.0,
+      "native_iso": 160,
+      "nd_filter": "none",
+      "camera_ev100": 7.88,
+      "scene_ev100": 7.91,
+      "focal_scale_vs_s35": 1.474,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 29.5,
+          "focal_prime_mm": 29,
+          "hfov_deg": 64.6,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 32.4,
+          "focal_prime_mm": 35,
+          "hfov_deg": 55.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 51.6,
+          "focal_prime_mm": 47,
+          "hfov_deg": 42.7,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 73.7,
+          "focal_prime_mm": 75,
+          "hfov_deg": 27.5,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 88.5,
+          "focal_prime_mm": 75,
+          "hfov_deg": 27.5,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 103.2,
+          "focal_prime_mm": 105,
+          "hfov_deg": 19.8,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 11,
+      "film_grain_cinematic": 0.027,
+      "hyperfocal_m_at_base": 19.1
+    },
+    "rooftops": {
+      "body": "anamorphic_35_2x",
+      "lens_set": "anamorphic_2x_primes",
+      "FilmbackPreset": "35mm 4-perf Anamorphic (2.39:1 after 2x desqueeze)",
+      "Filmback": {
+        "SensorWidth": 21.95,
+        "SensorHeight": 18.59
+      },
+      "SqueezeFactor": 2.0,
+      "CurrentFocalLength": 50.0,
+      "CurrentAperture": 2.8,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 6.25,
+      "native_iso": 800,
+      "nd_filter": "ND 2.1 (7 stops); UE has no ND, so it is folded into CameraISO = 800 / 2^7 = 6.25",
+      "camera_ev100": 12.56,
+      "scene_ev100": 12.55,
+      "focal_scale_vs_s35": 1.764,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 35.3,
+          "focal_prime_mm": 40,
+          "hfov_deg": 57.5,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 38.8,
+          "focal_prime_mm": 40,
+          "hfov_deg": 57.5,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 61.7,
+          "focal_prime_mm": 50,
+          "hfov_deg": 47.4,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 88.2,
+          "focal_prime_mm": 100,
+          "hfov_deg": 24.8,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 105.8,
+          "focal_prime_mm": 100,
+          "hfov_deg": 24.8,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 123.5,
+          "focal_prime_mm": 135,
+          "hfov_deg": 18.5,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 9,
+      "film_grain_cinematic": 0.05,
+      "hyperfocal_m_at_base": 35.8,
+      "DepthOfFieldPetzvalBokeh": 0.5,
+      "DepthOfFieldPetzvalBokehFalloff": 1.0,
+      "DepthOfFieldBarrelRadius": 5.0,
+      "DepthOfFieldBarrelLength": 6.0
+    },
+    "city": {
+      "body": "imax_70mm",
+      "lens_set": "imax_primes",
+      "FilmbackPreset": "IMAX 70mm",
+      "Filmback": {
+        "SensorWidth": 70.41,
+        "SensorHeight": 52.63
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 80.0,
+      "CurrentAperture": 5.6,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 3.125,
+      "native_iso": 800,
+      "nd_filter": "ND 2.4 (8 stops); UE has no ND, so it is folded into CameraISO = 800 / 2^8 = 3.125",
+      "camera_ev100": 15.56,
+      "scene_ev100": 15.55,
+      "focal_scale_vs_s35": 2.829,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 56.6,
+          "focal_prime_mm": 50,
+          "hfov_deg": 70.3,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 62.2,
+          "focal_prime_mm": 50,
+          "hfov_deg": 70.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 99.0,
+          "focal_prime_mm": 110,
+          "hfov_deg": 35.5,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 141.4,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 169.7,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 198.0,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": true
+        }
+      },
+      "DepthOfFieldBladeCount": 7,
+      "film_grain_cinematic": 0.05,
+      "hyperfocal_m_at_base": 19.1
+    },
+    "ruins": {
+      "body": "super35_4perf",
+      "lens_set": "s35_spherical_primes",
+      "FilmbackPreset": "Super 35mm",
+      "Filmback": {
+        "SensorWidth": 24.89,
+        "SensorHeight": 18.66
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 35.0,
+      "CurrentAperture": 4.0,
+      "CameraShutterSpeed": 96.0,
+      "shutter_angle_deg": 90.0,
+      "CameraISO_effective": 25.0,
+      "native_iso": 800,
+      "nd_filter": "ND 1.5 (5 stops); UE has no ND, so it is folded into CameraISO = 800 / 2^5 = 25",
+      "camera_ev100": 12.58,
+      "scene_ev100": 12.58,
+      "focal_scale_vs_s35": 1.0,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 20.0,
+          "focal_prime_mm": 21,
+          "hfov_deg": 61.3,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 22.0,
+          "focal_prime_mm": 21,
+          "hfov_deg": 61.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 35.0,
+          "focal_prime_mm": 35,
+          "hfov_deg": 39.1,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 50.0,
+          "focal_prime_mm": 50,
+          "hfov_deg": 28.0,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 60.0,
+          "focal_prime_mm": 65,
+          "hfov_deg": 21.7,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 70.0,
+          "focal_prime_mm": 65,
+          "hfov_deg": 21.7,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 9,
+      "film_grain_cinematic": 0.05,
+      "hyperfocal_m_at_base": 12.3
+    },
+    "titan_battlefield": {
+      "body": "imax_70mm",
+      "lens_set": "imax_primes",
+      "FilmbackPreset": "IMAX 70mm",
+      "Filmback": {
+        "SensorWidth": 70.41,
+        "SensorHeight": 52.63
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 50.0,
+      "CurrentAperture": 2.8,
+      "CameraShutterSpeed": 96.0,
+      "shutter_angle_deg": 90.0,
+      "CameraISO_effective": 100.0,
+      "native_iso": 800,
+      "nd_filter": "ND 0.9 (3 stops); UE has no ND, so it is folded into CameraISO = 800 / 2^3 = 100",
+      "camera_ev100": 9.56,
+      "scene_ev100": 9.55,
+      "focal_scale_vs_s35": 2.829,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 56.6,
+          "focal_prime_mm": 50,
+          "hfov_deg": 70.3,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 62.2,
+          "focal_prime_mm": 50,
+          "hfov_deg": 70.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 99.0,
+          "focal_prime_mm": 110,
+          "hfov_deg": 35.5,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 141.4,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 169.7,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 198.0,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": true
+        }
+      },
+      "DepthOfFieldBladeCount": 7,
+      "film_grain_cinematic": 0.05,
+      "hyperfocal_m_at_base": 14.9
+    },
+    "finale": {
+      "body": "imax_70mm",
+      "lens_set": "imax_primes",
+      "FilmbackPreset": "IMAX 70mm",
+      "Filmback": {
+        "SensorWidth": 70.41,
+        "SensorHeight": 52.63
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 80.0,
+      "CurrentAperture": 4.0,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 50.0,
+      "native_iso": 800,
+      "nd_filter": "ND 1.2 (4 stops); UE has no ND, so it is folded into CameraISO = 800 / 2^4 = 50",
+      "camera_ev100": 10.58,
+      "scene_ev100": 10.58,
+      "focal_scale_vs_s35": 2.829,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 56.6,
+          "focal_prime_mm": 50,
+          "hfov_deg": 70.3,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 62.2,
+          "focal_prime_mm": 50,
+          "hfov_deg": 70.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 99.0,
+          "focal_prime_mm": 110,
+          "hfov_deg": 35.5,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 141.4,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 169.7,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 198.0,
+          "focal_prime_mm": 150,
+          "hfov_deg": 26.4,
+          "out_of_lens_set": true
+        }
+      },
+      "DepthOfFieldBladeCount": 7,
+      "film_grain_cinematic": 0.05,
+      "hyperfocal_m_at_base": 26.7
+    },
+    "workshop_night": {
+      "body": "alexa_lf_open_gate",
+      "lens_set": "lf_spherical_primes",
+      "FilmbackPreset": "ARRI ALEXA LF (Open Gate)",
+      "Filmback": {
+        "SensorWidth": 36.7,
+        "SensorHeight": 25.54
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 40.0,
+      "CurrentAperture": 2.0,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 640.0,
+      "native_iso": 640,
+      "nd_filter": "none",
+      "camera_ev100": 4.91,
+      "scene_ev100": 4.91,
+      "focal_scale_vs_s35": 1.474,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 29.5,
+          "focal_prime_mm": 29,
+          "hfov_deg": 64.6,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 32.4,
+          "focal_prime_mm": 35,
+          "hfov_deg": 55.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 51.6,
+          "focal_prime_mm": 47,
+          "hfov_deg": 42.7,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 73.7,
+          "focal_prime_mm": 75,
+          "hfov_deg": 27.5,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 88.5,
+          "focal_prime_mm": 75,
+          "hfov_deg": 27.5,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 103.2,
+          "focal_prime_mm": 105,
+          "hfov_deg": 19.8,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 11,
+      "film_grain_cinematic": 0.047,
+      "hyperfocal_m_at_base": 26.7
+    },
+    "rooftops_storm": {
+      "body": "anamorphic_35_2x",
+      "lens_set": "anamorphic_2x_primes",
+      "FilmbackPreset": "35mm 4-perf Anamorphic (2.39:1 after 2x desqueeze)",
+      "Filmback": {
+        "SensorWidth": 21.95,
+        "SensorHeight": 18.59
+      },
+      "SqueezeFactor": 2.0,
+      "CurrentFocalLength": 40.0,
+      "CurrentAperture": 2.0,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 1600.0,
+      "native_iso": 1600,
+      "nd_filter": "none",
+      "camera_ev100": 3.58,
+      "scene_ev100": 3.58,
+      "focal_scale_vs_s35": 1.764,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 35.3,
+          "focal_prime_mm": 40,
+          "hfov_deg": 57.5,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 38.8,
+          "focal_prime_mm": 40,
+          "hfov_deg": 57.5,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 61.7,
+          "focal_prime_mm": 50,
+          "hfov_deg": 47.4,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 88.2,
+          "focal_prime_mm": 100,
+          "hfov_deg": 24.8,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 105.8,
+          "focal_prime_mm": 100,
+          "hfov_deg": 24.8,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 123.5,
+          "focal_prime_mm": 135,
+          "hfov_deg": 18.5,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 9,
+      "film_grain_cinematic": 0.08,
+      "hyperfocal_m_at_base": 32.0,
+      "DepthOfFieldPetzvalBokeh": 0.5,
+      "DepthOfFieldPetzvalBokehFalloff": 1.0,
+      "DepthOfFieldBarrelRadius": 5.0,
+      "DepthOfFieldBarrelLength": 6.0
+    },
+    "city_night": {
+      "body": "super35_4perf",
+      "lens_set": "s35_spherical_primes",
+      "FilmbackPreset": "Super 35mm",
+      "Filmback": {
+        "SensorWidth": 24.89,
+        "SensorHeight": 18.66
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 35.0,
+      "CurrentAperture": 2.0,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 1250.0,
+      "native_iso": 1250,
+      "nd_filter": "none",
+      "camera_ev100": 3.94,
+      "scene_ev100": 3.93,
+      "focal_scale_vs_s35": 1.0,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 20.0,
+          "focal_prime_mm": 21,
+          "hfov_deg": 61.3,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 22.0,
+          "focal_prime_mm": 21,
+          "hfov_deg": 61.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 35.0,
+          "focal_prime_mm": 35,
+          "hfov_deg": 39.1,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 50.0,
+          "focal_prime_mm": 50,
+          "hfov_deg": 28.0,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 60.0,
+          "focal_prime_mm": 65,
+          "hfov_deg": 21.7,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 70.0,
+          "focal_prime_mm": 65,
+          "hfov_deg": 21.7,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 9,
+      "film_grain_cinematic": 0.069,
+      "hyperfocal_m_at_base": 24.5
+    },
+    "city_overcast": {
+      "body": "alexa_lf_open_gate",
+      "lens_set": "lf_spherical_primes",
+      "FilmbackPreset": "ARRI ALEXA LF (Open Gate)",
+      "Filmback": {
+        "SensorWidth": 36.7,
+        "SensorHeight": 25.54
+      },
+      "SqueezeFactor": 1.0,
+      "CurrentFocalLength": 58.0,
+      "CurrentAperture": 4.0,
+      "CameraShutterSpeed": 48.0,
+      "shutter_angle_deg": 180.0,
+      "CameraISO_effective": 12.5,
+      "native_iso": 800,
+      "nd_filter": "ND 1.8 (6 stops); UE has no ND, so it is folded into CameraISO = 800 / 2^6 = 12.5",
+      "camera_ev100": 12.58,
+      "scene_ev100": 12.58,
+      "focal_scale_vs_s35": 1.474,
+      "story_shots": {
+        "wide": {
+          "focal_exact_mm": 29.5,
+          "focal_prime_mm": 29,
+          "hfov_deg": 64.6,
+          "out_of_lens_set": false
+        },
+        "aerial": {
+          "focal_exact_mm": 32.4,
+          "focal_prime_mm": 35,
+          "hfov_deg": 55.3,
+          "out_of_lens_set": false
+        },
+        "medium": {
+          "focal_exact_mm": 51.6,
+          "focal_prime_mm": 47,
+          "hfov_deg": 42.7,
+          "out_of_lens_set": false
+        },
+        "close": {
+          "focal_exact_mm": 73.7,
+          "focal_prime_mm": 75,
+          "hfov_deg": 27.5,
+          "out_of_lens_set": false
+        },
+        "rack": {
+          "focal_exact_mm": 88.5,
+          "focal_prime_mm": 75,
+          "hfov_deg": 27.5,
+          "out_of_lens_set": false
+        },
+        "ecu": {
+          "focal_exact_mm": 103.2,
+          "focal_prime_mm": 105,
+          "hfov_deg": 19.8,
+          "out_of_lens_set": false
+        }
+      },
+      "DepthOfFieldBladeCount": 11,
+      "film_grain_cinematic": 0.05,
+      "hyperfocal_m_at_base": 28.1
+    }
+  },
+  "exposure": {
+    "model": {
+      "units": "EV100 (r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange=True, so Min/MaxBrightness and HistogramLogMin/Max are EV100)",
+      "scene_ev100": "log2(illuminance_lux / 2.5) from lighting_presets.exposure_reference",
+      "camera_ev100": "log2(N^2 / t) - log2(ISO / 100); ND folded into effective ISO",
+      "shutter": "t = (shutter_angle / 360) / fps"
+    },
+    "histogram_range": {
+      "HistogramLogMin": -2.0,
+      "HistogramLogMax": 18.0,
+      "why": "covers city_night (3.9) to sunlit city (15.6) with >2 EV headroom both ends"
+    },
+    "per_environment": {
+      "prologue": {
+        "scene_ev100": 5.91,
+        "manual_ev100": 5.91,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 4.91,
+          "AutoExposureMaxBrightness": 6.91,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.0
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 2.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 798.28,
+          "native_iso": 800.0,
+          "nd_stops": 0.0,
+          "check_ev100": 5.91
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.8,
+          "LocalExposureShadowContrastScale": 0.9,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "workshop": {
+        "scene_ev100": 7.91,
+        "manual_ev100": 7.91,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 6.41,
+          "AutoExposureMaxBrightness": 9.41,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.0
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 4.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 798.28,
+          "native_iso": 800.0,
+          "nd_stops": 0.0,
+          "check_ev100": 7.91
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.7,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "rooftops": {
+        "scene_ev100": 12.55,
+        "manual_ev100": 12.55,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 11.05,
+          "AutoExposureMaxBrightness": 14.05,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.3
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 8.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 128.07,
+          "native_iso": 800.0,
+          "nd_stops": 2.6,
+          "check_ev100": 12.55
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.75,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "city": {
+        "scene_ev100": 15.55,
+        "manual_ev100": 15.55,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 14.05,
+          "AutoExposureMaxBrightness": 17.05,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.0
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 8.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 16.01,
+          "native_iso": 800.0,
+          "nd_stops": 5.6,
+          "check_ev100": 15.55
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.8,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "ruins": {
+        "scene_ev100": 12.58,
+        "manual_ev100": 12.58,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 11.08,
+          "AutoExposureMaxBrightness": 14.08,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.0
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 8.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 125.43,
+          "native_iso": 800.0,
+          "nd_stops": 2.7,
+          "check_ev100": 12.58
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.8,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.1,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "titan_battlefield": {
+        "scene_ev100": 9.55,
+        "manual_ev100": 9.55,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 8.55,
+          "AutoExposureMaxBrightness": 11.05,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": -0.2
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 4.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 256.13,
+          "native_iso": 800.0,
+          "nd_stops": 1.6,
+          "check_ev100": 9.55
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.6,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.1,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "finale": {
+        "scene_ev100": 10.58,
+        "manual_ev100": 10.58,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 9.58,
+          "AutoExposureMaxBrightness": 12.08,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.3
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 4.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 125.43,
+          "native_iso": 800.0,
+          "nd_stops": 2.7,
+          "check_ev100": 10.58
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.7,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "workshop_night": {
+        "scene_ev100": 4.91,
+        "manual_ev100": 4.91,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 4.01,
+          "AutoExposureMaxBrightness": 5.91,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": -0.3
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 2.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 1596.56,
+          "native_iso": 1600.0,
+          "nd_stops": 0.0,
+          "check_ev100": 4.91
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.7,
+          "LocalExposureShadowContrastScale": 0.9,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "rooftops_storm": {
+        "scene_ev100": 3.58,
+        "manual_ev100": 3.58,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 2.58,
+          "AutoExposureMaxBrightness": 4.78,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.0
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 2.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 4013.78,
+          "native_iso": 4000.0,
+          "nd_stops": 0.0,
+          "check_ev100": 3.58
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.65,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "city_night": {
+        "scene_ev100": 3.93,
+        "manual_ev100": 3.93,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 3.03,
+          "AutoExposureMaxBrightness": 5.13,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": -0.3
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 2.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 3149.15,
+          "native_iso": 3200.0,
+          "nd_stops": 0.0,
+          "check_ev100": 3.93
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.6,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.6,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      },
+      "city_overcast": {
+        "scene_ev100": 12.58,
+        "manual_ev100": 12.58,
+        "histogram": {
+          "AutoExposureMethod": "AEM_Histogram",
+          "AutoExposureMinBrightness": 11.58,
+          "AutoExposureMaxBrightness": 13.58,
+          "AutoExposureLowPercent": 80.0,
+          "AutoExposureHighPercent": 98.3,
+          "AutoExposureSpeedUp": 3.0,
+          "AutoExposureSpeedDown": 1.0,
+          "AutoExposureBias": 0.3
+        },
+        "gameplay_manual_triangle": {
+          "use": "photo mode / locked exposure only (AEM_Manual + AutoExposureApplyPhysicalCameraExposure)",
+          "DepthOfFieldFstop": 8.0,
+          "CameraShutterSpeed": 120.0,
+          "shutter_angle_deg_at_60fps": 180.0,
+          "CameraISO": 125.43,
+          "native_iso": 800.0,
+          "nd_stops": 2.7,
+          "check_ev100": 12.58
+        },
+        "local_exposure": {
+          "LocalExposureHighlightContrastScale": 0.9,
+          "LocalExposureShadowContrastScale": 1.0,
+          "LocalExposureDetailStrength": 1.0,
+          "LocalExposureBlurredLuminanceBlend": 0.4,
+          "LocalExposureMiddleGreyBias": 0.0
+        }
+      }
+    },
+    "transitions": {
+      "workshop_to_outdoors": {
+        "volume": "bounded PPV at the hangar door / exit tunnel, Priority 1, BlendRadius 300 cm",
+        "AutoExposureMinBrightness": 6.41,
+        "AutoExposureMaxBrightness": 17.05,
+        "AutoExposureSpeedUp": 2.5,
+        "AutoExposureSpeedDown": 1.0,
+        "stops": 7.64,
+        "approx_adapt_s": {
+          "to_bright": 3.1,
+          "to_dark": 7.6
+        },
+        "why": "eyes/cameras adapt to light in seconds and to dark much slower; 2.5 EV/s reads as a real exposure pull without a white-out longer than ~1 s"
+      },
+      "flash_events": {
+        "explosions_lightning": "keep AutoExposureHighPercent 98.3 so small bright VFX are ignored; combat overlay drops SpeedUp to 2.0 to stop pumping on sub-0.3 s flashes",
+        "unibeam_pov": "flash lasts 0.9 s; at SpeedUp 2 the camera pulls ~0.5 EV - intended"
+      },
+      "eye_adaptation_cvars": {
+        "r.EyeAdaptation.ExponentialTransitionDistance": 1.5,
+        "note": "verify name/default in 5.8; controls where the speed switches from linear to exponential"
+      }
+    },
+    "bias_curve_optional": {
+      "property": "AutoExposureBiasCurve (CurveFloat, x = average scene EV100, y = bias EV)",
+      "keys": [
+        {
+          "ev100": 2.0,
+          "bias": -0.7
+        },
+        {
+          "ev100": 5.0,
+          "bias": -0.4
+        },
+        {
+          "ev100": 9.0,
+          "bias": 0.0
+        },
+        {
+          "ev100": 15.0,
+          "bias": 0.0
+        },
+        {
+          "ev100": 17.0,
+          "bias": 0.3
+        }
+      ],
+      "why": "night stays night (real cameras/eyes do not lift a moonlit street to mid-grey); midday snow/sky gets +0.3",
+      "asset": "/Game/Contrib/Vison/Camera/C_AutoExposureBias (create in editor; not created by script)"
+    },
+    "meter_mask_optional": "AutoExposureMeterMask: centre-weighted radial texture (centre 1.0, edge 0.35) for helmet POV",
+    "local_exposure_method_by_tier": {
+      "Epic": {
+        "gameplay": "BILATERAL",
+        "cutscene": "FUSION (verify in 5.8 - fall back to BILATERAL)"
+      },
+      "High": "BILATERAL",
+      "Medium": "BILATERAL"
+    },
+    "cutscene": "AEM_Manual + AutoExposureApplyPhysicalCameraExposure from the cutscene camera triangle (cutscene_packages)"
+  },
+  "lens_effects": {
+    "chromatic_aberration": {
+      "gameplay": {
+        "SceneFringeIntensity": 0.0,
+        "why": "matches the live photoreal pass (r.SceneColorFringeQuality=0)"
+      },
+      "cutscene_spec": {
+        "SceneFringeIntensity": "0.10-0.25 (per environment)",
+        "ChromaticAberrationStartOffset": 0.5,
+        "real_reference": "0.3-1.0 px lateral CA at frame edge at 1080p for cine primes",
+        "status": "INERT today: DefaultScalability sets r.SceneColorFringeQuality=0 on every tier and ApplyPhotorealGrade forces 0 on cine cameras too"
+      }
+    },
+    "vignette": {
+      "VignetteType": "COSINE_FOURTH_LAW (5.8: physically based cos^4 falloff; fall back to OVAL if unavailable)",
+      "rule_gameplay": "min(environment * 0.6, 0.3)",
+      "rule_cutscene": "environment value (lighting_presets), which matches ~0.8-1.2 stops natural falloff wide open",
+      "helmet_pov": 0.0
+    },
+    "bloom": {
+      "gameplay_all_tiers": {
+        "BloomMethod": "BM_SOG",
+        "BloomThreshold": -1.0,
+        "BloomIntensity": "realism preset, cap 0.6",
+        "why": "threshold -1 = energy-conserving (every pixel scatters a little), like real veiling glare"
+      },
+      "cutscene_Epic": {
+        "BloomMethod": "BM_FFT",
+        "BloomIntensity": 1.0,
+        "BloomGaussianIntensity": 0.0,
+        "BloomConvolutionSize": 1.0,
+        "BloomConvolutionBufferScale": 0.133,
+        "BloomConvolutionPreFilterMin": 7.0,
+        "BloomConvolutionPreFilterMax": 15000.0,
+        "BloomConvolutionPreFilterMult": 15.0,
+        "BloomConvolutionScatterDispersion": 1.0,
+        "kernel": "engine default; upgrade = measured 1024^2 EXR kernel per lens set (9/11/7-blade starbursts)",
+        "source": "postprocess_realism _tier_overrides.Epic (copied)"
+      },
+      "cutscene_High_Medium": "BM_SOG, same as gameplay"
+    },
+    "lens_flare": {
+      "minimal_default": {
+        "rule_gameplay": "min(env, 0.4) * 0.5",
+        "LensFlareThreshold": 8.0,
+        "LensFlareBokehSize": 3.0,
+        "LensFlareBokehShape": "/Game/Contrib/Vison/Camera/T_Flare_Bokeh_9Blade (optional import)"
+      },
+      "anamorphic_option": {
+        "applies_to": [
+          "rooftops",
+          "rooftops_storm"
+        ],
+        "LensFlareBokehShape": "/Game/Contrib/Vison/Camera/T_Flare_Anamorphic_Streak",
+        "LensFlareTint": {
+          "R": 0.62,
+          "G": 0.78,
+          "B": 1.0,
+          "A": 1.0
+        },
+        "LensFlareBokehSize": 6.0,
+        "LensFlareIntensity": 0.4,
+        "note": "image-based flare only; a true anamorphic streak needs a convolution kernel (Epic FFT) or a VFX sprite (Ultron's domain)"
+      }
+    },
+    "film_grain": {
+      "model": "digital sensor noise: strongest in shadows",
+      "FilmGrainIntensityShadows": 1.0,
+      "FilmGrainIntensityMidtones": 0.7,
+      "FilmGrainIntensityHighlights": 0.25,
+      "FilmGrainShadowsMax": 0.09,
+      "FilmGrainHighlightsMin": 0.5,
+      "FilmGrainHighlightsMax": 1.0,
+      "cutscene_by_native_iso": [
+        {
+          "iso": 100,
+          "FilmGrainIntensity": 0.02
+        },
+        {
+          "iso": 200,
+          "FilmGrainIntensity": 0.03
+        },
+        {
+          "iso": 400,
+          "FilmGrainIntensity": 0.04
+        },
+        {
+          "iso": 800,
+          "FilmGrainIntensity": 0.05
+        },
+        {
+          "iso": 1600,
+          "FilmGrainIntensity": 0.08
+        },
+        {
+          "iso": 3200,
+          "FilmGrainIntensity": 0.11
+        },
+        {
+          "iso": 6400,
+          "FilmGrainIntensity": 0.15
+        }
+      ],
+      "caps": {
+        "gameplay": 0.08,
+        "cinematic": 0.15
+      }
+    },
+    "lens_distortion": {
+      "default": "off",
+      "option_A": "Lens Distortion / CameraCalibrationCore plugin (Brown-Conrady k1,k2,p1,p2,k3 per lens set below) - NOT enabled in IronManArena.uproject",
+      "option_B": "ST-map displacement material as a post-process blendable (BL_SceneColorAfterTonemapping is wrong for distortion; use BeforeTranslucency/ReplacingTonemapper-safe pass)",
+      "overscan": 0.05,
+      "cost_estimate_ms_High": "1.0-1.4 (overscan + extra full-screen pass) - estimate",
+      "helmet_pov": "never (EDITH visor warp already does this)",
+      "coefficients": {
+        "s35_spherical_primes": {
+          "18": {
+            "k1": -0.035,
+            "k2": 0.006
+          },
+          "35": {
+            "k1": -0.012,
+            "k2": 0.0
+          },
+          "50": {
+            "k1": 0.004,
+            "k2": 0.0
+          },
+          "100": {
+            "k1": 0.008,
+            "k2": 0.0
+          }
+        },
+        "lf_spherical_primes": {
+          "29": {
+            "k1": -0.02,
+            "k2": 0.004
+          },
+          "58": {
+            "k1": 0.003,
+            "k2": 0.0
+          }
+        },
+        "anamorphic_2x_primes": {
+          "40": {
+            "k1": -0.05,
+            "k2": 0.02,
+            "note": "mustache; horizontal-axis bend dominates"
+          },
+          "75": {
+            "k1": -0.02,
+            "k2": 0.008
+          }
+        },
+        "imax_primes": {
+          "40": {
+            "k1": -0.025,
+            "k2": 0.005
+          },
+          "80": {
+            "k1": 0.002,
+            "k2": 0.0
+          }
+        }
+      }
+    },
+    "per_environment": {
+      "prologue": {
+        "VignetteIntensity": 0.24,
+        "FilmGrainIntensity": 0.05,
+        "LensFlareIntensity": 0.15,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.4,
+        "cutscene_LensFlareIntensity": 0.3,
+        "cutscene_SceneFringeIntensity_spec": 0.15
+      },
+      "workshop": {
+        "VignetteIntensity": 0.18,
+        "FilmGrainIntensity": 0.03,
+        "LensFlareIntensity": 0.15,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.3,
+        "cutscene_LensFlareIntensity": 0.3,
+        "cutscene_SceneFringeIntensity_spec": 0.1
+      },
+      "rooftops": {
+        "VignetteIntensity": 0.18,
+        "FilmGrainIntensity": 0.03,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.3,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.1
+      },
+      "city": {
+        "VignetteIntensity": 0.12,
+        "FilmGrainIntensity": 0.03,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.2,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.1
+      },
+      "ruins": {
+        "VignetteIntensity": 0.27,
+        "FilmGrainIntensity": 0.03,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.45,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.1
+      },
+      "titan_battlefield": {
+        "VignetteIntensity": 0.3,
+        "FilmGrainIntensity": 0.03,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.5,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.2
+      },
+      "finale": {
+        "VignetteIntensity": 0.21,
+        "FilmGrainIntensity": 0.03,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.35,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.1
+      },
+      "workshop_night": {
+        "VignetteIntensity": 0.27,
+        "FilmGrainIntensity": 0.05,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.45,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.2
+      },
+      "rooftops_storm": {
+        "VignetteIntensity": 0.27,
+        "FilmGrainIntensity": 0.05,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.45,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.25
+      },
+      "city_night": {
+        "VignetteIntensity": 0.27,
+        "FilmGrainIntensity": 0.05,
+        "LensFlareIntensity": 0.2,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.45,
+        "cutscene_LensFlareIntensity": 0.4,
+        "cutscene_SceneFringeIntensity_spec": 0.25
+      },
+      "city_overcast": {
+        "VignetteIntensity": 0.15,
+        "FilmGrainIntensity": 0.03,
+        "LensFlareIntensity": 0.1,
+        "SceneFringeIntensity": 0.0,
+        "cutscene_VignetteIntensity": 0.25,
+        "cutscene_LensFlareIntensity": 0.2,
+        "cutscene_SceneFringeIntensity_spec": 0.1
+      }
+    }
+  },
+  "depth_of_field": {
+    "gameplay": "off in third person, flight and helmet POV; optional subtle aim DOF on Epic (see shot_types.aim)",
+    "cutscene": "cinematic: per-shot aperture rules, focus tracking with smoothing, blade count from lens set",
+    "tiers": {
+      "Epic": {
+        "r.DepthOfFieldQuality": 2,
+        "r.DOF.Gather.RingCount": 5
+      },
+      "High": {
+        "r.DepthOfFieldQuality": 2,
+        "r.DOF.Gather.RingCount": 4
+      },
+      "Medium": {
+        "r.DepthOfFieldQuality": 1,
+        "r.DOF.Gather.RingCount": 3
+      }
+    },
+    "DepthOfFieldSkyFocusDistance": 0.0,
+    "DepthOfFieldMatteBoxFlags": "unset (no matte box occlusion of bokeh)"
+  },
+  "motion_blur": {
+    "shutter_model": "MotionBlurAmount = shutter_angle / 360; 180 deg -> 0.5",
+    "per_object_vs_camera": {
+      "per_object": "always on (velocity buffer); MotionBlurPerObjectSize 0 = no minimum size (all objects)",
+      "camera": "on in third person and flight; recommend OFF in aim and helmet POV via FSceneView.bCameraMotionBlur=false from a custom UGameViewportClient (C++; code owner). Without it, use MotionBlurAmount x0.7 there."
+    },
+    "tiers": {
+      "Epic": {
+        "cvars": {
+          "r.MotionBlurQuality": 4,
+          "r.MotionBlur.HalfResGather": 0
+        },
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 5.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "cutscene_TargetFPS": 24
+      },
+      "High": {
+        "cvars": {
+          "r.MotionBlurQuality": 3,
+          "r.MotionBlur.HalfResGather": 1
+        },
+        "MotionBlurAmount": 0.5,
+        "MotionBlurMax": 4.0,
+        "MotionBlurPerObjectSize": 0.0,
+        "MotionBlurTargetFPS": 60,
+        "cutscene_TargetFPS": 24
+      },
+      "Medium": {
+        "cvars": {
+          "r.MotionBlurQuality": 3,
+          "r.MotionBlur.HalfResGather": 1
+        },
+        "MotionBlurAmount": 0.4,
+        "MotionBlurMax": 3.0,
+        "MotionBlurPerObjectSize": 0.5,
+        "MotionBlurTargetFPS": 60,
+        "cutscene_TargetFPS": 24
+      }
+    },
+    "cutscene": {
+      "MotionBlurAmount": "from lighting_presets (0.5 = 180 deg; 0.25 = 90 deg ruins/titan)",
+      "MotionBlurTargetFPS": 24
+    },
+    "why_target_fps_60": "TargetFPS 60 locks blur length to a 1/120 s shutter regardless of the real frame rate (dynamic res keeps ~60 on High); at 30-45 fps blur would otherwise stretch",
+    "reduced_motion": "player toggle bMotionBlur already exists; reduced-motion users also get camera blur off"
+  },
+  "tiers": {
+    "_label": "GPU ms on RTX 2070 SUPER @1080p (High 75% screen percentage) - ESTIMATES, not measured",
+    "Epic": {
+      "gameplay_ms": {
+        "motion_blur": 0.4,
+        "bloom_sog": 0.3,
+        "lens_flare": 0.15,
+        "local_exposure_bilateral": 0.15,
+        "eye_adaptation": 0.05,
+        "tonemap_grain_vignette_lut": 0.1,
+        "aim_dof_optional": 0.5
+      },
+      "cutscene_extra_ms": {
+        "fft_bloom": 2.0,
+        "local_exposure_fusion": 0.4,
+        "dof": 0.7
+      },
+      "gameplay_total_ms": 1.15,
+      "cutscene_total_ms": 4.25
+    },
+    "High": {
+      "gameplay_ms": {
+        "motion_blur": 0.3,
+        "bloom_sog": 0.25,
+        "lens_flare": 0.12,
+        "local_exposure_bilateral": 0.12,
+        "eye_adaptation": 0.04,
+        "tonemap_grain_vignette_lut": 0.08
+      },
+      "cutscene_extra_ms": {
+        "dof": 0.4
+      },
+      "gameplay_total_ms": 0.91,
+      "cutscene_total_ms": 1.31
+    },
+    "Medium": {
+      "gameplay_ms": {
+        "motion_blur": 0.25,
+        "bloom_sog": 0.2,
+        "lens_flare": 0.1,
+        "local_exposure_bilateral": 0.1,
+        "eye_adaptation": 0.03,
+        "tonemap_grain_vignette_lut": 0.07
+      },
+      "cutscene_extra_ms": {
+        "dof": 0.25
+      },
+      "gameplay_total_ms": 0.75,
+      "cutscene_total_ms": 1.0
+    }
+  }
+}

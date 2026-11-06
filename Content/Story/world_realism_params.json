@@ -1,0 +1,332 @@
+{
+  "meta": {
+    "name": "Ultron world-realism layer: environment state, local fog, FX lights, Niagara VFX, distortion, Chaos destruction",
+    "version": "1.0.0",
+    "author": "Ultron (contrib/ultron/world_realism)",
+    "date": "2026-10-30",
+    "engine": "Unreal Engine 5.8.4",
+    "target": "RTX 2070 SUPER 8 GB, 1080p output, 60 fps, Lumen SWRT High (contrib/ultron/perf_budget.md)",
+    "units": {
+      "distance": "cm unless the key ends in _m or _km",
+      "time": "seconds unless the key ends in _ms",
+      "luminance": "cd/m2 (nits). Material emissive = nits / ima.EmissiveNitsPerUnit (project cvar, default 1000)",
+      "light_intensity": "candela for point/spot FX lights (UE IntensityUnits=Candelas)",
+      "color": "linear RGB"
+    },
+    "layering": [
+      "1. C++ FEnvironmentPreset (ArenaEnvironment::ApplyPreset)",
+      "2. contrib/vison/lighting_presets.json (sun 120000 lux / 5900 K, moon, sky light, EV100 exposure, camera)",
+      "3. contrib/vison/postprocess_realism.json (SkyAtmosphere, VolumetricCloud, ExponentialHeightFog + volumetric fog, Lumen, post)",
+      "4. THIS FILE: what Vison does not cover. World wetness/weather MPC, Local Fog Volumes, FX light pool, Niagara, distortion, Chaos. Keyed by Vison's preset ids; never re-specifies a key Vison owns."
+    ],
+    "sun_sky_changes": [],
+    "_sun_sky_changes_note": "No sun, moon, sky light, SkyAtmosphere, cloud, height-fog or exposure value is changed by this layer. Vison's exposure needs no resync.",
+    "preset_ids": ["prologue", "workshop", "rooftops", "city", "ruins", "titan_battlefield", "finale", "workshop_night", "rooftops_storm", "city_night", "city_overcast"],
+    "free_play_arena_preset": "city"
+  },
+
+  "ownership": {
+    "ultron_world_realism": ["MPC_WorldWeather / MPC_WorldFX and NPC_WorldWeather", "Local Fog Volumes (fire, smoke, dust pockets)", "wet streets, puddles, debris, decals", "FX light pool look (intensity, colour, light function)", "all Niagara systems", "screen-space distortion / heat haze materials", "Chaos geometry collections"],
+    "vison": ["sun, moon, sky light, SkyAtmosphere, VolumetricCloud, ExponentialHeightFog + volumetric fog values", "auto exposure / EV100", "PostProcessVolume incl. Lumen quality, bloom, local exposure, motion blur", "CineCamera", "DefaultScalability tiers (Ultron perf + Vison realism)"],
+    "u": ["static suit paint / metal: contrib/u/suit_materials.json -> M_CarPaint, M_ArcGlow"],
+    "edith": ["HUD materials and layout"],
+    "jocasta": ["suit live params Wetness/GrimeLive/ScorchLive/HeatTint/DamageLevel", "enemy damage-state LOGIC and timing (combat_realism.json)", "attach points; physics debris cap 24"],
+    "dume": ["audio, CC0 environment assets in contrib/dume/assets"],
+    "friday": ["city layout (contrib/friday/city_layout.json)"]
+  },
+
+  "material_parameter_collections": {
+    "MPC_WorldWeather": {
+      "path": "/Game/Contrib/Ultron/WorldRealism/MPC_WorldWeather",
+      "scalars": {
+        "Wetness":          {"default": 0.0, "range": [0, 1], "use": "surface water film on world materials: roughness *= lerp(1, 0.08..0.15, Wetness) on porous, albedo darkening up to 30% (concrete/asphalt), 0% on metal"},
+        "PuddleCoverage":   {"default": 0.0, "range": [0, 1], "use": "threshold on a height/cavity mask: where mask < PuddleCoverage the surface becomes standing water (roughness 0.02, specular F0 0.02, albedo -> 0.3x, normal flattened)"},
+        "RainIntensity":    {"default": 0.0, "range": [0, 1], "use": "0 dry, 0.3 drizzle (~1 mm/h), 1 heavy (~25 mm/h). Drives ripple normals in puddles, streaks on verticals, rain Niagara spawn, and Jocasta's suit Wetness build (rainPerSec * RainIntensity)"},
+        "RippleIntensity":  {"default": 0.0, "range": [0, 1], "use": "puddle ripple normal strength (usually = RainIntensity)"},
+        "WindSpeed":        {"default": 3.0, "range": [0, 30], "use": "m/s at 10 m. Smoke/rain drift, debris flutter, flag/tarp WPO amplitude"},
+        "DustAmount":       {"default": 0.0, "range": [0, 1], "use": "airborne dust motes + ground dust layer on up-facing surfaces"},
+        "AshFall":          {"default": 0.0, "range": [0, 1], "use": "falling ash particles + grey ash layer on up-facing surfaces"},
+        "LightningFlash":   {"default": 0.0, "range": [0, 1], "use": "0..1 envelope written by the storm script; drives cloud emissive and a sky-light boost (see lightning)"},
+        "DebrisDensity":    {"default": 0.3, "range": [0, 1], "use": "scatter density of static rubble/debris decals and meshes"}
+      },
+      "vectors": {
+        "WindDirection": {"default": [1.0, 0.0, 0.0, 0.0], "use": "XY unit vector in world space"}
+      }
+    },
+    "MPC_WorldFX": {
+      "path": "/Game/Contrib/Ultron/WorldRealism/MPC_WorldFX",
+      "scalars": {
+        "EmissiveNitsPerUnit": {"default": 1000.0, "use": "mirror of the project cvar ima.EmissiveNitsPerUnit so VFX materials convert nits -> emissive the same way as the rest of the game"},
+        "HeatHazeScale":       {"default": 1.0, "range": [0, 1], "use": "global multiplier on all distortion materials (0 = accessibility / Low tier)"},
+        "DistortionMaxUV":     {"default": 0.012, "use": "hard clamp on screen-UV offset (1.2% of screen) so haze never smears HUD-sized detail"},
+        "ScorchFadeTime":      {"default": 45.0, "use": "seconds for impact scorch decals to fade"},
+        "LastBlastTime":       {"default": -100.0, "use": "world time of the most recent big explosion (shockwave ring in heat-haze material)"}
+      },
+      "vectors": {
+        "LastBlastPosRadius": {"default": [0, 0, 0, 0], "use": "xyz = world position, w = radius in cm, for shockwave distortion and dust kick-up"}
+      }
+    }
+  },
+
+  "niagara_parameter_collections": {
+    "NPC_WorldWeather": {"path": "/Game/Contrib/Ultron/WorldRealism/NPC_WorldWeather", "namespace": "WorldWeather", "source_mpc": "MPC_WorldWeather", "_note": "SourceMaterialCollection makes the NPC mirror every MPC scalar/vector, so gameplay writes the MPC only."}
+  },
+
+  "preset_world_state": {
+    "_how": "Written to MPC_WorldWeather when a Vison preset is applied (build_world_rig.py --preset, or at runtime next to ContribLighting::Apply). Local fog volumes are placed relative to the play space; they use the existing volumetric fog (r.LocalFogVolume.RenderIntoVolumetricFog=1).",
+    "prologue":          {"Wetness": 0.0,  "PuddleCoverage": 0.0,  "RainIntensity": 0.0, "WindSpeed": 0.5, "DustAmount": 0.6, "AshFall": 0.0, "DebrisDensity": 0.2, "local_fog": ["workshop_dust_motes"], "notes": "Indoor dust in tungsten beams; Vison's lake-mist second fog layer stays his."},
+    "workshop":          {"Wetness": 0.0,  "PuddleCoverage": 0.0,  "RainIntensity": 0.0, "WindSpeed": 0.5, "DustAmount": 0.35, "AshFall": 0.0, "DebrisDensity": 0.1, "local_fog": ["workshop_dust_motes"], "notes": "Light dust only so skylight shafts read; glossy floor stays dry."},
+    "rooftops":          {"Wetness": 0.0,  "PuddleCoverage": 0.05, "RainIntensity": 0.0, "WindSpeed": 7.0, "DustAmount": 0.1, "AshFall": 0.0, "DebrisDensity": 0.2, "local_fog": [], "notes": "Rooftop gravel, HVAC; a few old puddles from roof ponding."},
+    "city":              {"Wetness": 0.0,  "PuddleCoverage": 0.0,  "RainIntensity": 0.0, "WindSpeed": 4.0, "DustAmount": 0.05, "AshFall": 0.0, "DebrisDensity": 0.15, "local_fog": [], "notes": "Dry, clean daylight. Realism comes from road grime decals, oil stains, tyre marks, curb dirt."},
+    "ruins":             {"Wetness": 0.0,  "PuddleCoverage": 0.1,  "RainIntensity": 0.0, "WindSpeed": 5.0, "DustAmount": 0.8, "AshFall": 0.35, "DebrisDensity": 0.9, "local_fog": ["rubble_dust_pocket", "smouldering_fire_glow"], "notes": "Dust-coated everything; burst water main puddles."},
+    "titan_battlefield": {"Wetness": 0.0,  "PuddleCoverage": 0.08, "RainIntensity": 0.0, "WindSpeed": 6.0, "DustAmount": 0.6, "AshFall": 0.7, "DebrisDensity": 1.0, "local_fog": ["fire_glow_large", "fire_glow_large", "smoke_column_base"], "notes": "Fire-lit smoke: Local Fog Volumes with emissive replace volumetric-fog emissive (Vison keeps it 0)."},
+    "finale":            {"Wetness": 0.35, "PuddleCoverage": 0.15, "RainIntensity": 0.0, "WindSpeed": 2.0, "DustAmount": 0.3, "AshFall": 0.1, "DebrisDensity": 0.7, "local_fog": ["ground_mist"], "notes": "Dew + firefighting water after the battle; low sun skims wet ground for long specular streaks."},
+    "workshop_night":    {"Wetness": 0.0,  "PuddleCoverage": 0.0,  "RainIntensity": 0.0, "WindSpeed": 0.3, "DustAmount": 0.25, "AshFall": 0.0, "DebrisDensity": 0.1, "local_fog": ["workshop_dust_motes"], "notes": "Monitor-lit dust."},
+    "rooftops_storm":    {"Wetness": 1.0,  "PuddleCoverage": 0.55, "RainIntensity": 0.9, "WindSpeed": 15.0, "DustAmount": 0.0, "AshFall": 0.0, "DebrisDensity": 0.3, "local_fog": [], "lightning": true, "notes": "Heavy rain: ripples, sheeting on verticals, rain Niagara, splash on surfaces and on the suit."},
+    "city_night":        {"Wetness": 0.8,  "PuddleCoverage": 0.35, "RainIntensity": 0.0, "WindSpeed": 2.0, "DustAmount": 0.0, "AshFall": 0.0, "DebrisDensity": 0.15, "local_fog": ["steam_vent"], "notes": "After rain: no ripples (RainIntensity 0) so puddles are mirrors for sodium/LED lamps. This is Vison's key look; it depends on these puddles."},
+    "city_overcast":     {"Wetness": 0.5,  "PuddleCoverage": 0.2,  "RainIntensity": 0.1, "WindSpeed": 5.0, "DustAmount": 0.0, "AshFall": 0.0, "DebrisDensity": 0.15, "local_fog": [], "notes": "Damp, occasional drizzle; uniformly darkened asphalt with soft sky reflections."}
+  },
+
+  "local_fog_volumes": {
+    "_cap": "<= 6 visible (r.LocalFogVolume.TileMaxInstanceCount stays 32). Cost ~0.05-0.1 ms each at High [E].",
+    "workshop_dust_motes":   {"scale_m": [8, 8, 3],   "RadialFogExtinction": 0.3, "HeightFogExtinction": 0.0, "FogAlbedo": [0.9, 0.85, 0.8], "FogEmissive": [0, 0, 0], "FogPhaseG": 0.6},
+    "rubble_dust_pocket":    {"scale_m": [15, 15, 4], "RadialFogExtinction": 0.0, "HeightFogExtinction": 1.2, "HeightFogFalloff": 1.5, "FogAlbedo": [0.75, 0.68, 0.58], "FogEmissive": [0, 0, 0], "FogPhaseG": 0.5},
+    "smouldering_fire_glow": {"scale_m": [3, 3, 3],   "RadialFogExtinction": 0.8, "FogAlbedo": [0.3, 0.3, 0.3], "FogEmissive": [0.9, 0.25, 0.04], "FogPhaseG": 0.2, "_emissive_note": "FogEmissive is linear radiance scaled by Vison's EV; ~1 reads as a dim ember glow at EV 9-12"},
+    "fire_glow_large":       {"scale_m": [8, 8, 8],   "RadialFogExtinction": 1.5, "FogAlbedo": [0.2, 0.2, 0.2], "FogEmissive": [4.0, 1.1, 0.15], "FogPhaseG": 0.3, "pair_with": "one unshadowed pooled point light, 2e5 cd, 2000 K, radius 2500"},
+    "smoke_column_base":     {"scale_m": [12, 12, 20], "RadialFogExtinction": 2.0, "FogAlbedo": [0.08, 0.08, 0.08], "FogEmissive": [0, 0, 0], "FogPhaseG": 0.4},
+    "ground_mist":           {"scale_m": [40, 40, 2], "RadialFogExtinction": 0.0, "HeightFogExtinction": 0.6, "HeightFogFalloff": 3.0, "FogAlbedo": [1, 1, 1], "FogEmissive": [0, 0, 0], "FogPhaseG": 0.7},
+    "steam_vent":            {"scale_m": [2, 2, 5],   "RadialFogExtinction": 1.0, "FogAlbedo": [1, 1, 1], "FogEmissive": [0, 0, 0], "FogPhaseG": 0.6, "pair_with": "NS_SteamVent (Ambient effect type)"}
+  },
+
+  "lightning": {
+    "preset": "rooftops_storm",
+    "interval_s": [6, 18],
+    "flash_envelope_ms": [[0, 0.0], [20, 1.0], [60, 0.2], [110, 0.9], [220, 0.0]],
+    "implementation": "Scale the EXISTING moon/sky light only (no extra light): SkyLight intensity *= 1 + 40*LightningFlash and cloud material emissive += LightningFlash. Vison's histogram Min EV clamp keeps auto-exposure from pumping. Thunder delay = distance_m / 343 (Dum-e).",
+    "_note": "This is a runtime multiplier on Vison's value, not a change to it."
+  },
+
+  "emissive_reference_nits": {
+    "_physics": "Blackbody luminance (Planck x CIE V(lambda)) computed for this file: 1000 K 2.5, 1200 K 130, 1500 K 7.5e3, 1800 K 1.2e5, 2000 K 4.6e5, 2500 K 5.6e6 cd/m2. Hydrocarbon fireball soot radiates at ~1100-1600 K effective (emissivity 0.6-1). Scene mid-grey luminance = 0.125 * 2^EV100: 6000 nits at EV 15.55 (city noon), 776 at EV 12.6, 1.5 at EV 3.6 (storm night).",
+    "_consequence": "A real fireball is only ~1-3 stops over mid-grey in noon sun (it reads orange, not white) but 12+ stops over at night (blinding). Keep these physical values and let Vison's exposure do the rest; do not scale FX per preset.",
+    "fireball_flash_first_60ms": 200000,
+    "fireball_body": [8000, 20000],
+    "fireball_cooling_edge": [100, 1500],
+    "embers_sparks_hot": [20000, 120000],
+    "embers_sparks_cooling": [50, 2000],
+    "repulsor_core": 60000,
+    "repulsor_halo": 6000,
+    "unibeam_core": 250000,
+    "unibeam_halo": 15000,
+    "thruster_core_mach_disk": 80000,
+    "thruster_plume": [3000, 15000],
+    "missile_motor": 150000,
+    "arc_glow_reference": "U's suit reactor intensity 12 units -> 12000 nits; keep repulsor halo below the reactor so the suit stays the hero light"
+  },
+
+  "fx_light_pool": {
+    "_source": "UArenaFXPool already caps FX lights at 16 (MaxFXLights). This section is the LOOK of those 16, not a new system.",
+    "max_lights": 16,
+    "shadowed": 0,
+    "IndirectLightingIntensity": 0.0,
+    "hero_exceptions": {"max": 2, "IndirectLightingIntensity": 1.0, "who": "the two largest live explosions (radius >= 300 cm) so Lumen bounces fire light off the ground", "cost": "~0.1-0.2 ms each in Lumen scene lighting [E]"},
+    "VolumetricScatteringIntensity": 1.0,
+    "_volumetric_note": "Lets explosions light Vison's volumetric fog/smoke. Unshadowed lights inject cheaply; keep r.VolumetricFog.InjectShadowedLightsSeparately default.",
+    "IntensityUnits": "Candelas",
+    "rules": {
+      "repulsor_bolt":   {"light": true,  "intensity_cd": 1500,   "radius": 300,  "temperature_or_color": [0.55, 0.85, 1.0], "light_function": "MLF_FXPulse",   "note": "I = L x pi r^2 = 6e4 x pi x 9 cm^2 ~ 1.5e3 cd (matches IronProjectile Glow 1500)"},
+      "unibeam":         {"light": true,  "intensity_cd": 20000,  "radius": 1200, "temperature_or_color": [0.7, 0.9, 1.0],  "light_function": "MLF_FXPulse",   "note": "use a spot along the beam: 1 light, not per segment"},
+      "missile_motor":   {"light": true,  "intensity_cd": 4000,   "radius": 600,  "temperature_or_color": "2400 K",        "light_function": "MLF_FXFlicker"},
+      "explosion_small": {"light": true,  "intensity_cd": 30000,  "radius": 800,  "temperature_or_color": "1900 K",        "light_function": "MLF_FXFlicker", "envelope": "peak in 1 frame, 0.15 at 0.2 s, 0 at 0.6 s"},
+      "explosion_large": {"light": true,  "intensity_cd": 200000, "radius": 2500, "temperature_or_color": "1800 K",        "light_function": "MLF_FXFlicker", "envelope": "flash 6e5 cd for 50 ms, then 2e5 decaying to 0 by 1.5 s"},
+      "impact_sparks":   {"light": false, "_why": "too small and short; emissive only"},
+      "minigun_flame_shots": {"light": false, "_why": "perf_budget §5.3"},
+      "thruster":        {"light": true, "intensity_cd": 2500, "radius": 400, "temperature_or_color": [1.0, 0.75, 0.45], "light_function": "MLF_FXFlicker", "note": "one light per suit (boots share it), placed between the feet; not counted per boot"}
+    },
+    "light_functions": {
+      "_how": "UE 5.8 Light Function Atlas (r.LightFunctionAtlas=1, on by default) packs light-function materials into one atlas, so every pooled light can reuse the same 2 materials without the per-light light-function pass. Point/spot light functions are sampled by deferred lighting, volumetric fog and Lumen through the atlas.",
+      "MLF_FXFlicker": {"domain": "LightFunction", "inputs": "per-light seed via LightFunction scale or position hash", "formula": "0.75 + 0.25 * noise(time*14 + seed) * noise(time*31 + seed*1.7)", "use": "fire, missile motor, thruster"},
+      "MLF_FXPulse":   {"domain": "LightFunction", "formula": "0.9 + 0.1 * sin(time * 2*pi * 30)", "use": "repulsor/unibeam electrical hum"},
+      "atlas": {"r.LightFunctionAtlas.Size": 4, "r.LightFunctionAtlas.SlotResolution": 128, "r.LightFunctionAtlas.MaxLightCount": 24}
+    }
+  },
+
+  "niagara": {
+    "_global_caps": "perf_budget.md §6.3: <=2000 CPU particles, <=50000 GPU particles, <=1500 sprites within 10 m, average overdraw <=4 layers, particle lights <=4 (and ALL of them inside the 16-light pool budget). Spawn scale 0.5 at Effects Medium/Low via r.EmitterSpawnRateScale.",
+    "effect_types": {
+      "ET_Impact":    {"MaxSystemInstances": 24, "MaxDistance": 6000,  "CullReaction": "Deactivate", "UpdateFrequency": "SpawnOnly", "budget_scaling": true},
+      "ET_Explosion": {"MaxSystemInstances": 8,  "MaxDistance": 25000, "CullReaction": "DeactivateImmediate", "UpdateFrequency": "Continuous", "budget_scaling": true},
+      "ET_Thruster":  {"MaxSystemInstances": 16, "MaxDistance": 15000, "player": "<=4 emitters, never culled (CanPreventCullingOnPlayerFX)", "enemy": "<=1 per enemy"},
+      "ET_Trail":     {"MaxSystemInstances": 12, "MaxDistance": 12000},
+      "ET_Ambient":   {"MaxSystemInstances": 4,  "MaxDistance": 8000, "includes": "rain, ash, dust motes, steam"},
+      "ET_Debris":    {"MaxSystemInstances": 6,  "MaxDistance": 10000}
+    },
+    "systems": {
+      "NS_Thruster_Boot": {
+        "effect_type": "ET_Thruster", "sim": "GPU for plume sprites, CPU for the 1 ribbon",
+        "attach": "suit sockets foot_l_jet / foot_r_jet (+ palm_l/palm_r in hover). Owner: AIronManCharacter; parameters from the existing thrust value 0..1",
+        "emitters": {
+          "core":            {"type": "mesh cone, additive, depth-fade 20", "length_cm": [25, 90], "radius_cm": [4, 9], "emissive_nits": "thruster_core_mach_disk", "color_ramp": "white-blue core -> 1200 K orange tip"},
+          "shock_diamonds":  {"type": "4-6 sprite rings along axis, additive", "spacing_cm": "1.2 x exit diameter (~10 cm)", "count_by_thrust": [[0.3, 0], [0.6, 3], [1.0, 6]], "emissive_nits": 80000, "flicker_hz": 45, "note": "Mach disks only appear at high thrust, which is why they look real: ramp them in, do not show at idle"},
+          "plume_glow":      {"type": "soft sprite, additive", "spawn_rate": 60, "lifetime": 0.12, "size_cm": [20, 50], "emissive_nits": "thruster_plume"},
+          "heat_haze":       {"type": "distortion sprite (M_HeatHaze_Sprite), screen-aligned", "spawn_rate": 30, "lifetime": 0.35, "size_cm": [40, 120], "velocity": "along exhaust 600 cm/s + buoyancy 150 cm/s up", "strength": 0.6, "Low_tier": "off"},
+          "ground_wash":     {"type": "GPU sprites + decal", "condition": "line trace down <= 300 cm", "spawn_rate_by_height": [[300, 0], [50, 200]], "uses": "dust (dry) or spray (Wetness > 0.3) via NPC_WorldWeather", "size_cm": [30, 150], "lifetime": [0.6, 1.4]}
+        },
+        "particle_light": "none; uses the pooled 'thruster' light"
+      },
+      "NS_Repulsor_Blast": {
+        "effect_type": "ET_Impact (muzzle) + ET_Trail (bolt)",
+        "attach": "palm_l / palm_r muzzle; bolt follows the pooled AIronProjectile",
+        "emitters": {
+          "charge":  {"duration": 0.08, "type": "inward-converging sparks x12 + palm ring sprite", "emissive_nits": 6000},
+          "muzzle":  {"duration": 0.05, "type": "flash sprite 25 cm + 3 radial streaks", "emissive_nits": "repulsor_core"},
+          "bolt":    {"type": "ribbon 40-80 cm + core sprite 8 cm", "emissive_nits": "repulsor_core/halo", "motion_blur": "rely on velocity (r.Translucency.Velocity=1); do not stretch sprites twice"},
+          "impact":  {"spawn": "on hit -> NS_Impact_Sparks variant 'energy' + scorch decal 30 cm"}
+        }
+      },
+      "NS_Unibeam": {
+        "effect_type": "ET_Explosion (one at a time)",
+        "attach": "chest reactor socket (U: glow.reactor); beam end = hit point",
+        "emitters": {
+          "charge":        {"duration": 0.45, "type": "reactor bloom-up: emissive ramp 12000 -> 250000 nits + inward particles x40"},
+          "beam":          {"type": "beam/ribbon renderer, 3 strands, radius 12-18 cm, UV-panned noise", "emissive_nits": "unibeam_core / halo"},
+          "beam_haze":     {"type": "distortion cylinder mesh around beam", "strength": 0.4},
+          "hit_splash":    {"type": "sparks GPU 300/s + molten droplets CPU 30/s with gravity, collision = depth buffer", "emissive_nits": "embers_sparks_hot"},
+          "hit_scorch":    {"type": "growing decal 30->120 cm while held, fades over ScorchFadeTime"}
+        }
+      },
+      "NS_Missile": {
+        "effect_type": "ET_Trail",
+        "attach": "missile actor (pooled hostile shots); Titan launchers",
+        "emitters": {
+          "motor":       {"type": "core sprite + short cone", "emissive_nits": "missile_motor"},
+          "smoke_trail": {"type": "GPU sprites, lit translucent (Lumen translucency volume)", "spawn_per_cm": 0.05, "lifetime": [2.5, 4], "size_cm": [20, 180], "growth": "linear x6 over life", "albedo": 0.75, "opacity": [0.5, 0], "wind": "WorldWeather.WindDirection*WindSpeed"},
+          "ribbon":      {"type": "CPU ribbon, 0.6 s, for continuity at distance"}
+        }
+      },
+      "NS_Explosion_Small": {"effect_type": "ET_Explosion", "use": "drone death, missile hit, tank shell", "radius_cm": 150, "budget_particles": 450,
+        "stages": {"flash": {"t": [0, 0.06], "nits": "fireball_flash_first_60ms", "size_cm": 220},
+                   "fireball": {"t": [0, 0.6], "type": "flipbook 8x8 sprites x6, emissive by temperature ramp (2000 K -> 1100 K)", "nits": "fireball_body -> cooling_edge"},
+                   "smoke": {"t": [0.15, 5], "type": "lit GPU sprites x30, albedo 0.08-0.15 (soot is nearly black), size 100->400 cm, rise 120 cm/s, opacity 0.7->0"},
+                   "sparks": {"t": [0, 1.2], "type": "GPU x120, velocity 1500-3500 cm/s, gravity -980, drag 1.5, depth-buffer collision, restitution 0.3", "nits": "embers_sparks_hot -> cooling"},
+                   "debris": {"type": "Niagara mesh particles x12 (no physics bodies), collision = depth buffer"},
+                   "shockwave": {"t": [0, 0.15], "type": "distortion ring, speed 34000 cm/s (speed of sound), strength 0.8, writes MPC_WorldFX.LastBlast*"},
+                   "ground": {"decal": "scorch 2x radius", "dust_ring": "if within 300 cm of ground"}}},
+      "NS_Explosion_Large": {"effect_type": "ET_Explosion", "use": "tank cook-off, Titan death, phase breaks, building GC break", "radius_cm": 450, "budget_particles": 1200,
+        "stages": {"flash": {"t": [0, 0.06], "nits": 200000, "size_cm": 700},
+                   "fireball": {"t": [0, 1.5], "type": "flipbook sprites x10 + 1 rising mushroom (toroidal velocity field)", "nits": "fireball_body -> cooling_edge"},
+                   "smoke": {"t": [0.3, 12], "type": "lit GPU sprites x60, albedo 0.06-0.12, size 300->1200 cm, rise 250 cm/s, WorldWeather wind"},
+                   "sparks": {"count": 250}, "embers_lingering": {"count": 60, "lifetime": [3, 6], "nits": "embers_sparks_cooling"},
+                   "debris": {"type": "Niagara mesh particles x30 + up to the destruction budget of real physics bodies (see chaos)"},
+                   "shockwave": {"strength": 1.0, "dust_kickup_radius_cm": 1500},
+                   "local_fog": "spawn a temporary fire_glow_large Local Fog Volume for 4 s if fewer than 6 are visible"}},
+      "NS_Impact_Sparks": {"effect_type": "ET_Impact", "variants": {
+                   "metal":  {"sparks": 40, "speed_cm_s": [800, 2500], "lifetime": [0.15, 0.6], "nits": "embers_sparks_hot", "decal": "bullet hole/scorch 8 cm"},
+                   "concrete": {"sparks": 8, "dust_puff": 6, "chips_mesh": 6, "decal": "chip 12 cm"},
+                   "energy": {"sparks": 20, "flash_nits": 30000, "decal": "scorch 30 cm"},
+                   "water":  {"splash_sprites": 10, "ripple_decal": true, "condition": "PuddleCoverage > 0 and hit in puddle mask"}},
+                 "orientation": "cone around surface normal reflected about incoming direction, 35 deg"},
+      "NS_Rain":         {"effect_type": "ET_Ambient", "sim": "GPU, camera-local 30 m box", "particles_at_RainIntensity_1": 12000, "streak_len_cm": [40, 90], "fall_speed_cm_s": 900, "splashes": "GPU depth-buffer collision -> 2-frame splash sprite", "TSR_note": "rain is translucent: set 'Output Velocity' on the material so TSR does not ghost it"},
+      "NS_AshFall":      {"effect_type": "ET_Ambient", "particles_at_1": 3000, "size_cm": [0.5, 2], "fall_speed_cm_s": 40, "turbulence": "curl noise 0.5 m"},
+      "NS_DustMotes":    {"effect_type": "ET_Ambient", "particles_at_1": 1500, "size_cm": [0.05, 0.2], "lit": true, "note": "only visible in light shafts; lit translucency"},
+      "NS_SteamVent":    {"effect_type": "ET_Ambient", "particles": 120, "albedo": 0.9, "lifetime": [2, 4]}
+    },
+    "enemy_damage_vfx": {
+      "_source": "contrib/jocasta/combat_realism.json enemyDamage.* (thresholds, timings, piece counts are hers; only the look is defined here)",
+      "drone.smokeBelow":       {"system": "NS_DamageSmoke_Thin", "attach": "the damaged rotor/thruster part (Jocasta 50%-flicker part)", "look": "GPU sprites 30/s, grey-black albedo 0.1, size 10->80 cm, lifetime 1.5 s, trails in world space"},
+      "drone.sparkIntervalSec": {"system": "NS_Impact_Sparks.metal (burst of 12)", "attach": "same damaged part", "timing": "her 1-2 s interval"},
+      "drone.death":            {"system": "trail NS_DamageSmoke_Thick during the 0.6-1.2 s spiral -> NS_Explosion_Small on impact/timeout", "debris": "her 3 pieces are physics bodies; add 8 Niagara mesh shards"},
+      "tank.fireBelow":         {"system": "NS_EngineFire", "attach": "engine deck", "look": "flipbook fire 3 sprites + black smoke column (albedo 0.04) 40/s, Local Fog Volume smouldering_fire_glow, no light (pool full in fights)"},
+      "tank.misfire":           {"system": "NS_BarrelPuff", "attach": "barrel muzzle", "look": "grey smoke ring + 6 sparks"},
+      "tank.death":             {"system": "NS_Explosion_Small at death, then NS_Explosion_Large at her cookOffDelaySec (0.4 s) at the turret ring; turret = 1 physics body; hull keeps NS_EngineFire for her wreckLifeSec (20 s) then smoke-only fade"},
+      "boss.phase2Break":       {"system": "NS_PlateShear (sparks 150 + metal tear streaks) at each shoulder plate", "exposed_frame_glow": "her [1.0, 0.25, 0.1] at 1500 nits (~1250 K hot steel), cools to 400 nits over 8 s"},
+      "boss.phase3Break":       {"system": "NS_PlateShear at chest + arm-cannon spark trail NS_DamageSparks_Trail (CPU, 15/s)"},
+      "boss.ramHeatTint":       {"look": "leading-edge heat haze sprites (M_HeatHaze_Sprite, strength 0.5) while dashing"},
+      "boss.death":             {"system": "NS_Explosion_Large delayed to the end of her slow-mo; 3 secondary NS_Explosion_Small over 1.2 s"}
+    }
+  },
+
+  "distortion": {
+    "_how": "Desktop deferred: refraction in translucent materials (Refraction Method 'Pixel Normal Offset' with Normal from a scrolling noise). Rendered in the distortion pass after translucency; no global cvar (r.DisableDistortion is mobile-only). Strength is clamped by MPC_WorldFX.DistortionMaxUV and scaled by HeatHazeScale.",
+    "materials": {
+      "M_HeatHaze_Sprite": {"blend": "Translucent, Unlit, Refraction=PixelNormalOffset", "normal": "2 octaves panning noise, 0.6 and 1.7 cycles per sprite, upward pan 0.8/s", "strength": "particle alpha x 0.006 UV x HeatHazeScale", "depth_fade": 30, "soft_edge": "radial mask", "output_velocity": false},
+      "M_ShockwaveRing":   {"blend": "Translucent, Unlit, PixelNormalOffset", "shape": "ring normal from radial gradient, width 8% of radius", "strength": 0.012, "life": 0.15},
+      "M_HeatHaze_Volume": {"blend": "Translucent mesh (cylinder/cone)", "use": "unibeam surround, Jocasta's 'heat-shimmer cone under the boot thrusters' in hover", "_jocasta": "her suit_reactive_state motion.hover.thrusterShimmer = 'screen-space distortion' is THIS material; one owner"}
+    },
+    "rules": ["never distort the HUD (UMG is composited after; nothing to do)", "never place haze within 50 cm of the camera (fade by camera distance 50-150 cm)", "no haze sprites at Effects Low; Medium = 50% spawn", "haze is invisible against flat sky: fade by scene-depth difference so it only shows where background has detail"]
+  },
+
+  "chaos": {
+    "plugins_required": ["GeometryCollectionPlugin", "FieldSystemPlugin", "Fracture (editor)", "ChaosNiagara (default on)"],
+    "_plugin_note": "GeometryCollectionPlugin and FieldSystemPlugin are EnabledByDefault=false in the 5.8 install. Adding them to IronManArena.uproject (+ GeometryCollectionEngine / FieldSystemEngine in Build.cs only if C++ touches them) is a game-source change for the merger.",
+    "physics_body_cap": {"total": 24, "_source": "Jocasta combat_realism.json perf.maxPhysicsDebris (scene-wide, oldest removed first, sleep after 1.5 s)", "split": {"enemy_parts": 12, "environment_geometry_collections": 12}, "overflow": "anything beyond the cap is Niagara mesh debris (GPU, no rigid body)"},
+    "perf_budget_caps": {"simulating_geometry_collections": 6, "max_cluster_level": 2, "max_cluster_level_hero": 3, "pieces_per_gc_leaf": 150},
+    "geometry_collection_defaults": {
+      "EnableNanite": true,
+      "EnableClustering": true,
+      "MaxClusterLevel": 2,
+      "DamageModel": "UserDefinedDamageThreshold",
+      "DamageThreshold_by_level": [500000.0, 50000.0, 5000.0],
+      "_damage_note": "Chaos strain units: rough guide. Level 0 only breaks from big explosions (field strain), level 1 from repulsor/unibeam, level 2 from anything. Tune per material.",
+      "bUseSizeSpecificDamageThreshold": true,
+      "bRemoveOnMaxSleep": true,
+      "MaximumSleepTime": [1.5, 3.0],
+      "RemovalDuration": [1.0, 1.5],
+      "bScaleOnRemoval": true,
+      "component": {"bAllowRemovalOnSleep": true, "bAllowRemovalOnBreak": true, "bNotifyBreaks": true, "bEnableDamageFromCollision": false, "ObjectType": "Chaos_Object_Dynamic", "CollisionProfile": "Destructible: ignore Pawn and Projectile channels"},
+      "fracture_attributes": {"Remove On Break (leaf pieces)": "3-5 s", "small_piece_collision": "pieces < 15 cm -> no collision (Implicit None) and removed in 2 s"}
+    },
+    "destructibles": {
+      "concrete_barrier":  {"source_asset": "dume/assets/props/concrete_road_barrier", "fracture": "Voronoi 12 sites + 1 cluster level", "mass_kg": 1800, "breaks_from": "explosion strain field >= 3000 radius 300"},
+      "cover_pillar":      {"source_asset": "arena pylons/covers (ArenaEnvironment)", "fracture": "Voronoi 20 + cluster 2, internal material = concrete_debris (dume/assets/rubble)", "note": "gameplay cover: breaking it changes combat; get design sign-off"},
+      "facade_chunk":      {"source_asset": "dume/assets/buildings/modular_urban_apartments_facade pieces", "fracture": "Planar cuts along panel lines + Voronoi 8 per panel", "max_simultaneous": 1},
+      "crates":            {"source_asset": "dume wooden_crate_01, plastic_crate_01, wooden_military_crate", "fracture": "Voronoi 6, splinters as Niagara mesh"},
+      "street_lamp":       {"source_asset": "dume street_lamp_01/02", "not_gc": "rigid body knock-over (1 body) + light off + spark burst; cheaper than fracture"}
+    },
+    "fields": {"explosion": "Radial Falloff strain (Magnitude = 2e5 x (radius_cm/450)) + Radial Vector velocity 1500 cm/s, one-shot via AFieldSystemActor pooled per explosion (max 2 live)", "repulsor": "Uniform strain 8e4 at hit point radius 60"},
+    "debris_dust": "ChaosNiagara 'Chaos Destruction' data interface spawns dust per break event: <=40 sprites per break, ET_Debris",
+    "lumen_note": "Broken GC pieces have no mesh distance field until rest; Lumen falls back to the global SDF for them. Fine for small pieces; for facade chunks keep the parent mesh until break."
+  },
+
+  "environment_dressing": {
+    "assets_from_dume": "contrib/dume/assets/manifest.json (CC0). glTF is Y-up, 1 unit = 1 m: import with uniform scale 100 and convert axis (Interchange glTF importer does this).",
+    "surfaces": {
+      "asphalt":  {"textures": ["roads/Road007", "roads/Road008A"], "wet_response": "porous: roughness 0.85 -> 0.15 at Wetness 1, albedo x0.6", "puddle_mask": "height map inverted + large-scale noise (5-10 m) so puddles collect in ruts and near curbs"},
+      "sidewalk": {"textures": ["roads/concrete_pavement", "roads/TactilePaving001"], "wet_response": "roughness 0.8 -> 0.25, albedo x0.7"},
+      "curb":     {"textures": ["roads/Concrete034"]},
+      "facades":  {"textures": ["buildings/Facade001 (glass)", "buildings/Facade017 (night windows)", "buildings/Facade018A", "buildings/concrete_tile_facade", "buildings/red_brick_03", "buildings/concrete_wall_008"], "wet_response": "streaks: vertical rain-streak mask x RainIntensity, roughness down 40% only where streaked"},
+      "rubble":   {"textures": ["rubble/rubble", "rubble/concrete_debris", "rubble/Ground111", "rubble/Ground107"]},
+      "workshop": {"textures": ["workshop/metal_plate", "workshop/Metal009", "workshop/Metal012", "workshop/Fabric004"]}
+    },
+    "decals": {
+      "road_markings": ["roads/RoadLines022A", "roads/RoadLines028C"],
+      "grime": "oil stains, tyre marks, drain streaks, curb dirt: DBuffer decals, Normal+Roughness+Color",
+      "combat": "scorch (explosions), impact chips, bullet holes: pooled, max 64 live, fade over MPC_WorldFX.ScorchFadeTime",
+      "wetness_interaction": "decals must also read MPC_WorldWeather.Wetness so scorch marks get wet too",
+      "cap": "<= 150 decals visible; r.Decal.StencilSizeThreshold stays default 0.1"
+    },
+    "props": {"street": ["props/street_lamp_01", "props/street_lamp_02", "props/fire_hydrant", "props/metal_trash_can", "props/concrete_road_barrier", "props/concrete_road_barrier_02", "props/covered_car"], "workshop": ["props/wooden_crate_01", "props/plastic_crate_01", "props/wooden_military_crate"], "facade_kits": ["buildings/modular_factory_facade", "buildings/modular_urban_apartments_facade", "buildings/rollershutter_door", "buildings/rollershutter_window_01", "buildings/modular_metal_gutter"]},
+    "hdris": {"_note": "Vison's workshop preset already uses the project HDRI. Dum-e's puresky HDRIs are for lookdev / reflection fallback only; do not replace the real-time SkyAtmosphere capture in outdoor presets.", "files": ["hdris/kloofendal_43d_clear_puresky", "hdris/kloofendal_overcast_puresky", "hdris/qwantani_dusk_2_puresky"]}
+  },
+
+  "budget_estimate_ms_high": {
+    "_label": "ESTIMATE [E], RTX 2070S, 1080p out, TSR ~67-75%; not measured. Fits inside perf_budget §1 'Translucency / FX / distortion 0.6 ms' only for typical fights; the heavy case borrows from Ultron's 1.5 ms reserve.",
+    "typical_fight": {"niagara_gpu": 0.3, "translucent_overdraw_smoke": 0.2, "distortion": 0.05, "local_fog_volumes": 0.1, "decals": 0.1, "fx_lights_16_unshadowed": 0.3, "total": 1.05},
+    "worst_case_titan_death": {"total": 2.1, "mitigation": "ET_Explosion budget scaling + dynamic res"},
+    "game_thread": {"chaos_24_bodies": 0.4, "niagara_cpu": 0.4},
+    "_note_vison": "Vison estimates city at 16.0 ms High before VFX. Combined that is over 16.67 ms in heavy fights unless dynamic res drops to ~60-67%. This is a real risk; measure with perf_budget §11 before adding Epic extras."
+  },
+
+  "epic_tier_extras": {
+    "_opt_in": "Only at sg.EffectsQuality=3 (and the in-game 'Epic' preset). Expected 45 fps per Vison's Epic estimate.",
+    "items": {
+      "particle_lights": "r.ParticleLightQuality=2; still <= 16 FX lights total",
+      "hero_lumen_bounce": "4 hero explosion lights with IndirectLightingIntensity 1 instead of 2",
+      "smoke_resolution": "r.TranslucencyLightingVolume.Dim=96, temporal on",
+      "debris": "Niagara mesh debris x2 (never more physics bodies: still 24)",
+      "heterogeneous_volumes": "not recommended even at Epic (SVT smoke ~3-6 ms on Turing)",
+      "rain": "particles_at_RainIntensity_1 = 20000, splash decals",
+      "local_fog_volumes": "cap 10"
+    }
+  }
+}

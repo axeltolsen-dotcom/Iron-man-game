@@ -45,6 +45,7 @@ void UArenaGameUserSettings::ApplyGameOptionDefaults()
 	bMotionBlur = true;
 	bCinematicDOF = true;
 	bCameraShake = true;
+	CameraShakeIntensity = 1.f;
 	bHudColorBlindSafe = false;
 	bHudReducedMotion = false;
 	HudOpacity = 1.f;

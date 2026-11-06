@@ -22,6 +22,8 @@
 #include "CityLayout.h"
 #include "SuitTypes.h"
 #include "MirrorLock.h"
+#include "ArenaFeel.h"
+#include "Engine/Scene.h"
 
 namespace StoryTests
 {
@@ -334,6 +336,52 @@ bool FArmorKitTest::RunTest(const FString& Parameters)
 			TestTrue(FString::Printf(TEXT("%s builds a mesh"), Id), Tris > 8);
 		}
 	}
+	return true;
+}
+
+// Vison camera layer merge: shake data + one shake source + the photoreal grade limits.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCameraRealismTest, "IronManArena.Camera.Realism",
+	EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+bool FCameraRealismTest::RunTest(const FString& Parameters)
+{
+	TestTrue(TEXT("supersonic shake is cutscene-only"), UArenaFeelSubsystem::IsCutsceneOnlyShake(TEXT("supersonic_flight")));
+	TestTrue(TEXT("handheld shake is cutscene-only"), UArenaFeelSubsystem::IsCutsceneOnlyShake(TEXT("handheld_cutscene")));
+	TestFalse(TEXT("landing shake is gameplay"), UArenaFeelSubsystem::IsCutsceneOnlyShake(TEXT("superhero_landing")));
+
+	// Grade limits: CA 0 in gameplay, subtle (<= 0.25) in cutscenes; flare/grain/bloom inside Vison's camera rules.
+	FPostProcessSettings G;
+	G.bOverride_SceneFringeIntensity = true; G.SceneFringeIntensity = 0.3f;
+	G.bOverride_FilmGrainIntensity = true; G.FilmGrainIntensity = 0.2f;
+	G.bOverride_LensFlareIntensity = true; G.LensFlareIntensity = 1.f;
+	G.bOverride_BloomIntensity = true; G.BloomIntensity = 1.f;
+	FPostProcessSettings C = G;
+	ContribLighting::ApplyPhotorealGrade(G, false);
+	ContribLighting::ApplyPhotorealGrade(C, true);
+	if (ContribLighting::IsPhotorealGradeEnabled())
+	{
+		TestEqual(TEXT("gameplay CA"), G.SceneFringeIntensity, 0.f);
+		TestEqual(TEXT("cutscene CA"), C.SceneFringeIntensity, 0.25f);
+		TestTrue(TEXT("gameplay grain <= 0.05"), G.FilmGrainIntensity <= 0.05f + 1e-4f);
+		TestTrue(TEXT("gameplay flare <= 0.2"), G.LensFlareIntensity <= 0.2f + 1e-4f);
+		TestTrue(TEXT("gameplay bloom <= 0.8"), G.BloomIntensity <= 0.8f + 1e-4f);
+		TestTrue(TEXT("cutscene grain <= 0.08"), C.FilmGrainIntensity <= 0.08f + 1e-4f);
+	}
+
+	UWorld* World = StoryTests::FindGameWorld();
+	UArenaFeelSubsystem* Feel = World ? UArenaFeelSubsystem::Get(World) : nullptr;
+	if (!Feel) { AddWarning(TEXT("no game world: shake source checks skipped")); return true; }
+	TestEqual(TEXT("camera_shake.json profiles"), Feel->NumShakeProfiles(), 10);
+	const bool bWasCine = Feel->IsCinematicCamera();
+	Feel->SetCinematicCamera(false);
+	TestFalse(TEXT("supersonic never plays in gameplay"), Feel->PlayShake(TEXT("supersonic_flight")));
+	TestTrue(TEXT("landing shake plays"), Feel->PlayShake(TEXT("superhero_landing")));
+	TestEqual(TEXT("landing is the active profile"), Feel->GetActiveShake(), FName(TEXT("superhero_landing")));
+	TestTrue(TEXT("landing adds trauma"), Feel->GetTrauma() > 0.5f);
+	Feel->SetCinematicCamera(true);
+	FRotator R; FVector L;
+	Feel->GetShake(R, L);
+	TestTrue(TEXT("gameplay shake muted while a cutscene owns the camera"), R.IsNearlyZero() && L.IsNearlyZero());
+	Feel->SetCinematicCamera(bWasCine);
 	return true;
 }
 

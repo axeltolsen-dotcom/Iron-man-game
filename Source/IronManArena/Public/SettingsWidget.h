@@ -58,6 +58,8 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UCheckBox> MotionBlurCheck;
 	UPROPERTY(Transient) TObjectPtr<UCheckBox> DofCheck;
 	UPROPERTY(Transient) TObjectPtr<UCheckBox> ShakeCheck;
+	UPROPERTY(Transient) TObjectPtr<USlider> ShakeSlider;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> ShakeValue;
 	UPROPERTY(Transient) TObjectPtr<USlider> FovSlider;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> FovValue;
 	UPROPERTY(Transient) TObjectPtr<USlider> SensSlider;

@@ -48,8 +48,9 @@ namespace ContribLighting
 	IRONMANARENA_API int32 ApplyCamera(UCineCameraComponent* Camera, FName PresetKey, bool bAllowDOF = true, int32* OutSkipped = nullptr);
 
 	/** Photoreal grade (Axel, 2026-10-30), applied on top of Vison's presets when ima.PhotorealGrade is 1
-	 *  (default): chromatic aberration off, film grain kept subtle (0.02-0.08; cutscenes up to 0.15),
-	 *  bloom <= 0.6, lens flare <= 0.4, no saturation boost above 1.0. Everything else (exposure, white
+	 *  (default), limits aligned with Vison's camera layer: chromatic aberration 0 in gameplay and <= 0.25 in
+	 *  cutscenes, grain <= 0.05 gameplay / 0.08 cutscenes, bloom <= 0.8 / 1.0, flare min(x,0.4)*0.5 / <= 1.0,
+	 *  no saturation boost above 1.0. Everything else (exposure, white
 	 *  balance, contrast, the filmic tone curve) stays as the preset set it. ima.PhotorealGrade 0 = the raw presets. */
 	IRONMANARENA_API void ApplyPhotorealGrade(FPostProcessSettings& Settings, bool bCinematic);
 	IRONMANARENA_API bool IsPhotorealGradeEnabled();

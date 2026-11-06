@@ -1,0 +1,657 @@
+{
+  "metadata": {
+    "name": "Vison camera shakes",
+    "version": "1.0.0",
+    "date": "2026-10-30",
+    "generated_by": "gen_camera_realism.py",
+    "classes": "CameraShakeBase (EngineCameras plugin) with RootShakePattern = PerlinNoiseCameraShakePattern / WaveOscillatorCameraShakePattern; several patterns -> CompositeCameraShakePattern (or one asset per pattern)",
+    "units": {
+      "location": "cm, camera-local X fwd / Y right / Z up",
+      "rotation": "degrees (Pitch, Yaw, Roll)",
+      "fov": "degrees",
+      "Frequency_hz": "cycles per second (real units)",
+      "Amplitude": "peak value of the oscillation (Perlin: bound - typical motion ~0.4-0.6 x)"
+    },
+    "ue_frequency_conversion": {
+      "WaveOscillator": {
+        "factor": 1.0,
+        "rule": "ue_frequency = Frequency_hz (verified 2026-10-30 in UE 5.8 source: FWaveOscillator::Update does offset += dt * Frequency * 2*pi, so Frequency is already Hz)"
+      },
+      "PerlinNoise": {
+        "factor": 1.66667,
+        "rule": "ue_frequency = Frequency_hz / 0.6 (1D Perlin with unit lattice peaks near 0.6 cycles per unit)"
+      },
+      "verify": "Calibration: play CS_Calibration_1Hz (Wave pitch 1 deg @ 1 Hz) and count 10 peaks in 10 s; if you count ~63, the engine uses Hz - set factor 1.0 in this block and re-run apply."
+    },
+    "visibility_rules": {
+      "min_visible_deg": 0.023,
+      "max_frequency_hz_gameplay": 20.0,
+      "why": "below ~0.5 px motion is lost under TSR; above fps/3 (20 Hz at 60 fps) oscillation aliases into a slower wobble"
+    },
+    "arenafeel": {
+      "current": "trauma t in 0..1 decaying 1.6/s; offsets = t^2 * ima.ShakeScale * (pitch/yaw 2.4 deg, roll 3 deg, Y/Z 6 cm), Perlin at clock*22",
+      "equivalence": "trauma_equivalent = sqrt(peak_pitch_deg / 2.4)",
+      "integration": "pick ONE driver: either route ArenaFeel AddTrauma -> StartCameraShake(asset, scale) or keep trauma and use these values to retune it - never both at full strength"
+    }
+  },
+  "accessibility": {
+    "intensity_multiplier": {
+      "range": [
+        0.0,
+        1.5
+      ],
+      "default": 1.0,
+      "applies_to": "PlayerCameraManager::StartCameraShake Scale, PlayWorldCameraShake scale, ima.ShakeScale"
+    },
+    "presets": {
+      "off": {
+        "scale": 0.0
+      },
+      "reduced": {
+        "scale": 0.35,
+        "roll_scale": 0.3,
+        "fov_scale": 0.0,
+        "location_scale": 0.5,
+        "loops_disabled": [
+          "idle_hover",
+          "handheld_cutscene"
+        ],
+        "high_freq_over_10hz_scale": 0.5,
+        "flight_fov_curve_scale": 0.5
+      },
+      "standard": {
+        "scale": 1.0
+      },
+      "intense": {
+        "scale": 1.25
+      }
+    },
+    "settings_mapping": {
+      "bCameraShake=false": "off",
+      "bHudReducedMotion=true": "reduced",
+      "proposed": "float CameraShakeIntensity (0-150%) in ArenaGameUserSettings + slider in SettingsWidget"
+    },
+    "first_person": {
+      "rotation_scale": 0.6,
+      "location_scale": 1.0,
+      "why": "vestibulo-ocular reflex stabilises the head; full rotation in POV is the main nausea trigger"
+    }
+  },
+  "calibration": {
+    "CS_Calibration_1Hz": {
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 10.0,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.0,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "Pitch": {
+              "Amplitude": 1.0,
+              "Frequency_hz": 1.0
+            }
+          }
+        }
+      ]
+    }
+  },
+  "shakes": {
+    "idle_hover": {
+      "description": "station-keeping hover: slow bob/sway from thrust vectoring (helicopter-hover class)",
+      "trigger": "loop while flying and |velocity| < 2 m/s; stop on landing",
+      "play_space": "CameraLocal",
+      "single_instance": true,
+      "first_person_rotation_scale": 0.5,
+      "patterns": [
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.0,
+          "BlendInTime": 0.6,
+          "BlendOutTime": 0.6,
+          "axes": {
+            "X": {
+              "Amplitude": 1.0,
+              "Frequency_hz": 0.35
+            },
+            "Y": {
+              "Amplitude": 1.4,
+              "Frequency_hz": 0.3
+            },
+            "Z": {
+              "Amplitude": 2.2,
+              "Frequency_hz": 0.45
+            },
+            "Pitch": {
+              "Amplitude": 0.15,
+              "Frequency_hz": 0.4
+            },
+            "Yaw": {
+              "Amplitude": 0.1,
+              "Frequency_hz": 0.3
+            },
+            "Roll": {
+              "Amplitude": 0.25,
+              "Frequency_hz": 0.35
+            }
+          }
+        }
+      ],
+      "arenafeel_trauma_equivalent": 0.25,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_IdleHover",
+      "peak_px_at_1080p_90deg": 3.2
+    },
+    "thruster_boost": {
+      "description": "boost onset kick (body pushed back into the camera) + sustained thrust rumble",
+      "trigger": "kick on boost press; rumble loops while boosting, scale = throttle 0..1",
+      "play_space": "CameraLocal",
+      "single_instance": true,
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.35,
+          "BlendInTime": 0.02,
+          "BlendOutTime": 0.25,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "X": {
+              "Amplitude": -6.0,
+              "Frequency_hz": 3.0
+            },
+            "Pitch": {
+              "Amplitude": -0.7,
+              "Frequency_hz": 3.5
+            }
+          }
+        },
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.0,
+          "BlendInTime": 0.15,
+          "BlendOutTime": 0.3,
+          "axes": {
+            "Z": {
+              "Amplitude": 0.4,
+              "Frequency_hz": 14.0
+            },
+            "Pitch": {
+              "Amplitude": 0.12,
+              "Frequency_hz": 12.0
+            },
+            "Yaw": {
+              "Amplitude": 0.08,
+              "Frequency_hz": 10.0
+            },
+            "Roll": {
+              "Amplitude": 0.15,
+              "Frequency_hz": 8.0
+            }
+          }
+        }
+      ],
+      "fov_event": "flight.boost_onset_fov_kick_deg (+2 for 0.25 s) - FOV handled by the flight FOV curve, not the shake",
+      "arenafeel_trauma_equivalent": 0.54,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_ThrusterBoost",
+      "peak_px_at_1080p_90deg": 14.9
+    },
+    "supersonic_flight": {
+      "description": "transonic buffet peaking at Mach 0.95-1.05, smoother once supersonic; one-shot jolt at the crossing",
+      "trigger": "loop with scale = mach_scale(speed_ms / 343); jolt when crossing Mach 1",
+      "mach_scale_curve": [
+        {
+          "mach": 0.0,
+          "scale": 0.0
+        },
+        {
+          "mach": 0.7,
+          "scale": 0.0
+        },
+        {
+          "mach": 0.9,
+          "scale": 0.7
+        },
+        {
+          "mach": 1.0,
+          "scale": 1.3
+        },
+        {
+          "mach": 1.05,
+          "scale": 1.0
+        },
+        {
+          "mach": 1.3,
+          "scale": 0.5
+        },
+        {
+          "mach": 3.0,
+          "scale": 0.4
+        }
+      ],
+      "dynamic_pressure_note": "buffet scales ~ q = 0.5 rho v^2; the curve above is normalised for sea level - multiply by air density ratio for altitude",
+      "play_space": "CameraLocal",
+      "single_instance": true,
+      "patterns": [
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.0,
+          "BlendInTime": 0.4,
+          "BlendOutTime": 0.8,
+          "axes": {
+            "Y": {
+              "Amplitude": 1.2,
+              "Frequency_hz": 8.0
+            },
+            "Z": {
+              "Amplitude": 1.6,
+              "Frequency_hz": 10.0
+            },
+            "Pitch": {
+              "Amplitude": 0.35,
+              "Frequency_hz": 9.0
+            },
+            "Yaw": {
+              "Amplitude": 0.22,
+              "Frequency_hz": 7.0
+            },
+            "Roll": {
+              "Amplitude": 0.45,
+              "Frequency_hz": 5.0
+            }
+          }
+        }
+      ],
+      "crossing_jolt": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.7,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.5,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "Z": {
+              "Amplitude": 4.0,
+              "Frequency_hz": 7.0
+            },
+            "Pitch": {
+              "Amplitude": 1.1,
+              "Frequency_hz": 6.0
+            },
+            "Roll": {
+              "Amplitude": 0.6,
+              "Frequency_hz": 4.5
+            }
+          }
+        }
+      ],
+      "reachability": "FlySpeed 13.5 m/s x boost 1.65 x overdrive 1.3 tops out ~29 m/s (Mach 0.085): never fires in gameplay today; use in cutscenes or a future high-speed mode",
+      "arenafeel_trauma_equivalent": 0.38,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_SupersonicFlight",
+      "peak_px_at_1080p_90deg": 7.5
+    },
+    "superhero_landing": {
+      "description": "three-point landing: immediate downward hit, pitch nod, short ground rumble",
+      "trigger": "on Landed() with vertical speed > 6 m/s (no landing shake hook exists today)",
+      "scale_rule": "clamp(vertical_impact_ms / 12, 0.35, 1.5); Hulkbuster x1.4",
+      "play_space": "CameraLocal",
+      "single_instance": true,
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.55,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.35,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "Z": {
+              "Amplitude": -7.0,
+              "Frequency_hz": 6.0
+            },
+            "Pitch": {
+              "Amplitude": 1.6,
+              "Frequency_hz": 5.5
+            },
+            "Roll": {
+              "Amplitude": 0.5,
+              "Frequency_hz": 4.0
+            }
+          }
+        },
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.5,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.4,
+          "axes": {
+            "Z": {
+              "Amplitude": 0.8,
+              "Frequency_hz": 18.0
+            },
+            "Pitch": {
+              "Amplitude": 0.3,
+              "Frequency_hz": 16.0
+            },
+            "Yaw": {
+              "Amplitude": 0.2,
+              "Frequency_hz": 14.0
+            }
+          }
+        }
+      ],
+      "sync_with": "Ultron ground-impact VFX/decal on the same frame",
+      "arenafeel_trauma_equivalent": 0.82,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_SuperheroLanding",
+      "peak_px_at_1080p_90deg": 34.1
+    },
+    "repulsor_fire": {
+      "description": "recoil: short pitch kick and a push back; it is the arm that recoils so it is small",
+      "trigger": "FireRepulsor() each shot",
+      "weapon_scale": {
+        "Repulsor": 1.0,
+        "Laser": 0.6,
+        "Sonic": 1.3,
+        "Flamethrower": 0.25,
+        "Frost": 0.7,
+        "Minigun": 0.3,
+        "RedBlast": 1.1,
+        "Hulkbuster": 1.6
+      },
+      "rapid_fire_rule": "fire interval < 0.1 s: single_instance restarts, so it reads as a continuous buzz instead of stacking",
+      "play_space": "CameraLocal",
+      "single_instance": true,
+      "first_person_rotation_scale": 0.7,
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.1,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.08,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "X": {
+              "Amplitude": -0.6,
+              "Frequency_hz": 14.0
+            },
+            "Pitch": {
+              "Amplitude": 0.22,
+              "Frequency_hz": 14.0
+            }
+          }
+        }
+      ],
+      "arenafeel_trauma_equivalent": 0.3,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_RepulsorFire",
+      "peak_px_at_1080p_90deg": 4.7
+    },
+    "unibeam": {
+      "description": "chest beam: push back on ignition, sustained high-frequency vibration for the beam's 0.9 s",
+      "trigger": "unibeam fire (duration 0.9 s in IronManCharacter)",
+      "play_space": "CameraLocal",
+      "single_instance": true,
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.25,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.15,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "X": {
+              "Amplitude": -2.5,
+              "Frequency_hz": 4.0
+            },
+            "Pitch": {
+              "Amplitude": 0.35,
+              "Frequency_hz": 4.0
+            }
+          }
+        },
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.9,
+          "BlendInTime": 0.08,
+          "BlendOutTime": 0.25,
+          "axes": {
+            "X": {
+              "Amplitude": 0.6,
+              "Frequency_hz": 20.0
+            },
+            "Pitch": {
+              "Amplitude": 0.25,
+              "Frequency_hz": 18.0
+            },
+            "Yaw": {
+              "Amplitude": 0.2,
+              "Frequency_hz": 16.0
+            },
+            "Roll": {
+              "Amplitude": 0.2,
+              "Frequency_hz": 12.0
+            }
+          }
+        }
+      ],
+      "fov_event": "-2 deg tunnel for 0.9 s (camera FOV, not shake)",
+      "arenafeel_trauma_equivalent": 0.38,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_Unibeam",
+      "peak_px_at_1080p_90deg": 7.5
+    },
+    "hit_light": {
+      "description": "small-arms / drone hit",
+      "trigger": "damage < 25 (ArenaFeel damage trauma uses clamp(dmg/25, .12, .55))",
+      "orient": "flip Yaw/Roll sign toward the hit direction",
+      "play_space": "CameraLocal",
+      "single_instance": false,
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.22,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.15,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "Y": {
+              "Amplitude": 1.2,
+              "Frequency_hz": 10.0
+            },
+            "Pitch": {
+              "Amplitude": 0.55,
+              "Frequency_hz": 11.0
+            },
+            "Yaw": {
+              "Amplitude": 0.35,
+              "Frequency_hz": 9.0
+            },
+            "Roll": {
+              "Amplitude": 0.6,
+              "Frequency_hz": 8.0
+            }
+          }
+        }
+      ],
+      "arenafeel_trauma_equivalent": 0.48,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_HitLight",
+      "peak_px_at_1080p_90deg": 11.7
+    },
+    "hit_heavy": {
+      "description": "titan punch / missile hit; pairs with the existing HitStop",
+      "trigger": "damage >= 25 or boss melee",
+      "orient": "flip Yaw/Roll sign toward the hit direction",
+      "play_space": "CameraLocal",
+      "single_instance": false,
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.55,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.4,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "Y": {
+              "Amplitude": 3.5,
+              "Frequency_hz": 6.0
+            },
+            "Z": {
+              "Amplitude": 2.5,
+              "Frequency_hz": 8.0
+            },
+            "Pitch": {
+              "Amplitude": 1.8,
+              "Frequency_hz": 7.0
+            },
+            "Yaw": {
+              "Amplitude": 1.0,
+              "Frequency_hz": 6.0
+            },
+            "Roll": {
+              "Amplitude": 2.2,
+              "Frequency_hz": 5.0
+            }
+          }
+        },
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.6,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.45,
+          "axes": {
+            "Pitch": {
+              "Amplitude": 0.4,
+              "Frequency_hz": 18.0
+            },
+            "Yaw": {
+              "Amplitude": 0.3,
+              "Frequency_hz": 16.0
+            }
+          }
+        }
+      ],
+      "arenafeel_trauma_equivalent": 0.87,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_HitHeavy",
+      "peak_px_at_1080p_90deg": 38.4
+    },
+    "explosion_nearby": {
+      "description": "pressure-wave jolt + low rumble, attenuated with distance and delayed by the speed of sound",
+      "trigger": "ArenaBlastFX (Ultron) -> UGameplayStatics::PlayWorldCameraShake(Epicenter, Inner, Outer, Falloff, bOrientShakeTowardsEpicenter=true)",
+      "falloff": {
+        "InnerRadius": "blast radius R (cm) - full strength",
+        "OuterRadius": "6 * R + 400 cm (same reach as ArenaFeel::AddBlastTrauma)",
+        "Falloff": 1.6,
+        "size_scale": "clamp(R / 400, 0.1, 1.0) (same as AddBlastTrauma)",
+        "shock_delay_s": "distance_cm / 34300, capped 0.6",
+        "bOrientShakeTowardsEpicenter": true
+      },
+      "play_space": "World",
+      "single_instance": false,
+      "patterns": [
+        {
+          "type": "WaveOscillator",
+          "Duration": 0.5,
+          "BlendInTime": 0.0,
+          "BlendOutTime": 0.35,
+          "InitialOffsetType": "Zero",
+          "axes": {
+            "Z": {
+              "Amplitude": 4.0,
+              "Frequency_hz": 9.0
+            },
+            "Pitch": {
+              "Amplitude": 1.4,
+              "Frequency_hz": 8.0
+            },
+            "Roll": {
+              "Amplitude": 1.2,
+              "Frequency_hz": 6.0
+            }
+          }
+        },
+        {
+          "type": "PerlinNoise",
+          "Duration": 1.2,
+          "BlendInTime": 0.05,
+          "BlendOutTime": 0.8,
+          "axes": {
+            "Z": {
+              "Amplitude": 2.0,
+              "Frequency_hz": 3.5
+            },
+            "Pitch": {
+              "Amplitude": 0.5,
+              "Frequency_hz": 3.0
+            },
+            "Yaw": {
+              "Amplitude": 0.4,
+              "Frequency_hz": 2.5
+            },
+            "Roll": {
+              "Amplitude": 0.6,
+              "Frequency_hz": 2.0
+            }
+          }
+        }
+      ],
+      "arenafeel_trauma_equivalent": 0.76,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_ExplosionNearby",
+      "peak_px_at_1080p_90deg": 29.9
+    },
+    "handheld_cutscene": {
+      "description": "operator handheld: breathing, slow sway, tiny muscle jitter",
+      "trigger": "cutscene shots flagged handheld (replaces StoryDirector's sine handheld)",
+      "focal_rule": "rotation scale = sqrt(35 / f_s35equiv): operators steady longer lenses, image shake still grows ~sqrt(f)",
+      "play_space": "CameraLocal",
+      "single_instance": true,
+      "patterns": [
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.0,
+          "BlendInTime": 0.5,
+          "BlendOutTime": 0.5,
+          "axes": {
+            "X": {
+              "Amplitude": 0.8,
+              "Frequency_hz": 0.5
+            },
+            "Y": {
+              "Amplitude": 0.7,
+              "Frequency_hz": 0.4
+            },
+            "Z": {
+              "Amplitude": 0.6,
+              "Frequency_hz": 0.25
+            },
+            "Pitch": {
+              "Amplitude": 0.3,
+              "Frequency_hz": 0.45
+            },
+            "Yaw": {
+              "Amplitude": 0.4,
+              "Frequency_hz": 0.35
+            },
+            "Roll": {
+              "Amplitude": 0.22,
+              "Frequency_hz": 0.3
+            }
+          }
+        },
+        {
+          "type": "PerlinNoise",
+          "Duration": 0.0,
+          "BlendInTime": 0.5,
+          "BlendOutTime": 0.5,
+          "axes": {
+            "Pitch": {
+              "Amplitude": 0.04,
+              "Frequency_hz": 5.0
+            },
+            "Yaw": {
+              "Amplitude": 0.04,
+              "Frequency_hz": 4.5
+            }
+          }
+        }
+      ],
+      "arenafeel_trauma_equivalent": 0.35,
+      "asset": "/Game/Contrib/Vison/Camera/Shakes/CS_HandheldCutscene",
+      "peak_px_at_1080p_90deg": 6.4
+    }
+  }
+}

@@ -53,6 +53,10 @@ public:
 	AIronManCharacter();
 
 	virtual void Tick(float DeltaSeconds) override;
+	/** Landing hook: superhero landing (> 6 m/s down) fires the dust/scorch VFX and the landing shake on the same frame. */
+	virtual void Landed(const FHitResult& Hit) override;
+	/** Number of hard landings (landing VFX + shake fired) since spawn; for tests. */
+	int32 GetHardLandingCount() const { return HardLandings; }
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
 		AController* EventInstigator, AActor* DamageCauser) override;
@@ -635,6 +639,7 @@ protected:
 	float BeamTimeLeft = 0.f;
 	float PunchTimeLeft = 0.f;
 	bool bPunchLanded = false;
+	int32 HardLandings = 0;
 	bool bPunchLeft = false;
 	float HitFlashLeft = 0.f;
 	float RepulsorFlash = 0.f;

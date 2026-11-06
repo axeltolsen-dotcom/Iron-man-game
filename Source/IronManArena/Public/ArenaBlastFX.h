@@ -20,7 +20,7 @@ public:
 	AArenaBlastFX();
 
 	/** Convenience spawner. Radius in Unreal units (cm). */
-	static AArenaBlastFX* Spawn(UWorld* World, const FVector& Location, float Radius, const FLinearColor& Color, float Duration = 0.4f);
+	static AArenaBlastFX* Spawn(UWorld* World, const FVector& Location, float Radius, const FLinearColor& Color, float Duration = 0.4f, bool bShake = true);
 
 	virtual void Tick(float DeltaSeconds) override;
 

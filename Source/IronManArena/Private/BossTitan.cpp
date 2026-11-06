@@ -124,7 +124,7 @@ void ABossTitan::EnterPhase(int32 NewPhase)
 	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
 	{
 		Feel->HitStop(0.12f, 0.1f);
-		Feel->AddTrauma(0.6f);
+		Feel->PlayShake(TEXT("hit_heavy"));
 	}
 	AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 600.f, FLinearColor(0.85f, 0.6f, 1.f), 0.6f);
 	DropPickup(EPickupType::Health, FVector(0, 0, -150));
