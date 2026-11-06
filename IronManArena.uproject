@@ -33,7 +33,7 @@
 		},
 		{
 			"Name": "Fab",
-			"Enabled": false
+			"Enabled": true
 		},
 		{
 			"Name": "MetaHumanCoreTech",
