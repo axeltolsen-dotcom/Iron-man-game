@@ -42,6 +42,7 @@ class AIronProjectile;
 class AArenaGameMode;
 class UMaterialInstanceDynamic;
 class ASuitUpCinematic;
+class UAudioComponent;
 class UReactorComponent;
 
 UCLASS()
@@ -102,7 +103,22 @@ public:
 	UFUNCTION(BlueprintPure, Category = "IronMan|Suits")
 	int32 GetSuitIndex() const { return SuitIndex; }
 
-	const FSuitDef& GetSuit() const { return USuitLibrary::GetSuit(SuitIndex); }
+	/** The worn suit as drawn: the table entry, or the avatar creator's repaint / helmet of it (UCareerSubsystem). */
+	const FSuitDef& GetSuit() const { return bSuitLookOverride ? SuitLook : USuitLibrary::GetSuit(SuitIndex); }
+
+	// ------------------------------------------------------------------ career hooks (UCareerSubsystem / dev bar)
+	/** Dev bar: no damage taken. */
+	bool bGodMode = false;
+	/** Career: suit taken off (walking around as the pilot) - no flight, weapons, Hulkbuster or wheel. */
+	bool bCareerSuitOff = false;
+	/** Shop suit perk: extra homing missiles per salvo (Iron Patriot, Aurora). */
+	int32 CareerExtraMissiles = 0;
+	/** Shop flight-speed upgrade (x MaxFlySpeed). */
+	float CareerFlightMul = 1.f;
+	/** Armour silhouette (feminine suits / slim armour: narrower X/Y). Multiplies the suit root scale. */
+	FVector CareerBodyScale = FVector::OneVector;
+	/** Re-applies the current suit (keeps health / energy fractions): after a purchase or an avatar change. */
+	void RefreshCareer() { ApplySuit(SuitIndex); }
 
 	/** Cinematic mode: input locked, invulnerable, enemies hold fire, third-person body visible. */
 	void SetCinematicMode(bool bEnable, ASuitUpCinematic* Cinematic);
@@ -657,6 +673,8 @@ protected:
 
 	// suits / view
 	int32 SuitIndex = 0;
+	bool bSuitLookOverride = false;
+	FSuitDef SuitLook;
 	bool bFirstPerson = true;
 	bool bInCinematic = false;
 	bool bCinematicHideBody = false;
@@ -679,6 +697,50 @@ protected:
 	float FlashL = 0.f;
 	float FlashR = 0.f;
 	float FPKick = 0.f;
+
+	// ---- shooting overhaul / feel (ArenaCombat.h, ArenaAudio.h) ----
+	/** Focus (hold Left Alt, or automatic while hovering and shooting): tighter FOV + aim assist, fire charges a heavy blast. */
+	void TickAimFeel(float DeltaSeconds);
+	float FocusAlpha = 0.f;
+	float ChargeTime = 0.f;
+	bool bCharging = false;
+	bool bNextShotCharged = false;
+	float ShotBloom = 0.f;
+	float BeamSfxLeft = 0.f;
+	float BeamCityAcc = 0.f;
+	bool bWasFlyingSfx = false;
+	UPROPERTY(Transient) TObjectPtr<UAudioComponent> ThrusterAudio;
+	UPROPERTY(Transient) TObjectPtr<UAudioComponent> BeamAudio;
+
+	// ---- force-based flight (Camouflaj-style; contrib/research/flight_and_combat.md) ----
+	void TickFlightPhysics(float DeltaSeconds);
+	void ApplyFlightCamera(bool bFly);
+	FVector2D FlightMoveInput = FVector2D::ZeroVector;
+	float FlightVertInput = 0.f;
+	float FlightBank = 0.f;
+	float FlightLeanPitch = 0.f;
+	float FlightThrottleVis = 0.f;
+	float BoostFov = 0.f;
+	float LastControlYaw = 0.f;
+	int32 FlightState = 0; // 0 hover 1 cruise 2 boost
+public:
+	/** 0 hover, 1 cruise, 2 boost (HUD / tests). */
+	int32 GetFlightState() const { return FlightState; }
+	/** Super moves / mask: body-pose override blended over the procedural animation (USuitSuperComponent). */
+	struct FPoseOverride
+	{
+		float Weight = 0.f;
+		FRotator Root = FRotator::ZeroRotator;
+		FVector RootOffset = FVector::ZeroVector;
+		FRotator ShoulderL = FRotator::ZeroRotator, ShoulderR = FRotator::ZeroRotator;
+		FRotator HipL = FRotator::ZeroRotator, HipR = FRotator::ZeroRotator;
+	} PoseOverride;
+	/** True while a super move owns the weapons (normal fire / special blocked). */
+	bool bSuperActive = false;
+	/** Camera FOV offset from a super-move punch-in. */
+	float SuperFov = 0.f;
+	friend class USuitSuperComponent;
+protected:
 
 	// AI chatter state
 	bool bWarnedLowEnergy = false;

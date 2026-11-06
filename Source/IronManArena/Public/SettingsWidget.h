@@ -69,6 +69,7 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> MasterValue;
 	UPROPERTY(Transient) TObjectPtr<USlider> SfxSlider;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> SfxValue;
+	UPROPERTY(Transient) TObjectPtr<UCheckBox> VoicesCheck;
 	UPROPERTY(Transient) TObjectPtr<USlider> VoiceSlider;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> VoiceValue;
 	UPROPERTY(Transient) TObjectPtr<USlider> MusicSlider;

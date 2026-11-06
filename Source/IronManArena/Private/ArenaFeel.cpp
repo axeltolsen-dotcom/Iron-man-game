@@ -56,7 +56,9 @@ void UArenaFeelSubsystem::HitStop(float RealSeconds, float Dilation)
 	HitStopDilation = FMath::Clamp(FMath::Min(bDilated ? HitStopDilation : 1.f, Dilation), 0.02f, 1.f);
 	if (UWorld* World = GetWorld())
 	{
-		UGameplayStatics::SetGlobalTimeDilation(World, HitStopDilation);
+		if (!bDilated) { BaseDilation = FMath::Max(0.0001f, UGameplayStatics::GetGlobalTimeDilation(World)); }
+		AppliedDilation = FMath::Clamp(BaseDilation * HitStopDilation, 0.0001f, 20.f);
+		UGameplayStatics::SetGlobalTimeDilation(World, AppliedDilation);
 		bDilated = true;
 	}
 }
@@ -255,13 +257,26 @@ void UArenaFeelSubsystem::Tick(float DeltaTime)
 	if (Trauma <= 0.f) { ActiveShake = NAME_None; }
 	if (bDilated)
 	{
-		HitStopLeft -= RealDt;
-		if (HitStopLeft <= 0.f)
+		UWorld* World = GetWorld();
+		const float Now = World ? UGameplayStatics::GetGlobalTimeDilation(World) : AppliedDilation;
+		if (!FMath::IsNearlyEqual(Now, AppliedDilation, 0.001f))
 		{
+			// Someone else (suit wheel, autopilot, cutscene) changed the dilation mid-freeze: they own it now.
 			HitStopLeft = 0.f;
 			bDilated = false;
 			HitStopDilation = 1.f;
-			if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); }
+			BaseDilation = Now;
+		}
+		else
+		{
+			HitStopLeft -= RealDt;
+			if (HitStopLeft <= 0.f)
+			{
+				HitStopLeft = 0.f;
+				bDilated = false;
+				HitStopDilation = 1.f;
+				if (World) { UGameplayStatics::SetGlobalTimeDilation(World, BaseDilation); } // B01: restore, not reset to 1
+			}
 		}
 	}
 }
@@ -270,7 +285,7 @@ void UArenaFeelSubsystem::Deinitialize()
 {
 	if (bDilated)
 	{
-		if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); }
+		if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, BaseDilation); }
 		bDilated = false;
 	}
 	Super::Deinitialize();

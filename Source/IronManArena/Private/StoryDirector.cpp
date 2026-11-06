@@ -1388,6 +1388,7 @@ void AStoryDirector::SpeakLine(const FStoryLine& Line, FText& OutSpeaker, FText&
 	if (VoiceAudio) { VoiceAudio->Stop(); VoiceAudio = nullptr; }
 	USoundBase* Sound = UStoryLibrary::GetLineSound(Line, PlayerName, Story.PlayerNameDefault);
 	float SoundLen = 0.f;
+	if (Sound && !UArenaGameUserSettings::AreVoicesEnabled()) { SoundLen = Sound->GetDuration(); Sound = nullptr; } // voices off: keep the pacing, subtitles only
 	if (Sound)
 	{
 		VoiceAudio = UGameplayStatics::CreateSound2D(this, Sound, VoiceVolume(), 1.f, 0.f, nullptr, false, false);

@@ -14,6 +14,7 @@ class USuitSelectWidget;
 class USettingsWidget;
 class UStoryMenuWidget;
 class UUserWidget;
+class UCareerInput;
 struct FKeyEvent;
 
 class AMenuCameraActor;
@@ -62,6 +63,9 @@ public:
 	UJarvisComponent* GetJarvis() const { return Jarvis; }
 	UArenaHUDWidget* GetHUDWidget() const { return HUDWidget; }
 	UHelmetHUDWidget* GetHelmetHUD() const { return HelmetHUD; }
+	EMenuMode GetLastMenuMode() const { return LastMenuMode; }
+	/** Career layer: shop, avatar, dev bar, city interact, vehicles (CareerWidgets.h). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arena|Career") TObjectPtr<UCareerInput> CareerInput;
 
 	/** Override with Blueprint children if you want to restyle them. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|UI")

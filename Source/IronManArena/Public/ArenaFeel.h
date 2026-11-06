@@ -72,6 +72,10 @@ private:
 	float HitStopLeft = 0.f;
 	float HitStopDilation = 1.f;
 	bool bDilated = false;
+	/** B01 fix: the dilation that was active before the hit-stop (suit-wheel slow-mo, autopilot, cutscene) - restored
+	 *  afterwards instead of a hard 1.0, and the freeze is applied on top of it (multiplied). */
+	float BaseDilation = 1.f;
+	float AppliedDilation = 1.f;
 	double ShakeClock = 0.0;
 	bool bCinematicCamera = false;
 	FName ActiveShake;

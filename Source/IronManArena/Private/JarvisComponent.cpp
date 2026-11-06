@@ -347,6 +347,9 @@ void UJarvisComponent::StartLine(int32 LineIndex)
 		const float ClipLen = L.Sound->GetDuration();
 		if (ClipLen > 0.f && ClipLen < 30.f) { Duration = ClipLen + 0.5f; }
 		if (VoiceAudio) { VoiceAudio->Stop(); }
+	}
+	if (L.Sound && UArenaGameUserSettings::AreVoicesEnabled())
+	{
 		// 2D, not auto-destroyed so we can stop it; keeps playing while paused.
 		VoiceAudio = UGameplayStatics::CreateSound2D(this, L.Sound, VoiceVolume, 1.f, 0.f, nullptr, true, false);
 		if (VoiceAudio)
@@ -378,7 +381,7 @@ void UJarvisComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 	// Duck SFX / music under voiced lines (the -20 LUFS voices sit ~9 dB under the old ones).
 	{
-		const bool bVoiced = Lines.IsValidIndex(CurrentLine) && Lines[CurrentLine].Sound != nullptr && CurrentTimeLeft > 0.4f;
+		const bool bVoiced = UArenaGameUserSettings::AreVoicesEnabled() && Lines.IsValidIndex(CurrentLine) && Lines[CurrentLine].Sound != nullptr && CurrentTimeLeft > 0.4f;
 		if (bVoiced != bDucking) { bDucking = bVoiced; UArenaGameUserSettings::SetVoiceDucking(this, bVoiced); }
 	}
 

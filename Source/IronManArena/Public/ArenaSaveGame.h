@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "CareerTypes.h"
 #include "ArenaSaveGame.generated.h"
 
 UCLASS()
@@ -72,6 +73,60 @@ public:
 	/** Earned cosmetics the player switched off in the codex menu. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Side")
 	TArray<FName> CosmeticsDisabled;
+
+	// ---- Career (UCareerSubsystem): credits, shop, houses, avatar ----
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	int32 Credits = 0;
+
+	/** Lifetime credits earned (stats). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	int32 CreditsEarned = 0;
+
+	/** Level per ECareerUpgrade (index = enum value). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<int32> CareerUpgradeLevels;
+
+	/** Shop suits bought (suit ids). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<FName> CareerSuitsOwned;
+
+	/** Houses bought (Career::Houses ids). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<FName> HousesOwned;
+
+	/** Free play starts here when set and owned (else the Legacy Plaza). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	FName HomeHouse;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	bool bAvatarCreated = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	FAvatarConfig Avatar;
+
+	/** Clothing-store outfit slots (Career::OutfitSlots). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<FAvatarOutfit> OutfitSlots;
+
+	/** Clothing / barber styles bought (Career::ClothingItems ids). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<FName> ClothingOwned;
+
+	/** Dealership vehicles bought (Career::Vehicles ids). Stored at your houses' garages. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<FName> VehiclesOwned;
+
+	/** Boss beaten in free play (unlocks the Ultron suit in the shop). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	bool bBossBeaten = false;
+
+	/** Casino: net credits lost today (resets when CasinoDay changes; day = days since 1970, local). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	int32 CasinoLossToday = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	int32 CasinoDay = 0;
 
 	bool HasUpgrade(FName Id) const { return Upgrades.Contains(Id); }
 	bool IsCosmeticActive(FName Id) const { return Cosmetics.Contains(Id) && !CosmeticsDisabled.Contains(Id); }

@@ -38,6 +38,7 @@ void UArenaGameUserSettings::ApplyGameOptionDefaults()
 	bInvertY = false;
 	MasterVolume = 1.f;
 	SfxVolume = 1.f;
+	bVoicesEnabled = false; // voices start muted, subtitles on
 	VoiceVolume = 0.7f; // voices sit under SFX by default (matches SC_Voice's 0.7 baseline)
 	MusicVolume = 0.8f;
 	bSubtitles = true;
@@ -69,6 +70,12 @@ void UArenaGameUserSettings::LoadSettings(bool bForceReload)
 			VoiceVolume = 0.7f;
 			UE_LOG(LogTemp, Log, TEXT("ArenaGameUserSettings: migrated VoiceVolume 1.0 -> 0.7 (settings v%d)"), CurrentSettingsVersion);
 		}
+	}
+	if (SettingsVersion < 3)
+	{
+		// v3: spoken voices start OFF for everyone (toggle in Settings > Audio > Voices).
+		bVoicesEnabled = false;
+		bSubtitles = true;
 	}
 	if (SettingsVersion < CurrentSettingsVersion)
 	{
@@ -274,4 +281,10 @@ void UArenaGameUserSettings::ApplyGameplaySettings(const UObject* WorldContext)
 			Player->SetLookSettings(FMath::Clamp(MouseSensitivity, 0.05f, 5.f), bInvertY);
 		}
 	}
+}
+
+bool UArenaGameUserSettings::AreVoicesEnabled()
+{
+	const UArenaGameUserSettings* S = GetArenaSettings();
+	return S ? S->bVoicesEnabled : false;
 }

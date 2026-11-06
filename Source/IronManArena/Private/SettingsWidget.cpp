@@ -179,6 +179,7 @@ void USettingsWidget::BuildTree()
 	AddHeader(Box, LOCTEXT("Audio", "AUDIO"));
 	MasterSlider = AddSlider(Box, LOCTEXT("Master", "Master volume"), 0.f, 1.f, 0.01f, Tmp); MasterValue = Tmp;
 	SfxSlider = AddSlider(Box, LOCTEXT("Sfx", "SFX volume"), 0.f, 1.f, 0.01f, Tmp); SfxValue = Tmp;
+	VoicesCheck = AddCheck(Box, LOCTEXT("Voices", "Voices (JARVIS / FRIDAY, story VO, NPC chatter) - subtitles always show"));
 	VoiceSlider = AddSlider(Box, LOCTEXT("Voice", "Voice volume"), 0.f, 1.f, 0.01f, Tmp); VoiceValue = Tmp;
 	MusicSlider = AddSlider(Box, LOCTEXT("Music", "Music volume"), 0.f, 1.f, 0.01f, Tmp); MusicValue = Tmp;
 
@@ -249,6 +250,7 @@ void USettingsWidget::RefreshFromSettings()
 	InvertCheck->SetIsChecked(S->bInvertY);
 	MasterSlider->SetValue(S->MasterVolume);
 	SfxSlider->SetValue(S->SfxVolume);
+	VoicesCheck->SetIsChecked(S->bVoicesEnabled);
 	VoiceSlider->SetValue(S->VoiceVolume);
 	MusicSlider->SetValue(S->MusicVolume);
 	SubtitlesCheck->SetIsChecked(S->bSubtitles);
@@ -290,6 +292,7 @@ void USettingsWidget::ApplyLiveOptions()
 	S->bInvertY = InvertCheck->IsChecked();
 	S->MasterVolume = MasterSlider->GetValue();
 	S->SfxVolume = SfxSlider->GetValue();
+	S->bVoicesEnabled = VoicesCheck->IsChecked();
 	S->VoiceVolume = VoiceSlider->GetValue();
 	S->MusicVolume = MusicSlider->GetValue();
 	S->bSubtitles = SubtitlesCheck->IsChecked();

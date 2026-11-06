@@ -1,4 +1,5 @@
 #include "ArenaPlayerController.h"
+#include "CareerWidgets.h"
 #include "CityLayout.h"
 #include "ArenaEnvironment.h"
 #include "MenuCameraActor.h"
@@ -30,6 +31,7 @@ AArenaPlayerController::AArenaPlayerController()
 	SettingsWidgetClass = USettingsWidget::StaticClass();
 	StoryMenuWidgetClass = UStoryMenuWidget::StaticClass();
 	Jarvis = CreateDefaultSubobject<UJarvisComponent>(TEXT("Jarvis"));
+	CareerInput = CreateDefaultSubobject<UCareerInput>(TEXT("CareerInput"));
 	SetShowMouseCursor(false);
 }
 

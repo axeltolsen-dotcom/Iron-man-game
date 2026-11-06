@@ -40,6 +40,12 @@ protected:
 	UFUNCTION() void HandleSettingsClicked();
 	UFUNCTION() void HandleTitleClicked();
 	UFUNCTION() void HandleQuitClicked();
+	UFUNCTION() void HandleCreditsClicked();
+	UFUNCTION() void HandleHoverChanged();
+	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	void Click();
+	void UpdateMusic();
 
 	void BuildTree();
 	UButton* MakeButton(UVerticalBox* Box, const FText& Label, UTextBlock*& OutLabel);
@@ -69,4 +75,13 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> TitleLabel;
 	UPROPERTY(Transient) TObjectPtr<UButton> QuitButton;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> QuitLabel;
+	UPROPERTY(Transient) TObjectPtr<UButton> CreditsButton;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> CreditsLabel;
+	UPROPERTY(Transient) TObjectPtr<class UBorder> CreditsPanel;
+	UPROPERTY(Transient) TObjectPtr<class UAudioComponent> Music;
+	TArray<TPair<TObjectPtr<UButton>, TObjectPtr<UTextBlock>>> Buttons;
+	TArray<FString> ButtonCaptions;
+	TWeakObjectPtr<UButton> LastHovered;
+	float IntroT = 0.f;
+	UPROPERTY(Transient) TObjectPtr<UVerticalBox> MenuBox;
 };

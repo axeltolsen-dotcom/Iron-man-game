@@ -36,7 +36,11 @@ public:
 	virtual void LoadSettings(bool bForceReload = false) override;
 
 	/** Bumped when a saved default must change (2 = voice volume 1.0 -> 0.7 for the -20 LUFS Kokoro lines). */
-	static constexpr int32 CurrentSettingsVersion = 2;
+	static constexpr int32 CurrentSettingsVersion = 3; // 3 = spoken voices default OFF (subtitles stay on)
+
+	/** False (default) mutes every spoken line: JARVIS/FRIDAY, story + cutscene VO, NPC chatter, voice previews.
+	 *  Subtitles still show. SFX and music are unaffected. */
+	static bool AreVoicesEnabled();
 
 	/** Duck SFX and music under a playing voice line (UJarvisComponent calls this per line). */
 	static void SetVoiceDucking(const UObject* WorldContext, bool bDuck);
@@ -79,6 +83,10 @@ public:
 
 	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
 	float VoiceVolume = 0.7f;
+
+	/** Settings > Audio > Voices. Off by default (Axel: voices start muted, subtitles on). */
+	UPROPERTY(config, BlueprintReadWrite, Category = "Settings|Audio")
+	bool bVoicesEnabled = false;
 
 	/** Saved-settings schema version (see CurrentSettingsVersion / LoadSettings migration). */
 	UPROPERTY(config)

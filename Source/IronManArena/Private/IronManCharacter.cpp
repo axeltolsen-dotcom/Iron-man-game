@@ -1,4 +1,10 @@
 #include "IronManCharacter.h"
+#include "SuitSuperComponent.h"
+#include "CareerSubsystem.h"
+#include "ArenaAudio.h"
+#include "ArenaCombat.h"
+#include "CityLife.h"
+#include "Components/AudioComponent.h"
 #include "ArenaFeel.h"
 #include "IronManArena.h"
 #include "IronProjectile.h"
@@ -361,6 +367,9 @@ void AIronManCharacter::ApplySuit(int32 Index)
 {
 	const int32 Num = USuitLibrary::GetNumSuits();
 	SuitIndex = Num > 0 ? FMath::Clamp(Index, 0, Num - 1) : 0;
+	// Career: shop upgrades into the tunables, avatar paint / helmet / armour silhouette into the drawn suit.
+	SuitLook = USuitLibrary::GetSuit(SuitIndex);
+	bSuitLookOverride = UCareerSubsystem::ApplyToCharacter(this, SuitLook);
 	const FSuitDef& S = GetSuit();
 
 	// U's armour kit: real plates replace the placeholder shapes (runtime meshes, cached per suit).
@@ -517,7 +526,7 @@ void AIronManCharacter::UpdateSuitRootTransform()
 	const float H = IsHulkbusterActive() ? HulkbusterScale : 1.f;
 	const float Half = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 	SuitRoot->SetRelativeLocation(FVector(0.f, 0.f, -Half));
-	SuitRoot->SetRelativeScale3D(FVector(P * H, P * H, H));
+	SuitRoot->SetRelativeScale3D(FVector(P * H, P * H, H) * CareerBodyScale);
 	UpdateCameraForSuit();
 }
 
@@ -774,6 +783,7 @@ void AIronManCharacter::Input_Move(const FInputActionValue& Value)
 	const FVector2D Axis = Value.Get<FVector2D>();
 	const float Mul = IsBeamActive() ? BeamMoveMultiplier : (PunchTimeLeft > 0.f ? 0.3f : 1.f);
 
+	if (IsFlying()) { FlightMoveInput = Axis * Mul; return; } // force-based flight reads it in TickFlightPhysics
 	const FRotator YawRot(0.f, Controller->GetControlRotation().Yaw, 0.f);
 	const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
 	const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
@@ -819,7 +829,7 @@ void AIronManCharacter::Input_Look(const FInputActionValue& Value)
 void AIronManCharacter::Input_Ascend(const FInputActionValue& Value)
 {
 	if (bDead || bInCinematic || !IsFlying()) { return; }
-	AddMovementInput(FVector::UpVector, Value.Get<float>() * VerticalFlightInputScale);
+	FlightVertInput = FMath::Clamp(FlightVertInput + Value.Get<float>() * VerticalFlightInputScale, -1.f, 1.f);
 }
 
 void AIronManCharacter::Input_AscendStarted(const FInputActionValue& Value)
@@ -832,18 +842,20 @@ void AIronManCharacter::Input_AscendStarted(const FInputActionValue& Value)
 void AIronManCharacter::Input_Descend(const FInputActionValue& Value)
 {
 	if (bDead || bInCinematic || !IsFlying()) { return; }
-	AddMovementInput(FVector::UpVector, -Value.Get<float>() * VerticalFlightInputScale);
+	FlightVertInput = FMath::Clamp(FlightVertInput - Value.Get<float>() * VerticalFlightInputScale, -1.f, 1.f);
 }
 
 void AIronManCharacter::Input_ToggleFlight(const FInputActionValue& Value)
 {
-	if (bDead || bInCinematic) { return; }
+	if (bDead || bInCinematic || bCareerSuitOff) { return; }
+	if (const USuitSuperComponent* Sup = USuitSuperComponent::Get(this)) { if (Sup->IsSwingMode()) { return; } } // Iron Spider swing mode: B returns to flight
 	SetFlying(!IsFlying());
 }
 
 void AIronManCharacter::Input_FireStarted(const FInputActionValue& Value)
 {
 	if (TrySkipCinematic()) { return; } // click skips the suit-up
+	if (bCareerSuitOff) { return; }
 	if (bDead) { return; }
 	if (bWheelOpen) { CloseSuitWheel(true); return; } // click confirms the wheel
 	bFireHeld = true;
@@ -857,13 +869,15 @@ void AIronManCharacter::Input_FireCompleted(const FInputActionValue& Value)
 
 void AIronManCharacter::Input_Beam(const FInputActionValue& Value)
 {
-	if (bDead || bInCinematic || bWheelOpen) { return; }
+	if (bDead || bInCinematic || bWheelOpen || bCareerSuitOff || bSuperActive) { return; }
+	// Super ready: the component decides tap (normal special) vs hold 0.3 s (super move).
+	if (USuitSuperComponent* Sup = USuitSuperComponent::Get(this)) { if (Sup->HandleSpecialPressed()) { return; } }
 	UseSpecial();
 }
 
 void AIronManCharacter::Input_Hulkbuster(const FInputActionValue& Value)
 {
-	if (bDead || bInCinematic) { return; }
+	if (bDead || bInCinematic || bCareerSuitOff) { return; }
 	ActivateHulkbuster();
 }
 
@@ -890,7 +904,7 @@ void AIronManCharacter::Input_ToggleView(const FInputActionValue& Value)
 
 void AIronManCharacter::Input_WheelOpen(const FInputActionValue& Value)
 {
-	if (bDead || bInCinematic || bWheelOpen || UGameplayStatics::IsGamePaused(this)) { return; }
+	if (bDead || bInCinematic || bWheelOpen || bCareerSuitOff || UGameplayStatics::IsGamePaused(this)) { return; }
 	bWheelOpen = true;
 	WheelCursor = FVector2D::ZeroVector;
 	WheelSelection = INDEX_NONE;
@@ -945,6 +959,7 @@ void AIronManCharacter::QuickSlot(int32 SlotIndex)
 
 void AIronManCharacter::Input_BoostStarted(const FInputActionValue& Value)
 {
+	if (!bBoostHeld && IsFlying() && !bCareerSuitOff) { ArenaAudio::PlayAt(this, TEXT("thruster_boost"), GetActorLocation(), 1.f); ArenaCombat::Rumble(this, 0.4f, 0.3f, true); }
 	bBoostHeld = true;
 }
 
@@ -1015,6 +1030,11 @@ void AIronManCharacter::SetFlying(bool bFly, bool bForced)
 		}
 		bFlightLocked = false;
 		Move->SetMovementMode(MOVE_Flying);
+		Move->bUseSeparateBrakingFriction = true;
+		Move->BrakingFriction = 0.f;
+		ApplySuitMovementSettings();
+		ApplyFlightCamera(true);
+		FlightState = 0;
 		// Small hop so take-off from the ground feels responsive.
 		if (Move->Velocity.Z < 250.f) { Move->Velocity.Z = 250.f; }
 		if (!bWasFlying && HasActorBegunPlay() && !bInCinematic) { UJarvisComponent::Notify(this, EAIEvent::ToFlight); }
@@ -1023,6 +1043,11 @@ void AIronManCharacter::SetFlying(bool bFly, bool bForced)
 	{
 		// MOVE_Falling transitions to MOVE_Walking automatically on touchdown.
 		Move->SetMovementMode(MOVE_Falling);
+		Move->bUseSeparateBrakingFriction = false;
+		ApplySuitMovementSettings();
+		ApplyFlightCamera(false);
+		FlightMoveInput = FVector2D::ZeroVector;
+		BoostFov = 0.f;
 		if (bForced)
 		{
 			bFlightLocked = true;
@@ -1039,9 +1064,15 @@ void AIronManCharacter::ApplySuitMovementSettings()
 	const bool bBuster = IsHulkbusterActive();
 	const float SpeedMul = SuitSpeedMul * (OverdriveLeft > 0.f ? 1.3f : 1.f) * (bBoostActive ? BoostSpeedMultiplier : 1.f);
 	Move->MaxWalkSpeed = (bBuster ? HulkbusterWalkSpeed : WalkSpeed) * SpeedMul;
-	Move->MaxFlySpeed = (bBuster ? HulkbusterFlySpeed : FlySpeed) * SpeedMul;
+	Move->MaxFlySpeed = (bBuster ? HulkbusterFlySpeed : FlySpeed) * SpeedMul * FMath::Max(0.5f, CareerFlightMul);
 	Move->JumpZVelocity = bBuster ? HulkbusterJumpVelocity : JumpVelocity;
 	Move->BrakingDecelerationFlying = FlightBraking;
+	if (IsFlying())
+	{
+		// Force-based flight integrates the velocity itself; CMC only moves + slides along walls.
+		Move->MaxFlySpeed = 20000.f;
+		Move->BrakingDecelerationFlying = 0.f;
+	}
 	CameraBoom->TargetArmLength = bBuster ? HulkbusterCameraDistance : CameraDistance;
 	CameraBoom->SocketOffset = CameraShoulderOffset * (bBuster ? 1.4f : 1.f);
 }
@@ -1165,6 +1196,8 @@ void AIronManCharacter::Tick(float DeltaSeconds)
 	{
 		InvulnerableLeft = FMath::Max(0.f, InvulnerableLeft - DeltaSeconds);
 		TickEnergy(DeltaSeconds);
+		TickFlightPhysics(DeltaSeconds);
+		TickAimFeel(DeltaSeconds);
 		TickWeapons(DeltaSeconds);
 		TickBeam(DeltaSeconds);
 		TickHulkbuster(DeltaSeconds);
@@ -1221,7 +1254,7 @@ FVector AIronManCharacter::ComputeAimPoint() const
 	// 1) Aim assist: enemy closest to the crosshair within the cone.
 	if (AimAssistDegrees > 0.f)
 	{
-		const float CosLimit = FMath::Cos(FMath::DegreesToRadians(AimAssistDegrees));
+		const float CosLimit = FMath::Cos(FMath::DegreesToRadians(AimAssistDegrees * (1.f + 0.8f * FocusAlpha)));
 		AEnemyBase* Best = nullptr;
 		float BestDot = CosLimit;
 		for (TActorIterator<AEnemyBase> It(GetWorld()); It; ++It)
@@ -1251,6 +1284,7 @@ void AIronManCharacter::TickWeapons(float DeltaSeconds)
 {
 	FireCooldown = FMath::Max(0.f, FireCooldown - DeltaSeconds);
 	AimPoseTime = FMath::Max(0.f, AimPoseTime - DeltaSeconds);
+	if (bSuperActive) { return; } // the super move owns the arms
 
 	// Hulkbuster punches.
 	if (PunchTimeLeft > 0.f)
@@ -1270,6 +1304,28 @@ void AIronManCharacter::TickWeapons(float DeltaSeconds)
 		return;
 	}
 
+	// Focus + hold = charge a heavy repulsor blast (released on let go); otherwise hold = auto fire at the weapon's rate.
+	const ESuitPrimaryWeapon PW = GetSuit().PrimaryWeapon;
+	const bool bChargeable = PW == ESuitPrimaryWeapon::Repulsor || PW == ESuitPrimaryWeapon::RedBlast || PW == ESuitPrimaryWeapon::Laser;
+	if (bFireHeld && FocusAlpha > 0.85f && bChargeable && !IsBeamActive() && !bWheelOpen)
+	{
+		if (!bCharging) { bCharging = true; ChargeTime = 0.f; ArenaAudio::PlayAt(this, TEXT("repulsor_charge"), GetActorLocation(), 0.9f, 0.f); }
+		ChargeTime += DeltaSeconds;
+		if (ChargeTime > 0.3f) { ArenaCombat::Rumble(this, 0.12f * FMath::Min(1.f, ChargeTime / 0.7f), 0.05f); }
+		return;
+	}
+	if (bCharging)
+	{
+		bCharging = false;
+		if (!bFireHeld && Reactor->CanDrawPower() && !IsBeamActive() && !bWheelOpen)
+		{
+			bNextShotCharged = ChargeTime >= 0.7f;
+			FireRepulsor();
+			bNextShotCharged = false;
+		}
+		ChargeTime = 0.f;
+		return;
+	}
 	if (bFireHeld && FireCooldown <= 0.f && !IsBeamActive() && !bWheelOpen && Reactor->CanDrawPower())
 	{
 		FireRepulsor(); // sets FireCooldown for the suit's weapon
@@ -1350,11 +1406,49 @@ void AIronManCharacter::FireRepulsor()
 	{
 		if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->PlayShake(TEXT("repulsor_fire"), 0.6f); }
 	}
+	// Shooting overhaul: everything but the sonic fan and the flamethrower is an instant hitscan blast with a tracer.
+	const bool bHitscan = S.PrimaryWeapon != ESuitPrimaryWeapon::Sonic && S.PrimaryWeapon != ESuitPrimaryWeapon::Flamethrower;
+	const bool bCharged = bNextShotCharged;
+	if (bCharged) { Damage *= 3.5f; Blast = FMath::Max(Blast, 260.f); Radius *= 2.f; FireCooldown = FMath::Max(FireCooldown, 0.45f); }
+	Spread += ShotBloom * (bRapidFireWeapon ? 2.5f : 1.2f) * (1.f - 0.7f * FocusAlpha);
+	ShotBloom = FMath::Min(1.f, ShotBloom + (bRapidFireWeapon ? 0.08f : 0.25f));
+	if (bHitscan)
+	{
+		const float Range = S.PrimaryWeapon == ESuitPrimaryWeapon::Laser ? 14000.f : 11000.f;
+		bool bAnyKill = false, bAnyHit = false;
+		for (int32 i = 0; i < Count; ++i)
+		{
+			FVector ShotDir = Dir;
+			if (Spread > 0.f) { ShotDir = FMath::VRandCone(ShotDir, FMath::DegreesToRadians(Spread)); }
+			const ArenaCombat::FShot Shot = ArenaCombat::FireHitscan(this, GetController(), Muzzle, ShotDir, Range, Damage, Blast, Radius, Color, bCharged ? 1400.f : 420.f);
+			const float TW = bCharged ? 30.f : S.PrimaryWeapon == ESuitPrimaryWeapon::Minigun ? 3.5f : S.PrimaryWeapon == ESuitPrimaryWeapon::Laser ? 5.f : 9.f;
+			AArenaTracer::Spawn(World, Muzzle, Shot.End, Color, TW, bCharged ? 0.2f : bRapidFireWeapon ? 0.05f : 0.09f);
+			bAnyKill |= Shot.bKill;
+			bAnyHit |= Shot.bEnemy;
+		}
+		// Muzzle flash, punchy sound, gauntlet kick, rumble, camera kick.
+		AArenaBlastFX::Spawn(World, Muzzle, bCharged ? 55.f : bRapidFireWeapon ? 12.f : 22.f, Color, bCharged ? 0.16f : 0.07f, false);
+		ArenaAudio::PlayAt(this, TEXT("repulsor_fire"), Muzzle, bRapidFireWeapon ? 0.45f : 1.f, bRapidFireWeapon ? 0.12f : 0.06f);
+		if (bCharged) { ArenaAudio::PlayAt(this, TEXT("explosion_near"), Muzzle, 0.6f); }
+		ArenaCombat::Rumble(this, bCharged ? 0.9f : bRapidFireWeapon ? 0.15f : 0.35f, bCharged ? 0.25f : 0.07f, bCharged);
+		if (bAnyKill) { ArenaCombat::Rumble(this, 0.7f, 0.18f, true); ArenaAudio::Play2D(this, TEXT("hud_target_lock"), 0.6f); }
+		else if (bAnyHit) { ArenaAudio::Play2D(this, TEXT("hud_beep_select"), 0.35f, 1.2f); }
+		if (bCharged && bAnyHit) { if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->HitStop(0.06f, 0.15f); Feel->PlayShake(TEXT("repulsor_fire"), 1.4f); } }
+		if (AController* Ctrl = GetController())
+		{
+			const float Kick = (bCharged ? 1.6f : bRapidFireWeapon ? 0.12f : 0.35f) * (1.f - 0.5f * FocusAlpha);
+			Ctrl->SetControlRotation(Ctrl->GetControlRotation() + FRotator(Kick, FMath::FRandRange(-0.3f, 0.3f) * Kick, 0.f));
+		}
+		FPKick = bCharged ? 1.6f : 1.f;
+		Count = 0; // no projectiles
+	}
+	else { Speed *= 1.8f; } // weapons that stay projectiles (sonic fan, flamethrower): much faster = responsive
 	for (int32 i = 0; i < Count; ++i)
 	{
 		FVector ShotDir = Dir;
 		if (Count > 1) { ShotDir = Dir.RotateAngleAxis((i - (Count - 1) * 0.5f) * FanDegrees, FVector::UpVector); }
 		if (Spread > 0.f) { ShotDir = FMath::VRandCone(ShotDir, FMath::DegreesToRadians(Spread)); }
+		if (i == 0) { ArenaAudio::PlayAt(this, S.PrimaryWeapon == ESuitPrimaryWeapon::Sonic ? FName(TEXT("unibeam_impact")) : FName(TEXT("thruster_boost")), Muzzle, 0.4f, 0.1f); }
 		if (AIronProjectile* P = AIronProjectile::SpawnPooled(World, Muzzle, ShotDir.Rotation(), this, this, false))
 		{
 			P->LifeSeconds = Life;
@@ -1419,7 +1513,7 @@ void AIronManCharacter::UseSpecial()
 	switch (Special)
 	{
 	case ESuitSpecialWeapon::Missiles:
-		FireHoming(6, 1800.f, 6000.f, 3.f, 200.f, 12.f, 3.5f, S.AccentColor);
+		FireHoming(6 + FMath::Max(0, CareerExtraMissiles), 1800.f, 6000.f, 3.f, 200.f, 12.f, 3.5f, S.AccentColor);
 		break;
 	case ESuitSpecialWeapon::DroneSwarm:
 		FireHoming(4, 1100.f, 3800.f, 2.5f, 160.f, 20.f, 5.f, S.EmissiveColor);
@@ -1450,6 +1544,8 @@ void AIronManCharacter::UseSpecial()
 	default:
 		bBeamWhip = false;
 		BeamTimeLeft = BeamDuration;
+		ArenaAudio::PlayAt(this, TEXT("unibeam_charge"), GetActorLocation(), 1.f, 0.f);
+		BeamSfxLeft = BeamWindup;
 		if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this)) { Feel->PlayShake(TEXT("unibeam")); }
 		BeamDamageAccum.Empty();
 		break;
@@ -1479,6 +1575,8 @@ void AIronManCharacter::FireHoming(int32 Count, float Speed, float Homing, float
 
 	const FVector Up = FVector::UpVector;
 	const FVector Right = GetActorRightVector();
+	ArenaAudio::PlayAt(this, TEXT("missile_launch"), Me, 1.f);
+	ArenaCombat::Rumble(this, 0.5f, 0.2f, true);
 	for (int32 i = 0; i < Count; ++i)
 	{
 		const float Side = (i % 2 == 0) ? 1.f : -1.f;
@@ -1535,6 +1633,7 @@ void AIronManCharacter::TickBeam(float DeltaSeconds)
 	{
 		BeamMesh->SetVisibility(false);
 		bBeamWhip = false;
+		if (BeamAudio) { BeamAudio->FadeOut(0.2f, 0.f); BeamAudio = nullptr; ArenaAudio::PlayAt(this, TEXT("unibeam_impact"), GetActorLocation(), 0.6f); }
 		return;
 	}
 	BeamTimeLeft -= DeltaSeconds;
@@ -1574,6 +1673,22 @@ void AIronManCharacter::TickBeam(float DeltaSeconds)
 	BeamMesh->SetVisibility(BeamTimeLeft > 0.f);
 
 	if (Elapsed < Windup || BeamTimeLeft <= 0.f) { return; }
+	if (!BeamAudio)
+	{
+		ArenaAudio::PlayAt(this, TEXT("unibeam_fire"), Origin, 1.f, 0.f);
+		BeamAudio = ArenaAudio::Attach(TEXT("unibeam_fire_loop"), GetRootComponent(), 0.9f, true);
+		if (BeamAudio) { BeamAudio->Play(); }
+	}
+	ArenaCombat::Rumble(this, 0.45f, 0.06f, true);
+	BeamCityAcc += DeltaSeconds;
+	if (BeamCityAcc > 0.15f)
+	{
+		BeamCityAcc = 0.f;
+		const FVector BeamEnd = Origin + Dir * Length;
+		CityLife::Damage(GetWorld(), BeamEnd, Radius * 2.5f, 3.f, nullptr, true);
+		AArenaSparks::Spawn(GetWorld(), BeamEnd, -Dir, GetSuit().EmissiveColor, 9, 1300.f);
+		if (Length < Range - 1.f) { ArenaFeel::SpawnImpactDecal(GetWorld(), BeamEnd, WallHit.ImpactNormal, Radius * 2.2f, 8.f); }
+	}
 
 	// Damage: capsule overlap along the beam, Pawn (enemies) + WorldDynamic (missiles).
 	TArray<FOverlapResult> Overlaps;
@@ -1651,6 +1766,10 @@ void AIronManCharacter::PunchImpact()
 			if (P->IsHostile()) { P->Intercept(); }
 		}
 	}
+	// City: cars dent / explode, pedestrians are knocked down.
+	CityLife::Damage(GetWorld(), Center, PunchRadius, PunchDamage * SuitDamageMul, nullptr, true);
+	ArenaAudio::PlayAt(this, TEXT("melee_hit_heavy"), Center, 1.f);
+	ArenaCombat::Rumble(this, 0.7f, 0.18f, true);
 	AArenaBlastFX::Spawn(GetWorld(), Center, PunchRadius * 0.8f, FLinearColor(1.f, 0.8f, 0.55f), 0.25f);
 }
 
@@ -1731,7 +1850,7 @@ void AIronManCharacter::TickHulkbuster(float DeltaSeconds)
 
 float AIronManCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (bDead || bInCinematic || InvulnerableLeft > 0.f || DamageAmount <= 0.f) { return 0.f; }
+	if (bDead || bInCinematic || InvulnerableLeft > 0.f || DamageAmount <= 0.f || bGodMode) { return 0.f; }
 	if (ShieldLeft > 0.f)
 	{
 		AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 160.f, GetSuit().EmissiveColor, 0.15f);
@@ -1811,8 +1930,9 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 
 	// Body lean: tilt forward into flight like a superhero.
 	const float MaxSpeed = FMath::Max(1.f, GetCharacterMovement()->MaxFlySpeed);
-	const float LeanPitch = (bFly && !bInCinematic) ? -FMath::Clamp(Fwd / MaxSpeed, -0.5f, 1.f) * 35.f : 0.f;
-	const float LeanRoll = (bFly && !bInCinematic) ? FMath::Clamp(Side / MaxSpeed, -1.f, 1.f) * 20.f : 0.f;
+	// Force-based flight: lean / bank come from TickFlightPhysics (pitch into speed, roll into turns).
+	const float LeanPitch = (bFly && !bInCinematic) ? FlightLeanPitch : 0.f;
+	const float LeanRoll = (bFly && !bInCinematic) ? FlightBank : 0.f;
 	if (DeltaSeconds > 0.f)
 	{
 		const FRotator Cur = SuitRoot->GetRelativeRotation();
@@ -1860,6 +1980,20 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 		HipR->SetRelativeRotation(FRotator(bFly ? -6.f : -10.f, 0.f, 0.f));
 	}
 
+	// Super move / mask pose override (USuitSuperComponent keys it with anticipation / impact / recovery curves).
+	if (PoseOverride.Weight > 0.001f)
+	{
+		const float W = FMath::Clamp(PoseOverride.Weight, 0.f, 1.f);
+		auto Blend = [W](USceneComponent* C, const FRotator& R) { if (C) { C->SetRelativeRotation(FQuat::Slerp(C->GetRelativeRotation().Quaternion(), R.Quaternion(), W).Rotator()); } };
+		Blend(ShoulderL, PoseOverride.ShoulderL);
+		Blend(ShoulderR, PoseOverride.ShoulderR);
+		Blend(HipL, PoseOverride.HipL);
+		Blend(HipR, PoseOverride.HipR);
+		Blend(SuitRoot, PoseOverride.Root);
+		const float Half = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+		SuitRoot->SetRelativeLocation(FVector(0.f, 0.f, -Half) + PoseOverride.RootOffset * W);
+	}
+
 	// Thruster flames flicker while flying (and only when the body is shown).
 	const bool bBodyShown = SuitRoot->IsVisible();
 	const float Flicker = 0.8f + 0.3f * FMath::Sin(Time * 47.f) + 0.15f * FMath::Sin(Time * 91.f);
@@ -1870,7 +2004,7 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 		const bool bShow = bBodyShown && bFly && !(bHand && bAim);
 		Flame->SetVisibility(bShow);
 		const float Base = bHand ? 0.1f : 0.14f;
-		const float Len = (bHand ? 0.3f : 0.45f) * Flicker;
+		const float Len = (bHand ? 0.3f : 0.45f) * Flicker * (0.7f + 1.3f * FlightThrottleVis);
 		Flame->SetRelativeScale3D(FVector(Base, Base, Len));
 	}
 
@@ -2014,3 +2148,146 @@ void AIronManCharacter::Banner(const FText& Title, const FText& Sub, float Secon
 }
 
 #undef LOCTEXT_NAMESPACE
+
+// ------------------------------------------------------------------------------------------------ aim feel / thrusters
+
+void AIronManCharacter::TickAimFeel(float DeltaSeconds)
+{
+	// Focus: hold Left Alt (aim down / hover focus); automatic half focus while hovering slowly and shooting.
+	const APlayerController* PC = Cast<APlayerController>(GetController());
+	const bool bAltHeld = PC && PC->IsInputKeyDown(EKeys::LeftAlt);
+	const bool bHoverFocus = IsFlying() && GetVelocity().Size() < 350.f && AimPoseTime > 0.f;
+	const float Want = bCareerSuitOff ? 0.f : bAltHeld ? 1.f : bHoverFocus ? 0.5f : 0.f;
+	FocusAlpha = FMath::FInterpTo(FocusAlpha, Want, DeltaSeconds, 10.f);
+	ShotBloom = FMath::Max(0.f, ShotBloom - DeltaSeconds * 2.2f);
+	const float SpeedFov = IsFlying() ? FMath::GetMappedRangeValueClamped(FVector2D(2000.f, 3500.f), FVector2D(0.f, 8.f), float(GetVelocity().Size())) : 0.f;
+	const float FovAdd = SpeedFov + BoostFov + SuperFov - 14.f * FocusAlpha;
+	if (FollowCamera) { FollowCamera->SetFieldOfView(FMath::Clamp(FirstPersonFOV - 10.f + FovAdd, 50.f, 125.f)); }
+	if (FirstPersonCamera) { FirstPersonCamera->SetFieldOfView(FMath::Clamp(FirstPersonFOV + FovAdd, 50.f, 125.f)); }
+	if (bAltHeld && IsFlying())
+	{
+		// Hover focus: bleed speed so the suit steadies itself.
+		if (UCharacterMovementComponent* M = GetCharacterMovement()) { M->Velocity *= FMath::Exp(-2.5f * DeltaSeconds); }
+	}
+	ArenaCombat::SetAimState(FocusAlpha > 0.5f, bCharging ? FMath::Clamp(ChargeTime / 0.7f, 0.f, 1.f) : 0.f, ShotBloom);
+
+	// Thruster bed: loops while flying, pitch / volume with speed.
+	const bool bFly = IsFlying() && !bCareerSuitOff;
+	if (bFly != bWasFlyingSfx)
+	{
+		bWasFlyingSfx = bFly;
+		ArenaAudio::PlayAt(this, bFly ? FName(TEXT("thruster_takeoff")) : FName(TEXT("thruster_landing")), GetActorLocation(), 0.9f);
+		if (bFly && !ThrusterAudio)
+		{
+			ThrusterAudio = ArenaAudio::Attach(TEXT("thruster_loop"), GetRootComponent(), 0.5f, true);
+			if (ThrusterAudio) { ThrusterAudio->Play(); }
+		}
+		else if (!bFly && ThrusterAudio) { ThrusterAudio->FadeOut(0.4f, 0.f); ThrusterAudio = nullptr; }
+	}
+	if (ThrusterAudio)
+	{
+		const float K = FMath::Clamp(GetVelocity().Size() / 4000.f, 0.f, 1.f);
+		ThrusterAudio->SetVolumeMultiplier(0.35f + 0.55f * K + (bBoostHeld ? 0.2f : 0.f));
+		ThrusterAudio->SetPitchMultiplier(0.85f + 0.4f * K + (bBoostHeld ? 0.15f : 0.f));
+	}
+}
+
+// ------------------------------------------------------------------------------------------------ force-based flight
+
+void AIronManCharacter::ApplyFlightCamera(bool bFly)
+{
+	if (!CameraBoom) { return; }
+	// Flight: the camera follows (lag 8, capped 2.2 m) and eases its rotation (12); ground: tight (14, no rotation lag).
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->CameraLagSpeed = bFly ? 8.f : 14.f;
+	CameraBoom->CameraLagMaxDistance = bFly ? 220.f : 0.f;
+	CameraBoom->bEnableCameraRotationLag = bFly;
+	CameraBoom->CameraRotationLagSpeed = 12.f;
+}
+
+void AIronManCharacter::TickFlightPhysics(float DeltaSeconds)
+{
+	UCharacterMovementComponent* Move = GetCharacterMovement();
+	const float Dt = FMath::Min(DeltaSeconds, 1.f / 20.f);
+	if (!Move || !IsFlying() || !Controller || Dt <= 0.f)
+	{
+		FlightBank = FMath::FInterpTo(FlightBank, 0.f, DeltaSeconds, 6.f);
+		FlightLeanPitch = FMath::FInterpTo(FlightLeanPitch, 0.f, DeltaSeconds, 6.f);
+		FlightThrottleVis = 0.f;
+		BoostFov = FMath::FInterpTo(BoostFov, 0.f, DeltaSeconds, 8.f);
+		return;
+	}
+	if (Move->MaxFlySpeed < 10000.f) { ApplySuitMovementSettings(); } // something reset it (overdrive / buster)
+	const FRotator CR = Controller->GetControlRotation();
+	const FVector Look = CR.Vector();
+	const FRotator YawRot(0.f, CR.Yaw, 0.f);
+	const FVector Flat = YawRot.Vector();
+	const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
+	FVector V = Move->Velocity;
+	const float Speed = float(V.Size());
+
+	// Per-suit scale: suit speed rating, shop upgrade, Hulkbuster is heavier.
+	const float K = SuitSpeedMul * FMath::Max(0.5f, CareerFlightMul) * (OverdriveLeft > 0.f ? 1.2f : 1.f) * (IsHulkbusterActive() ? 0.67f : 1.f);
+	const float HoverMax = 900.f * K, CruiseMax = 3500.f * K, BoostMax = 7500.f * K;
+
+	const FVector2D In = FlightMoveInput;
+	const bool bAnyInput = In.SizeSquared() > 0.0144f; // 0.12 dead zone
+	FlightState = bBoostActive ? 2 : ((Speed > HoverMax * 0.9f || (In.Y > 0.5f && Speed > 600.f)) ? 1 : 0);
+	struct FP { float Thrust, Drag, HMax, VMax; };
+	const FP P = FlightState == 2 ? FP{ 12000.f, 0.18f, BoostMax, 4500.f * K } : FlightState == 1 ? FP{ 4500.f, 0.55f, CruiseMax, 2200.f * K } : FP{ 2600.f, 2.5f, HoverMax, 900.f * K };
+
+	// Thrust: hover strafes on the horizontal plane; cruise / boost thrust where you look (pitch steers).
+	FVector Thrust = FlightState == 0 ? (Flat * In.Y + Right * In.X) : (Look * In.Y + Right * In.X * 0.8f);
+	if (FlightState == 2 && In.Y < 0.2f) { Thrust += Look * 0.8f; } // boost always pushes along the view
+	Thrust = Thrust.GetClampedToMaxSize(1.f) * P.Thrust * K;
+	const float Vert = FlightVertInput;
+	FlightVertInput = 0.f;
+	FVector Accel = Thrust + FVector(0.f, 0.f, Vert * 2800.f * K);
+
+	// Soft bumpers: glance off buildings instead of sticking.
+	if (UWorld* World = GetWorld())
+	{
+		if (Speed > 200.f)
+		{
+			const float LookAhead = FMath::Max(300.f, Speed * 0.25f);
+			FHitResult H;
+			FCollisionQueryParams Q(SCENE_QUERY_STAT(FlightBumper), false, this);
+			const FVector From = GetActorLocation();
+			if (World->SweepSingleByChannel(H, From, From + V / Speed * LookAhead, FQuat::Identity, ECC_WorldStatic, FCollisionShape::MakeSphere(80.f), Q) && !H.bStartPenetrating)
+			{
+				const float Near = 1.f - FMath::Clamp(H.Distance / LookAhead, 0.f, 1.f);
+				const FVector N = H.ImpactNormal;
+				Accel += N * 6000.f * Near;
+				const float Into = float(FVector::DotProduct(V, -N));
+				if (Into > 0.f) { V += N * Into * (1.f - FMath::Exp(-6.f * Near * Dt)); } // redirect, never zero
+			}
+		}
+	}
+	V += Accel * Dt;
+
+	// Drag (exponential = frame-rate independent, no oscillation); altitude hold when no vertical input.
+	V *= FMath::Exp(-(bAnyInput || FlightState == 2 ? P.Drag : FMath::Max(P.Drag, 2.5f)) * Dt);
+	if (FMath::Abs(Vert) < 0.05f && FlightState != 2) { V.Z *= FMath::Exp(-3.f * Dt); }
+	// Soft caps: excess bleeds off at 4/s instead of a hard clamp (no snap when boost ends).
+	FVector H2(V.X, V.Y, 0.f);
+	const float HS = float(H2.Size());
+	if (HS > P.HMax) { H2 *= FMath::Lerp(1.f, P.HMax / HS, 1.f - FMath::Exp(-4.f * Dt)); }
+	float VZ = float(V.Z);
+	if (FMath::Abs(VZ) > P.VMax) { VZ = FMath::Lerp(VZ, FMath::Sign(VZ) * P.VMax, 1.f - FMath::Exp(-4.f * Dt)); }
+	V = FVector(H2.X, H2.Y, VZ);
+	Move->Velocity = V;
+
+	// Bank into turns (yaw rate + strafe), lean into speed; boost tilts into a superhero dive.
+	const float Yaw = float(CR.Yaw);
+	const float YawRate = FMath::FindDeltaAngleDegrees(LastControlYaw, Yaw) / Dt;
+	LastControlYaw = Yaw;
+	const float BankMax = FlightState == 2 ? 55.f : FlightState == 1 ? 35.f : 15.f;
+	const float WantBank = FMath::Clamp(YawRate / 140.f * BankMax * FMath::Clamp(Speed / 1500.f, 0.25f, 1.f) + In.X * BankMax * 0.5f, -BankMax, BankMax);
+	FlightBank = FMath::FInterpTo(FlightBank, WantBank, Dt, 5.f);
+	const float Fwd = float(FVector::DotProduct(V, Flat));
+	const float WantPitch = FlightState == 2 ? -65.f : -FMath::Clamp(Fwd / FMath::Max(1.f, CruiseMax), -0.4f, 1.f) * 40.f;
+	FlightLeanPitch = FMath::FInterpTo(FlightLeanPitch, WantPitch, Dt, 4.f);
+	FlightThrottleVis = FMath::FInterpTo(FlightThrottleVis, FlightState == 2 ? 1.f : FMath::Clamp(Thrust.Size() / 6000.f + FMath::Abs(Vert) * 0.4f, 0.f, 0.8f), Dt, 8.f);
+	BoostFov = FMath::FInterpTo(BoostFov, FlightState == 2 ? 12.f : 0.f, Dt, FlightState == 2 ? 15.f : 8.f);
+	FlightMoveInput = FVector2D::ZeroVector;
+}

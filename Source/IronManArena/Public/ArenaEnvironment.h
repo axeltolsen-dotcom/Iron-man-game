@@ -60,6 +60,12 @@ public:
 	/** The environment in the world (null if the level has its own). */
 	static AArenaEnvironment* Find(const UObject* WorldContext);
 
+	/** Lighting components for the dev bar's time of day (UCareerSubsystem::SetTimeOfDay). May be null. */
+	UDirectionalLightComponent* GetSun() const { return Sun; }
+	UDirectionalLightComponent* GetMoon() const { return Moon; }
+	USkyLightComponent* GetSkyLight() const { return SkyLight; }
+	UPostProcessComponent* GetPostProcess() const { return PostProcess; }
+
 	/** Half-size of the square floor in uu (floor is 2*FloorHalfSize across). */
 	static constexpr float FloorHalfSize = 9000.f;
 
