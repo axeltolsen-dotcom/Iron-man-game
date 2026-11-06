@@ -63,11 +63,11 @@
 			S.Id = FName(TEXT("mark-iii"));
 			S.Name = INVTEXT("Mark III");
 			S.Mark = INVTEXT("Mark III");
-			S.Description = INVTEXT("Hot-rod red with a little gold. The suit that made the world say his name.");
-			S.PrimaryColor = FLinearColor(0.4397f, 0.013f, 0.0168f);
+			S.Description = INVTEXT("Candy-apple red and champagne gold. The Mark-style suit that made the world say his name.");
+			S.PrimaryColor = FLinearColor(0.3515f, 0.0052f, 0.0091f);
 			S.SecondaryColor = FLinearColor(0.6584f, 0.3712f, 0.0382f);
-			S.AccentColor = FLinearColor(0.8879f, 0.6445f, 0.1946f);
-			S.EmissiveColor = FLinearColor(0.521f, 0.8632f, 1.0f);
+			S.AccentColor = FLinearColor(0.8714f, 0.6308f, 0.2159f);
+			S.EmissiveColor = FLinearColor(0.6867f, 0.9047f, 1.0f);
 			S.Helmet = ESuitHelmet::Classic;
 			S.Reactor = ESuitReactor::Round;
 			S.Shoulders = ESuitShoulders::Pads;
@@ -83,7 +83,7 @@
 			S.PrimaryWeapon = ESuitPrimaryWeapon::Repulsor;
 			S.SpecialWeapon = ESuitSpecialWeapon::Missiles;
 			S.AI = EAIPersona::Jarvis;
-			S.JarvisIntroLine = INVTEXT("Hot-rod red with a little gold. The suit that made the world say his name.");
+			S.JarvisIntroLine = INVTEXT("Candy-apple red and champagne gold. The Mark-style suit that made the world say his name.");
 			S.CinematicStyle = ECinematicStyle::Gantry;
 			Out.Add(S);
 		}

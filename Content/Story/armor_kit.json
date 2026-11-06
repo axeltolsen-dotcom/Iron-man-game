@@ -8301,7 +8301,7 @@
    ]
   },
   "mark-iii": {
-   "why": "The canonical red/gold reference; base kit is authored to it. Override only pins the gold placement so other classic suits inherit a known-good layout.",
+   "why": "Sketchfab Mark-style reference: candy-apple red hull, champagne-gold faceplate/abs/forearms, under-arm gold plate, triangular collar glow under the neck.",
    "modify": [
     {
      "match": "helmet.faceplate",
@@ -8324,8 +8324,51 @@
     {
      "match": "forearm.*",
      "set": {
-      "slot": "primary"
+      "slot": "secondary"
      }
+    }
+   ],
+   "add": [
+    {
+     "id": "mk3.collar_tri",
+     "name": "MarkIIICollarTri",
+     "segment": "neck",
+     "side": "C",
+     "bone": "neck_01",
+     "offset": {
+      "location": [
+       6.5,
+       0,
+       -1.5
+      ],
+      "rotation": {
+       "pitch": 90,
+       "yaw": 0,
+       "roll": 180
+      }
+     },
+     "geometry": {
+      "type": "pyramid",
+      "base": [
+       2.4,
+       2.0
+      ],
+      "height": 1.6
+     },
+     "thickness": 0,
+     "bevel": {
+      "radius": 0.08,
+      "segments": 1
+     },
+     "panelLines": [],
+     "slot": "glow.reactor",
+     "glow": {
+      "channel": "reactor",
+      "intensity": 32
+     },
+     "layer": 8,
+     "overlaps": [],
+     "mirror": false
     }
    ]
   },

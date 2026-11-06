@@ -234,6 +234,9 @@ namespace SuitRig
 		Rig.TriReactor = Part(Root, TEXT("TriReactor"), EArenaShape::Cone, FVector(15.5f, 0, 141), FVector(0.17f, 0.03f, 0.13f),
 			R::Emissive, 1.f, 25.f, FRotator(180.f, 90.f, 0.f));
 		Part(Root, TEXT("Neck"), EArenaShape::Cylinder, FVector(0, 0, 157), FVector(0.1f, 0.1f, 0.06f), R::Accent);
+		// Small inverted triangular collar light (Sketchfab Mark bust); glow.reactor via "Tri" in the name.
+		Part(Root, TEXT("CollarTri"), EArenaShape::Cone, FVector(12.f, 0.f, 154.f), FVector(0.05f, 0.04f, 0.035f),
+			R::Emissive, 1.f, 28.f, FRotator(180.f, 90.f, 0.f));
 
 		// --- Helmets (index = ESuitHelmet) ---
 		auto Eyes = [&Part](USceneComponent* P, const TCHAR* L, const TCHAR* Rn, float X, float Z, float W)

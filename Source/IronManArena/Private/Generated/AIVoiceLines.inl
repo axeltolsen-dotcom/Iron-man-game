@@ -502,7 +502,7 @@ AI_LINE(WarMachine, Handover, "WARMACHINE_handover_ULTRON_1", "ULTRON", "Hostile
 AI_LINE(WarMachine, Handover, "WARMACHINE_handover_ULTRON_2", "ULTRON", "Ultron's out of the loop. Clean channel, Axel.")
 AI_LINE(Jarvis, SuitIntro, "JARVIS_intro_mark_i", "mark-i", "Built in a cave with a box of scraps. Slow, loud, and absolutely unstoppable at arm's length.")
 AI_LINE(Jarvis, SuitIntro, "JARVIS_intro_mark_ii", "mark-ii", "The bare-chrome flight prototype. Just watch out for icing above 30,000 feet.")
-AI_LINE(Jarvis, SuitIntro, "JARVIS_intro_mark_iii", "mark-iii", "Hot-rod red with a little gold. The suit that made the world say his name.")
+AI_LINE(Jarvis, SuitIntro, "JARVIS_intro_mark_iii", "mark-iii", "Candy-apple red and champagne gold. The Mark-style suit that made the world say his name.")
 AI_LINE(Jarvis, SuitIntro, "JARVIS_intro_mark_iv", "mark-iv", "Refined, reliable, and party-ready. A balanced workhorse with a chest beam to spare.")
 AI_LINE(Jarvis, SuitIntro, "JARVIS_intro_mark_v", "mark-v", "Fits in a briefcase, unfolds in seconds. Perfect for when the race track turns into a war zone.")
 AI_LINE(Jarvis, SuitIntro, "JARVIS_intro_mark_vi", "mark-vi", "Powered by a brand-new element and a triangular reactor. Its wrist lasers slice drones in half.")

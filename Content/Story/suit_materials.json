@@ -221,89 +221,92 @@
       "name": "Mark III",
       "layers": {
         "primary": {
-          "finish": "hot-rod red metallic car paint, high-gloss clearcoat",
+          "finish": "deep candy-apple red metallic plates, high-gloss clearcoat, showroom polish",
           "baseColorLinear": [
-            0.4397,
-            0.02,
-            0.02
+            0.356,
+            0.006,
+            0.008
           ],
-          "metallic": 0.7,
-          "roughness": 0.3,
+          "metallic": 1.0,
+          "roughness": 0.22,
           "clearcoat": 1.0,
-          "clearcoatRoughness": 0.04,
-          "metalFlake": 0.4,
-          "flakeScale": 1.6
+          "clearcoatRoughness": 0.03,
+          "metalFlake": 0.28,
+          "flakeScale": 1.8,
+          "specular": 0.55
         },
         "secondary": {
-          "finish": "gold-titanium alloy, satin-polished, thin clearcoat",
+          "finish": "champagne-gold titanium faceplate and forearm panels, polished with thin clearcoat",
           "baseColorLinear": [
-            0.9733,
-            0.7321,
-            0.3506
+            0.92,
+            0.68,
+            0.28
           ],
           "metallic": 1.0,
           "roughness": 0.24,
-          "clearcoat": 0.8,
-          "clearcoatRoughness": 0.05,
-          "metalFlake": 0.15,
-          "flakeScale": 2.4
+          "clearcoat": 0.85,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.12,
+          "flakeScale": 2.2,
+          "specular": 0.5
         },
         "accent": {
-          "finish": "pale champagne gold-titanium detail, polished",
+          "finish": "pale champagne-gold abs and trim, polished",
           "baseColorLinear": [
-            0.9954,
-            0.8354,
-            0.512
+            0.98,
+            0.8,
+            0.45
           ],
           "metallic": 1.0,
-          "roughness": 0.16,
-          "clearcoat": 0.6,
-          "clearcoatRoughness": 0.05,
-          "metalFlake": 0.1,
-          "flakeScale": 2.4
+          "roughness": 0.18,
+          "clearcoat": 0.7,
+          "clearcoatRoughness": 0.04,
+          "metalFlake": 0.08,
+          "flakeScale": 2.4,
+          "specular": 0.5
         }
       },
       "wear": {
-        "edgeWear": 0.15,
-        "scorch": 0.12,
-        "dirt": 0.1,
+        "edgeWear": 0.08,
+        "scorch": 0.04,
+        "dirt": 0.03,
         "substrateColorLinear": [
-          0.542,
-          0.497,
-          0.449
+          0.08,
+          0.085,
+          0.09
         ]
       },
       "emissive": {
         "eyes": {
           "colorLinear": [
-            0.521,
-            0.8632,
+            0.72,
+            0.92,
             1.0
           ],
-          "intensity": 20
+          "intensity": 36
         },
         "reactor": {
           "colorLinear": [
-            0.5776,
-            0.8714,
+            0.85,
+            0.95,
             1.0
           ],
-          "intensity": 25,
-          "coreWhite": 0.6
+          "intensity": 48,
+          "coreWhite": 0.85
         },
         "repulsors": {
           "colorLinear": [
-            0.5776,
-            0.8714,
+            0.75,
+            0.92,
             1.0
           ],
-          "intensity": 15,
-          "coreWhite": 0.5
+          "intensity": 22,
+          "coreWhite": 0.65
         }
       },
-      "panelLineDepth": 0.12,
-      "look": "Iron Man (2008) Gulmira/Stark Expo-era: deep hot-rod red flake paint, gold-titanium arms/face/thighs, glossy and showroom-like with light battle scuffs.",
-      "emissiveNotes": ""
+      "panelLineDepth": 0.16,
+      "look": "Sketchfab Mark-style reference: deep candy-apple red glossy metallic plates on torso/shoulders/arms, champagne-gold faceplate/abs/forearms, gunmetal recessed joints, cool-white/blue eye slits and bright white-blue round chest arc reactor with bloom, triangular collar light, strong clearcoat and panel-line seams.",
+      "emissiveNotes": "Cool white-blue eyes + bright bloom reactor matching Sketchfab Mark bust."
     },
     "mark-iv": {
       "name": "Mark IV",
