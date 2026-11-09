@@ -51,6 +51,8 @@
 #include "Widgets/SOverlay.h"
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 #define LOCTEXT_NAMESPACE "CareerUI"
 
@@ -1784,13 +1786,21 @@ void UCareerInput::Greet()
 	if (UCareerSubsystem* CM = UCareerSubsystem::Get(this)) { CM->Toast(FText::Format(LOCTEXT("WelcomeToast", "Welcome, {0}"), FText::FromString(C->GetPilotName())), UiTeal); }
 }
 
+// -ArenaSmoke runs headless with a fresh Saved/: the first-launch creator would pause the world and the
+// smoke never starts a wave. Skip the creator there only (the player still gets it on a real first launch).
+static bool IsHeadlessArenaSmoke()
+{
+	static const bool bSmoke = FParse::Param(FCommandLine::Get(), TEXT("ArenaSmoke"));
+	return bSmoke;
+}
+
 void UCareerInput::OnFreePlayStarted()
 {
 	UCareerSubsystem* C = UCareerSubsystem::Get(this);
 	if (!C) { return; }
 	C->ApplySuitLock(Player(this));
 	C->ReapplyLook();
-	if (C->NeedsCharacterSetup())
+	if (C->NeedsCharacterSetup() && !IsHeadlessArenaSmoke())
 	{
 		bFirstLaunchShown = true;
 		UE_LOG(LogTemp, Log, TEXT("Career: free play started without a character - opening the creator"));
@@ -2052,7 +2062,7 @@ void UCareerInput::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	{
 		const AArenaPlayerController* TPC = Cast<AArenaPlayerController>(P);
 		const UCareerSubsystem* CS = UCareerSubsystem::Get(this);
-		if (TPC && TPC->IsMenuOpen() && TPC->GetLastMenuMode() == EMenuMode::Title && CS && CS->NeedsCharacterSetup())
+		if (TPC && TPC->IsMenuOpen() && TPC->GetLastMenuMode() == EMenuMode::Title && CS && CS->NeedsCharacterSetup() && !IsHeadlessArenaSmoke())
 		{
 			bFirstLaunchShown = true;
 			UE_LOG(LogTemp, Log, TEXT("Career: no character yet - opening the first-launch creator on the title screen"));
