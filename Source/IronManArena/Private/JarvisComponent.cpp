@@ -9,6 +9,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 #include "Misc/PackageName.h"
+#include "StoryLibrary.h"
 
 namespace
 {
@@ -29,6 +30,25 @@ namespace
 #undef AI_LINE
 		{ EAIPersona::Jarvis, EAIEvent::Count, TEXT(""), TEXT(""), TEXT("") } // terminator (ignored)
 	};
+
+	struct FRawBanterLine
+	{
+		const TCHAR* Key;
+		const TCHAR* Speaker;
+		const TCHAR* Id;
+		const TCHAR* Text;
+	};
+
+	// FRIDAY / MORGAN exchanges (Tools/data/hud_callouts.json "banter"), in play order per key.
+	const FRawBanterLine GRawBanterLines[] =
+	{
+#define BANTER_LINE(Key, Speaker, Id, Txt) { TEXT(Key), TEXT(Speaker), TEXT(Id), TEXT(Txt) },
+#include "Generated/HUDBanterLines.inl"
+#undef BANTER_LINE
+		{ nullptr, nullptr, nullptr, nullptr } // terminator
+	};
+
+	const FName NAME_MorganComms(TEXT("MORGAN"));
 }
 
 UJarvisComponent::UJarvisComponent()
@@ -131,6 +151,26 @@ int32 UJarvisComponent::GetPriority(EAIEvent Event)
 	case EAIEvent::ToFlight:
 	case EAIEvent::ToGround:         return 15;
 	case EAIEvent::Idle:             return 5;
+	// HUD / suit-state callouts. >= 80 cuts off chatter under 50 (see Enqueue).
+	case EAIEvent::MissionFail:      return 92;
+	case EAIEvent::MissionWin:       return 86;
+	case EAIEvent::LockWeakpoint:    return 82;
+	case EAIEvent::DamageCritical:   return 79;
+	case EAIEvent::HeatCritical:     return 76;
+	case EAIEvent::PowerReserve:     return 74;
+	case EAIEvent::PowerCritical:    return 72;
+	case EAIEvent::MissionStart:     return 68;
+	case EAIEvent::DamageHeavy:      return 62;
+	case EAIEvent::PowerWarning:     return 54;
+	case EAIEvent::LockBoss:         return 52;
+	case EAIEvent::HeatWarning:      return 50;
+	case EAIEvent::HeatVenting:      return 44;
+	case EAIEvent::LockMultiple:     return 30;
+	case EAIEvent::PowerRestored:    return 24;
+	case EAIEvent::HeatRecovered:    return 22;
+	case EAIEvent::DamageLight:      return 20;
+	case EAIEvent::LockAcquired:     return 18;
+	case EAIEvent::LockLost:         return 16;
 	default:                         return 10;
 	}
 }
@@ -150,6 +190,26 @@ float UJarvisComponent::GetCooldown(EAIEvent Event)
 	case EAIEvent::DroneSwarm:   return 30.f;
 	case EAIEvent::HighScore:    return 9999.f; // once per run (reset by StopAll)
 	case EAIEvent::Idle:         return 45.f;
+	// HUD callouts: same key never sooner than this (FHelmetHUDCallouts adds hysteresis on top).
+	case EAIEvent::DamageLight:    return 14.f;
+	case EAIEvent::DamageHeavy:    return 12.f;
+	case EAIEvent::DamageCritical: return 30.f;
+	case EAIEvent::HeatWarning:    return 20.f;
+	case EAIEvent::HeatCritical:   return 14.f;
+	case EAIEvent::HeatVenting:    return 10.f;
+	case EAIEvent::HeatRecovered:  return 20.f;
+	case EAIEvent::LockAcquired:   return 9.f;
+	case EAIEvent::LockLost:       return 14.f;
+	case EAIEvent::LockMultiple:   return 25.f;
+	case EAIEvent::LockBoss:       return 25.f;
+	case EAIEvent::LockWeakpoint:  return 8.f;
+	case EAIEvent::PowerWarning:   return 25.f;
+	case EAIEvent::PowerCritical:  return 18.f;
+	case EAIEvent::PowerReserve:   return 25.f;
+	case EAIEvent::PowerRestored:  return 20.f;
+	case EAIEvent::MissionStart:
+	case EAIEvent::MissionWin:
+	case EAIEvent::MissionFail:    return 5.f;
 	default:                     return 1.f;
 	}
 }
@@ -160,10 +220,17 @@ int32 UJarvisComponent::PickLine(EAIPersona InPersona, EAIEvent Event, FName Con
 	for (int32 i = 0; i < Lines.Num(); ++i)
 	{
 		const FAILine& L = Lines[i];
-		if (L.Speaker.IsNone() && L.Persona == InPersona && L.Event == Event && (Context.IsNone() || L.Context == Context))
+		// HUD events: no context = generic lines only (a None context must not pick "chest plate caved in").
+		const bool bContextOk = IsHudEvent(Event) ? L.Context == Context : (Context.IsNone() || L.Context == Context);
+		if (L.Speaker.IsNone() && L.Persona == InPersona && L.Event == Event && bContextOk)
 		{
 			Candidates.Add(i);
 		}
+	}
+	// HUD variant with no line for this persona (e.g. JARVIS has no "ArmL" line): use the generic one.
+	if (Candidates.Num() == 0 && !Context.IsNone() && IsHudEvent(Event))
+	{
+		return PickLine(InPersona, Event, NAME_None);
 	}
 	// Handover with no specific line for this predecessor: fall back to any handover line.
 	if (Candidates.Num() == 0 && !Context.IsNone() && Event == EAIEvent::Handover)
@@ -204,9 +271,17 @@ void UJarvisComponent::Say(EAIEvent Event, FName Context, bool bInterrupt)
 	if (LineIndex == INDEX_NONE && !CommsSpeaker.IsNone()) { LineIndex = PickSpeakerLine(CommsSpeaker, Event); }
 	if (LineIndex == INDEX_NONE) { return; }
 
+	const int32 Priority = GetPriority(Event);
+	if (IsHudEvent(Event) && Priority < 60 && !bInterrupt)
+	{
+		// Anti-spam: low-priority HUD chatter shares one budget, and never talks over a line that matters.
+		if (HudChatterLeft > 0.f || IsBusyWith(Priority + 1)) { return; }
+		HudChatterLeft = HudChatterGap;
+	}
+
 	CooldownLeft.Add(Key, GetCooldown(Event));
 	if (Event != EAIEvent::Idle) { IdleTime = 0.f; }
-	Enqueue(LineIndex, GetPriority(Event), bInterrupt, true);
+	Enqueue(LineIndex, Priority, bInterrupt, true);
 }
 
 int32 UJarvisComponent::PickSpeakerLine(FName Speaker, EAIEvent Event)
@@ -237,8 +312,62 @@ void UJarvisComponent::AddSpeakerLines(const TArray<FAILine>& InLines)
 	}
 }
 
+bool UJarvisComponent::IsBusyWith(int32 MinPriority) const
+{
+	if (Lines.IsValidIndex(CurrentLine) && CurrentPriority >= MinPriority) { return true; }
+	return Queue.ContainsByPredicate([MinPriority](const FQueued& Q) { return Q.Priority >= MinPriority; });
+}
+
+bool UJarvisComponent::SayBanter(FName Key)
+{
+	if (Key.IsNone() || CommsSpeaker != NAME_MorganComms || Persona != EAIPersona::Friday) { return false; }
+	if (BanterCooldownLeft > 0.f || PlayedBanter.Contains(Key) || IsBusyWith(50)) { return false; }
+
+	const FString KeyStr = Key.ToString();
+	int32 Queued = 0;
+	for (const FRawBanterLine& R : GRawBanterLines)
+	{
+		if (!R.Key || KeyStr != R.Key) { continue; }
+		const FName Speaker(R.Speaker);
+		FText Label;
+		FLinearColor Color = FLinearColor::White;
+		FString Folder;
+		if (Speaker == FName(TEXT("FRIDAY")))
+		{
+			const FAIPersonaDef& P = USuitLibrary::GetPersona(EAIPersona::Friday);
+			Label = P.Label;
+			Color = P.SubtitleColor;
+			Folder = P.AudioFolder;
+		}
+		else
+		{
+			Label = UStoryLibrary::GetSpeakerLabel(Speaker, FString());
+			Color = UStoryLibrary::GetSpeakerColor(Speaker);
+			Folder = UStoryLibrary::GetSpeakerFolder(Speaker);
+		}
+		// Optional clip: /Game/Audio/<Folder>/<Id> (subtitle-only when it is not imported).
+		USoundBase* Sound = nullptr;
+		if (bAutoLoadVoiceAssets && !Folder.IsEmpty())
+		{
+			const FString Package = FString::Printf(TEXT("/Game/Audio/%s/%s"), *Folder, R.Id);
+			if (FPackageName::DoesPackageExist(Package))
+			{
+				Sound = LoadObject<USoundBase>(nullptr, *FString::Printf(TEXT("%s.%s"), *Package, R.Id));
+			}
+		}
+		// The speaker FName keeps its own label/colour; priority 20 = below every combat callout.
+		SayScripted(Speaker, Label, FText::AsCultureInvariant(FString(R.Text)), Color, Sound, 20, false);
+		++Queued;
+	}
+	if (Queued == 0) { return false; }
+	PlayedBanter.Add(Key);
+	BanterCooldownLeft = BanterCooldown;
+	return true;
+}
+
 void UJarvisComponent::SetCommsSpeaker(FName Speaker, float Share)
 {
+	if (Speaker != CommsSpeaker) { PlayedBanter.Reset(); }
 	CommsSpeaker = Speaker;
 	CommsShare = FMath::Clamp(Share, 0.f, 1.f);
 }
@@ -321,6 +450,9 @@ void UJarvisComponent::StopAll()
 {
 	Queue.Reset();
 	CooldownLeft.Reset();
+	PlayedBanter.Reset();
+	BanterCooldownLeft = 0.f;
+	HudChatterLeft = 0.f;
 	if (VoiceAudio) { VoiceAudio->Stop(); }
 	CurrentLine = INDEX_NONE;
 	CurrentTimeLeft = 0.f;
@@ -371,6 +503,8 @@ void UJarvisComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	for (TPair<uint8, float>& C : CooldownLeft) { C.Value -= DeltaTime; }
+	BanterCooldownLeft = FMath::Max(0.f, BanterCooldownLeft - DeltaTime);
+	HudChatterLeft = FMath::Max(0.f, HudChatterLeft - DeltaTime);
 
 	const UWorld* World = GetWorld();
 	if (IdleChatterAfter > 0.f && World && !World->IsPaused())

@@ -32,6 +32,13 @@ enum class EAIEvent : uint8
 	Handover,
 	/** Per-suit intro during the suit-up cinematic; Context = suit Id. */
 	SuitIntro,
+	// ---- Helmet HUD / suit-state callouts (FRIDAY, Tools/data/hud_callouts.json). Fired by FHelmetHUDCallouts.
+	// Context picks a variant (e.g. DamageHeavy + "SpineMount"); no matching variant = the generic line.
+	DamageLight, DamageHeavy, DamageCritical,
+	HeatWarning, HeatCritical, HeatVenting, HeatRecovered,
+	LockAcquired, LockLost, LockMultiple, LockBoss, LockWeakpoint,
+	PowerWarning, PowerCritical, PowerReserve, PowerRestored,
+	MissionStart, MissionWin, MissionFail,
 	Count UMETA(Hidden)
 };
 
@@ -125,6 +132,29 @@ public:
 	void SayScripted(FName Speaker, const FText& Label, const FText& Text, const FLinearColor& Color,
 		USoundBase* Sound, int32 Priority = 70, bool bInterrupt = false);
 
+	/**
+	 * Two-line FRIDAY / MORGAN exchange from Generated/HUDBanterLines.inl (Key = "paint", "reactor" ...).
+	 * Only in story mode with Morgan on comms and FRIDAY as the suit AI; each key plays once per mission,
+	 * at most one exchange per BanterCooldown, and never while a line of priority >= 50 is playing or queued.
+	 * Subtitles always show; voice only when Settings > Voices is on and the clip exists.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	bool SayBanter(FName Key);
+
+	/** A voiced line is playing right now (Voices on + clip): the HUD ducks its beeps under it. */
+	bool IsVoicing() const { return bDucking; }
+
+	/** True if a line of at least this priority is playing or queued (HUD uses it to keep chatter out of fights). */
+	bool IsBusyWith(int32 MinPriority) const;
+
+	/** Minimum seconds between two low-priority HUD callouts (damage light, lock, heat warning ...). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float HudChatterGap = 3.5f;
+
+	/** Seconds between two banter exchanges. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float BanterCooldown = 45.f;
+
 	/** Settings menu: voice volume (also updates the line that is playing). */
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void SetVoiceVolume(float NewVolume);
@@ -163,6 +193,7 @@ protected:
 	};
 
 	static int32 GetPriority(EAIEvent Event);
+	static bool IsHudEvent(EAIEvent Event) { return Event >= EAIEvent::DamageLight && Event < EAIEvent::Count; }
 	static float GetCooldown(EAIEvent Event);
 	int32 PickLine(EAIPersona InPersona, EAIEvent Event, FName Context);
 	int32 PickSpeakerLine(FName Speaker, EAIEvent Event);
@@ -187,6 +218,10 @@ protected:
 	float CurrentDuration = 0.f;
 	float GapLeft = 0.f;
 	float IdleTime = 0.f;
+	float BanterCooldownLeft = 0.f;
+	/** Shared budget for low-priority HUD chatter (< 60): at most one such line every HudChatterGap seconds. */
+	float HudChatterLeft = 0.f;
+	TSet<FName> PlayedBanter;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAudioComponent> VoiceAudio;
