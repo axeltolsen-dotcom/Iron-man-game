@@ -1,4 +1,6 @@
 #include "CityLife.h"
+#include "WantedPressure.h"
+#include "CareerEconomy.h"
 #include "ArenaGameUserSettings.h"
 #include "ArenaAudio.h"
 #include "Components/AudioComponent.h"
@@ -16,6 +18,7 @@
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
+#include "Misc/CommandLine.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundAttenuation.h"
@@ -96,15 +99,20 @@ void ACityCar::Setup(int32 Paint, ECityCarMode InMode)
 	PaintIndex = Paint;
 	Mode = InMode;
 	Health = MaxHealth;
+	BodyVariant = FMath::Abs(Paint) % 3;
 	const TArray<FLinearColor>& Paints = ADowntownDistrict::CarPaints();
-	const FLinearColor PaintC = Paints.Num() ? Paints[FMath::Abs(Paint) % Paints.Num()] : FLinearColor::Red;
+	FLinearColor PaintC = Paints.Num() ? Paints[FMath::Abs(Paint) % Paints.Num()] : FLinearColor::Red;
+	if (BodyVariant == 2) { PaintC = FLinearColor(0.85f, 0.75f, 0.15f); } // taxi-ish
 	auto Put = [this](EArenaShape S, const FVector& L, const FVector& Size, const FLinearColor& C, EArenaSurface Surf, float Em = 0.f, const FRotator& R = FRotator::ZeroRotator)
 	{
 		ArenaVisuals::AddRuntimePart(this, Body, S, L, Size / 100.f, R, C, Em, Surf, false, Parts);
 	};
-	Put(EArenaShape::Cube, FVector(0, 0, 60.f), FVector(450.f, 185.f, 70.f), PaintC, EArenaSurface::SuitPaint);
-	Put(EArenaShape::Cube, FVector(-30.f, 0, 112.f), FVector(230.f, 168.f, 40.f), PaintC, EArenaSurface::SuitPaint);
-	Put(EArenaShape::Cube, FVector(-30.f, 0, 135.f), FVector(220.f, 170.f, 30.f), FLinearColor(0.02f, 0.025f, 0.03f), EArenaSurface::Steel);
+	const float Len = BodyVariant == 0 ? 400.f : BodyVariant == 1 ? 450.f : 500.f;
+	const float Wid = BodyVariant == 2 ? 195.f : 185.f;
+	const float CabH = BodyVariant == 2 ? 95.f : 70.f;
+	Put(EArenaShape::Cube, FVector(0, 0, 60.f), FVector(Len, Wid, CabH), PaintC, EArenaSurface::SuitPaint);
+	Put(EArenaShape::Cube, FVector(BodyVariant == 0 ? -20.f : -30.f, 0, 112.f), FVector(BodyVariant == 2 ? 280.f : 230.f, Wid - 17.f, BodyVariant == 2 ? 55.f : 40.f), PaintC, EArenaSurface::SuitPaint);
+	Put(EArenaShape::Cube, FVector(-30.f, 0, BodyVariant == 2 ? 155.f : 135.f), FVector(220.f, Wid - 15.f, 30.f), FLinearColor(0.02f, 0.025f, 0.03f), EArenaSurface::Steel);
 	for (const FVector2D& W : { FVector2D(140, 82), FVector2D(140, -82), FVector2D(-140, 82), FVector2D(-140, -82) })
 	{
 		Put(EArenaShape::Cylinder, FVector(W.X, W.Y, 33.f), FVector(66.f, 66.f, 24.f), FLinearColor(0.015f, 0.015f, 0.015f), EArenaSurface::Plain, 0.f, FRotator(0.f, 0.f, 90.f));
@@ -154,7 +162,7 @@ void ACityCar::ApplyCityDamage(float Amount, const FVector& From, bool bFromPlay
 	if (bWasTraffic) { CurrentSpeed = 0.f; DriveSpeed = 0.f; } // driver bails / stops
 	if (bFromPlayer)
 	{
-		if (ACityLife* L = ACityLife::Find(this)) { L->AddCrime(4.f, GetActorLocation()); }
+		if (ACityLife* L = ACityLife::Find(this)) { L->AddCrime(12.f, GetActorLocation()); } // ULTRON W3 car scrape
 	}
 	if (Health <= 0.f) { Explode(bLastHitByPlayer); }
 }
@@ -186,7 +194,7 @@ void ACityCar::Explode(bool bFromPlayer)
 	}
 	if (ACityLife* L = ACityLife::Find(this))
 	{
-		if (bFromPlayer) { L->AddCrime(45.f, Here); }
+		if (bFromPlayer) { L->AddCrime(70.f, Here); } // ULTRON W3 car explode
 		L->ScareAround(Here, 5000.f, true);
 	}
 	// Hurt the player and enemies close by.
@@ -245,6 +253,12 @@ void ACityCar::TickTraffic(float DeltaSeconds)
 	if (!Dist || bRecycle) { return; }
 	const FVector Fwd = DriveAxis == 0 ? FVector(DriveDir, 0, 0) : FVector(0, DriveDir, 0);
 	const FVector Here = GetActorLocation();
+	if (StopHold > 0.f)
+	{
+		StopHold = FMath::Max(0.f, StopHold - DeltaSeconds);
+		CurrentSpeed = FMath::FInterpTo(CurrentSpeed, 0.f, DeltaSeconds, 4.f);
+		return;
+	}
 	// Brake for the player, pedestrians and cars ahead in the lane.
 	float Want = DriveSpeed;
 	auto Blocks = [&](const FVector& P, float Ahead)
@@ -263,7 +277,7 @@ void ACityCar::TickTraffic(float DeltaSeconds)
 	const FVector Right(-Fwd.Y, Fwd.X, 0.f);
 	if (DriveAxis == 0) { Next.Y = LaneLine + Right.Y * 300.f; } else { Next.X = LaneLine + Right.X * 300.f; }
 	Next.Z = Dist->StreetZ() + 70.f;
-	// Intersections: maybe turn onto the crossing road.
+	// Intersections: stop, turn, or continue.
 	const FVector Local = Dist->GetActorTransform().InverseTransformPosition(Next);
 	const float AlongLocal = DriveAxis == 0 ? Local.X : Local.Y;
 	const float Half = ADowntownDistrict::HalfExtent;
@@ -272,7 +286,15 @@ void ACityCar::TickTraffic(float DeltaSeconds)
 	if (FMath::Abs(AlongLocal - Cross) < 40.f && Now - LastTurnAt > 3.f)
 	{
 		LastTurnAt = Now;
-		if (FMath::FRand() < 0.3f && FMath::Abs(Cross) < Half - 10.f)
+		const float Roll = FMath::FRand();
+		const float StopChance = CareerEconomy::StopChanceAtIntersection();
+		if (Roll < StopChance)
+		{
+			StopHold = FMath::FRandRange(1.2f, 2.8f);
+			CurrentSpeed = 0.f;
+			return;
+		}
+		if (Roll < StopChance + 0.3f && FMath::Abs(Cross) < Half - 10.f)
 		{
 			const float NewDir = FMath::FRand() < 0.5f ? -1.f : 1.f;
 			const FVector CrossWorld = Dist->GetActorTransform().TransformPosition(DriveAxis == 0 ? FVector(Cross, 0, 0) : FVector(0, Cross, 0));
@@ -581,7 +603,19 @@ ACityLife* ACityLife::Spawn(ADowntownDistrict* InDistrict)
 	FActorSpawnParameters SP;
 	SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	ACityLife* L = InDistrict->GetWorld()->SpawnActor<ACityLife>(ACityLife::StaticClass(), InDistrict->GetActorTransform(), SP);
-	if (L) { L->District = InDistrict; }
+	if (L)
+	{
+		L->District = InDistrict;
+		L->MaxTraffic = CareerEconomy::MaxTraffic();
+		L->MaxPeds = CareerEconomy::MaxPeds();
+		// Keep ArenaSmoke deterministic / cheap: optional no-op for traffic + peds.
+		if (CareerEconomy::DisableLifeDuringArenaSmoke() && FParse::Param(FCommandLine::Get(), TEXT("ArenaSmoke")))
+		{
+			L->bLifeEnabled = false;
+			L->MaxTraffic = 0;
+			L->MaxPeds = 0;
+		}
+	}
 	return L;
 }
 
@@ -621,7 +655,7 @@ void ACityLife::ScareAround(const FVector& Where, float Radius, bool bExplosion)
 void ACityLife::OnPedKilled(ACityPedestrian* Ped, bool bByPlayer)
 {
 	if (!bByPlayer) { return; }
-	AddCrime(70.f, Ped ? Ped->GetActorLocation() : SearchCenter);
+	AddCrime(90.f, Ped ? Ped->GetActorLocation() : SearchCenter); // ULTRON W3 ped kill
 	if (UCareerSubsystem* C = UCareerSubsystem::Get(this)) { C->AddCredits(-100, LOCTEXT("Civilian", "civilian casualty")); }
 }
 
@@ -674,7 +708,7 @@ void ACityLife::ClearWanted()
 
 void ACityLife::OnResponderKilled(AEnemyBase* Enemy)
 {
-	AddCrime(Enemy && Enemy->Tags.Contains(GunshipTag) ? 90.f : 30.f, Enemy ? Enemy->GetActorLocation() : SearchCenter);
+	AddCrime(Enemy && Enemy->Tags.Contains(GunshipTag) ? 110.f : 35.f, Enemy ? Enemy->GetActorLocation() : SearchCenter); // ULTRON W3
 }
 
 void ACityLife::SpawnResponders()
@@ -683,10 +717,21 @@ void ACityLife::SpawnResponders()
 	AIronManCharacter* Pl = PlayerOf(this);
 	if (!GM || !Pl || !GM->DroneClass) { return; }
 	Responders.RemoveAll([](const TWeakObjectPtr<AEnemyBase>& R) { return !R.IsValid() || R->IsDead(); });
-	// Star table: 1 two police drones, 2 four, 3 + an armoured tank, 4 six + two tanks, 5 + two gunships.
-	const int32 WantDrones = Stars <= 1 ? 2 : Stars == 2 ? 4 : Stars == 3 ? 4 : 6;
-	const int32 WantTanks = Stars >= 4 ? 2 : Stars == 3 ? 1 : 0;
-	const int32 WantGunships = Stars >= 5 ? 2 : 0;
+	// ULTRON W1/W2: WantedPressure table + absolute cap NonResponder + Responders <= 12.
+	const WantedPressure::FMul Press = WantedPressure::ForStars(Stars);
+	const int32 NonResp = WantedPressure::CountNonResponderAlive(this);
+	const int32 Room = FMath::Max(0, WantedPressure::AbsoluteEnemyCap - NonResp - Responders.Num());
+	int32 WantDrones = Press.WantDrones;
+	int32 WantTanks = Press.WantTanks;
+	int32 WantGunships = Press.WantGunships;
+	auto TrimTo = [&](int32 Budget)
+	{
+		int32 Need = WantDrones + WantTanks + WantGunships;
+		while (Need > Budget && WantGunships > 0) { --WantGunships; --Need; }
+		while (Need > Budget && WantTanks > 0) { --WantTanks; --Need; }
+		while (Need > Budget && WantDrones > 0) { --WantDrones; --Need; }
+	};
+	TrimTo(FMath::Min(Press.Cap, Responders.Num() + Room));
 	int32 Drones = 0, Tanks = 0, Gunships = 0;
 	for (const TWeakObjectPtr<AEnemyBase>& R : Responders)
 	{
@@ -696,6 +741,8 @@ void ACityLife::SpawnResponders()
 	}
 	auto SpawnOne = [&](TSubclassOf<AEnemyBase> Cls, bool bGunship, bool bGround)
 	{
+		// Re-check room each spawn so we never breach AbsoluteEnemyCap mid-batch.
+		if (Responders.Num() + NonResp >= WantedPressure::AbsoluteEnemyCap) { return; }
 		const FVector Off = FRotator(0.f, Rng.FRandRange(0.f, 360.f), 0.f).Vector() * Rng.FRandRange(3500.f, 6000.f);
 		FVector Loc = Pl->GetActorLocation() + Off + FVector(0, 0, bGround ? 0.f : Rng.FRandRange(800.f, 1800.f));
 		if (bGround && District.IsValid()) { Loc = District->GetRoadsideSpotNear(Loc).GetLocation() + FVector(0, 0, 120.f); }
@@ -703,18 +750,17 @@ void ACityLife::SpawnResponders()
 		if (!E) { return; }
 		E->Tags.Add(ResponderTag);
 		if (bGunship) { E->Tags.Add(GunshipTag); E->SetActorScale3D(FVector(2.2f)); }
-		// Red / blue police lights.
-		for (int32 k = 0; k < 2; ++k)
+		// W5: one police light, color toggled in TickWanted (was two PointLights).
 		{
 			UPointLightComponent* L = NewObject<UPointLightComponent>(E);
 			L->SetupAttachment(E->GetRootComponent());
-			L->SetRelativeLocation(FVector(0.f, k == 0 ? -60.f : 60.f, 60.f));
+			L->SetRelativeLocation(FVector(0.f, 0.f, 60.f));
 			L->SetIntensityUnits(ELightUnits::Lumens);
 			L->SetIntensity(12000.f);
 			L->SetAttenuationRadius(900.f);
 			L->SetCastShadows(false);
-			L->SetLightColor(k == 0 ? FLinearColor(1.f, 0.05f, 0.05f) : FLinearColor(0.1f, 0.25f, 1.f));
-			L->ComponentTags.Add(k == 0 ? FName(TEXT("PoliceRed")) : FName(TEXT("PoliceBlue")));
+			L->SetLightColor(FLinearColor(1.f, 0.05f, 0.05f));
+			L->ComponentTags.Add(FName(TEXT("PoliceLight")));
 			L->RegisterComponent();
 		}
 		Responders.Add(E);
@@ -759,13 +805,23 @@ void ACityLife::TickWanted(float DeltaSeconds, const FVector& PlayerLoc)
 	else if (!bSeen)
 	{
 		// Inside the search area but unseen: heat cools slowly; stars drop as it falls under the thresholds.
+		// W4: allow clear to 0 when heat < 1★ and unseen long enough (half escape time).
 		Heat = FMath::Max(0.f, Heat - DeltaSeconds * 6.f);
+		HiddenTime += DeltaSeconds; // deepen: track unseen time inside search for clear-to-zero
 		int32 NewStars = 0;
 		for (int32 i = 0; i < 5; ++i) { if (Heat >= StarHeat[i]) { NewStars = i + 1; } }
-		Stars = FMath::Max(1, NewStars);
+		if (NewStars <= 0 && HiddenTime >= 0.5f * (8.f + 4.f * float(Stars)))
+		{
+			if (UCareerSubsystem* C = UCareerSubsystem::Get(this)) { C->Toast(LOCTEXT("LostQuiet", "You lost the cops"), FLinearColor(0.5f, 1.f, 0.6f)); }
+			ClearWanted();
+			return;
+		}
+		Stars = FMath::Max(NewStars, 0);
+		if (Stars <= 0) { ClearWanted(); return; }
 	}
 	ResponderTimer -= DeltaSeconds;
-	if (ResponderTimer <= 0.f) { ResponderTimer = 6.f; SpawnResponders(); }
+	// W6: respawn interval scales with stars (~5.2s at 1★ → ~3.75s at 5★).
+	if (ResponderTimer <= 0.f) { ResponderTimer = WantedPressure::ForStars(Stars).RespawnSec; SpawnResponders(); }
 	// Police PA + light bar flicker.
 	PaTimer -= DeltaSeconds;
 	LightPhase += DeltaSeconds * 7.f;
@@ -779,7 +835,13 @@ void ACityLife::TickWanted(float DeltaSeconds, const FVector& PlayerLoc)
 		R->GetComponents(Lights);
 		for (UPointLightComponent* L : Lights)
 		{
-			if (L->ComponentHasTag(TEXT("PoliceRed"))) { L->SetVisibility(bRedOn); }
+			// W5: single PoliceLight toggles red/blue; keep legacy Red/Blue tags working if old responders linger.
+			if (L->ComponentHasTag(TEXT("PoliceLight")))
+			{
+				L->SetLightColor(bRedOn ? FLinearColor(1.f, 0.05f, 0.05f) : FLinearColor(0.1f, 0.25f, 1.f));
+				L->SetVisibility(true);
+			}
+			else if (L->ComponentHasTag(TEXT("PoliceRed"))) { L->SetVisibility(bRedOn); }
 			else if (L->ComponentHasTag(TEXT("PoliceBlue"))) { L->SetVisibility(!bRedOn); }
 		}
 		const float D = FVector::DistSquared(R->GetActorLocation(), PlayerLoc);
@@ -828,7 +890,9 @@ void ACityLife::TickPeds(float DeltaSeconds, const FVector& PlayerLoc, bool bNea
 		if (!bNear || !Dist) { continue; }
 		// Respawn out of sight-ish (2.5 .. 9 km... in cm: 25 .. 90 m) on a pavement, with a new look.
 		FVector Spot;
-		if (Rng.FRand() < DeltaSeconds * 2.f && Dist->RandomSidewalkPoint(Rng, PlayerLoc, 2500.f, 9000.f, Spot))
+		float PedRate = 2.f;
+		if (const UCareerSubsystem* Care = UCareerSubsystem::Get(this)) { PedRate *= CareerEconomy::PedMulForHour(Care->GetTimeOfDay()); }
+		if (Rng.FRand() < DeltaSeconds * PedRate && Dist->RandomSidewalkPoint(Rng, PlayerLoc, 2500.f, 9000.f, Spot))
 		{
 			P->Randomize(Rng);
 			P->Activate(Spot);
@@ -854,7 +918,7 @@ bool ACityLife::PlaceTrafficCar(ACityCar* Car, const FVector& PlayerLoc)
 	if (FVector::Dist2D(P, PlayerLoc) < 4000.f) { return false; }
 	Car->LaneLine = Axis == 0 ? P.Y : P.X;
 	Car->SetActorLocation(FVector(P.X, P.Y, Dist->StreetZ() + 70.f));
-	Car->StartDriving(Axis, Dir, Rng.FRandRange(1100.f, 1600.f));
+	Car->StartDriving(Axis, Dir, Rng.FRandRange(900.f, 1800.f));
 	Car->SetActorHiddenInGame(false);
 	Car->SetActorEnableCollision(true);
 	return true;
@@ -863,19 +927,26 @@ bool ACityLife::PlaceTrafficCar(ACityCar* Car, const FVector& PlayerLoc)
 void ACityLife::TickTraffic(float DeltaSeconds, const FVector& PlayerLoc, bool bNear)
 {
 	if (!bNear) { return; }
+	float Hour = 13.f;
+	if (const UCareerSubsystem* Care = UCareerSubsystem::Get(this)) { Hour = Care->GetTimeOfDay(); }
+	const int32 WantCars = FMath::Clamp(FMath::RoundToInt(float(MaxTraffic) * CareerEconomy::TrafficMulForHour(Hour)), 0, 24);
 	Cars.RemoveAll([this](const TObjectPtr<ACityCar>& C)
 	{
 		// Wrecks and cars whose driver bailed (shot at) leave the traffic pool and stay where they are.
 		if (C && (C->IsWrecked() || (C->GetMode() == ECityCarMode::Traffic && C->DriveSpeed <= 0.f && !C->bRecycle))) { Wrecks.Add(C); return true; }
 		return !C;
 	});
-	while (Cars.Num() < MaxTraffic)
+	while (Cars.Num() > WantCars)
+	{
+		if (ACityCar* Extra = Cars.Pop()) { Extra->Destroy(); }
+	}
+	while (Cars.Num() < WantCars)
 	{
 		FActorSpawnParameters SP;
 		SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		ACityCar* C = GetWorld()->SpawnActor<ACityCar>(ACityCar::StaticClass(), FTransform(GetActorLocation() - FVector(0, 0, 5000.f)), SP);
 		if (!C) { break; }
-		C->Setup(Rng.RandRange(0, ADowntownDistrict::CarPaints().Num() - 1), ECityCarMode::Traffic);
+		C->Setup(Rng.RandRange(0, FMath::Max(1, ADowntownDistrict::CarPaints().Num()) * 3 - 1), ECityCarMode::Traffic);
 		C->bRecycle = true;
 		Cars.Add(C);
 	}

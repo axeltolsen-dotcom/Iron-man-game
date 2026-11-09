@@ -1,0 +1,109 @@
+{
+  "version": 2,
+  "notes": "Dum-E living-city economy tunables (pass 2). Credits only; no real-money gambling. Loaded from Content/Story (staged NonUFS).",
+  "traffic": {
+    "maxCars": 10,
+    "maxPeds": 14,
+    "disableDuringArenaSmoke": true,
+    "stopChanceAtIntersection": 0.45,
+    "timeOfDay": {
+      "nightMul": 0.45,
+      "rushMul": 1.35,
+      "middayMul": 1.0,
+      "nightStart": 22.0,
+      "nightEnd": 5.5,
+      "rushMorningStart": 7.0,
+      "rushMorningEnd": 9.5,
+      "rushEveningStart": 16.5,
+      "rushEveningEnd": 19.0
+    }
+  },
+  "shops": {
+    "openHour": 8.0,
+    "closeHour": 22.0,
+    "note": "Barber, clothing, dealership closed overnight. Casino stays open."
+  },
+  "casino": {
+    "dailyLossLimit": 5000,
+    "minBet": 10,
+    "maxBet": 1000,
+    "coinFlipWinChance": 0.48,
+    "highLowWinChance": 0.47,
+    "brand": "The Arc Royale",
+    "currency": "credits",
+    "realMoney": false
+  },
+  "jobs": [
+    {
+      "id": "scrap-run",
+      "name": "Scrap Run",
+      "blurb": "Haul a crate of workshop scrap across Midtown.",
+      "payout": 350,
+      "cooldownHours": 20
+    },
+    {
+      "id": "rooftop-relay",
+      "name": "Rooftop Relay",
+      "blurb": "Carry a spare reactor coil up to a tower helipad.",
+      "payout": 500,
+      "cooldownHours": 20
+    },
+    {
+      "id": "harbor-escort",
+      "name": "Harbor Escort",
+      "blurb": "Walk a shipment from the pier to Legacy Motors.",
+      "payout": 275,
+      "cooldownHours": 12
+    },
+    {
+      "id": "neon-tune",
+      "name": "Neon Tune-Up",
+      "blurb": "Fix a flickering storefront sign on Stark Street.",
+      "payout": 200,
+      "cooldownHours": 8
+    },
+    {
+      "id": "airstrip-fuel",
+      "name": "Airstrip Fuel Run",
+      "blurb": "Top off the Skylark tanks before dusk. Bonus if you own a plane.",
+      "payout": 650,
+      "cooldownHours": 24,
+      "bonusIfOwnsPlane": 150
+    },
+    {
+      "id": "courier-lane",
+      "name": "Courier Lane",
+      "blurb": "Zip a sealed envelope through Midtown traffic. Bonus on a bike.",
+      "payout": 180,
+      "cooldownHours": 6,
+      "bonusIfOwnsBike": 80
+    },
+    {
+      "id": "plaza-sweep",
+      "name": "Plaza Sweep",
+      "blurb": "Clear drones and junk from Legacy Plaza after a wave.",
+      "payout": 420,
+      "cooldownHours": 14
+    },
+    {
+      "id": "night-watch",
+      "name": "Night Watch Shift",
+      "blurb": "Stand a quiet hour at the Arc Royale loading dock.",
+      "payout": 300,
+      "cooldownHours": 10
+    },
+    {
+      "id": "tenant-handyman",
+      "name": "Tenant Handyman",
+      "blurb": "Fix a sink in a building you own. Needs any owned house.",
+      "payout": 240,
+      "cooldownHours": 16,
+      "bonusIfOwnsHouse": 120
+    }
+  ],
+  "catalogueHints": {
+    "vehicles": "Career::Vehicles() in CareerTypes.cpp",
+    "houses": "Career::Houses() in CareerTypes.cpp",
+    "clothing": "Career::ClothingItems() in CareerTypes.cpp"
+  }
+}

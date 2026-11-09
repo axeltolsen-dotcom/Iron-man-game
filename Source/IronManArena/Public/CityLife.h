@@ -56,6 +56,9 @@ public:
 	float DriveSpeed = 1300.f;
 	float CurrentSpeed = 0.f;
 	float LastTurnAt = 0.f;
+	float StopHold = 0.f;
+	/** 0 coupe, 1 sedan, 2 van/taxi-ish — procedural body proportions. */
+	int32 BodyVariant = 0;
 	bool bRecycle = false;
 
 protected:
@@ -162,8 +165,9 @@ public:
 	/** Plays a spatialised bark at Location (global rate limit). */
 	bool PlayBark(FName VoiceId, FName Category, const FVector& Location);
 
-	static constexpr int32 MaxPeds = 12;
-	static constexpr int32 MaxTraffic = 8;
+	/** Caps from CareerEconomy / city_economy.json (defaults 12 / 8). */
+	int32 MaxPeds = 12;
+	int32 MaxTraffic = 8;
 	bool bLifeEnabled = true;
 
 protected:

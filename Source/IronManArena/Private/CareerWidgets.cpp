@@ -11,6 +11,7 @@
 #include "ArenaGameUserSettings.h"
 #include "ArenaPlayerController.h"
 #include "CareerSubsystem.h"
+#include "CareerEconomy.h"
 #include "CityHouse.h"
 #include "CityLife.h"
 #include "CityVehicle.h"
@@ -334,6 +335,8 @@ void UCareerScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 			if (G == ECasinoGame::Slots) { for (int32 i = 0; i < 3; ++i) { if (SpinTime > 0.25f * i) { Reels[i] = CasinoRng.RandRange(0, 5); } } }
 			else if (G == ECasinoGame::Wheel) { WheelAngle += InDeltaTime * 900.f * FMath::Max(0.1f, SpinTime); }
 			else if (G == ECasinoGame::Roulette) { RouletteNumber = CasinoRng.RandRange(0, 36); }
+			else if (G == ECasinoGame::CoinFlip) { RouletteNumber = CasinoRng.RandRange(0, 1); }
+			else if (G == ECasinoGame::HighLow) { RouletteNumber = CasinoRng.RandRange(1, 13); }
 			Refresh();
 		}
 		else { CasinoPlay(); }
@@ -1087,6 +1090,20 @@ TSharedRef<SWidget> UCareerScreen::BuildPhone()
 		}, Stars > 0 && C->CanAfford(Fee)));
 	}
 	Line(LOCTEXT("PhTaxi", "Taxi to Midtown"), Btn(LOCTEXT("PhGo", "GO  50 CR"), [C, Self]() { if (C->Spend(50, LOCTEXT("Taxi", "taxi"))) { if (Self.IsValid()) { Self->CloseScreen(); } C->TravelToCity(); } }));
+	L->AddSlot().AutoHeight().Padding(0.f, 10.f, 0.f, 0.f)[Txt(LOCTEXT("PhJobs", "SIDE JOBS"), 13, UiPink)];
+	L->AddSlot().AutoHeight()[WrapTxt(LOCTEXT("PhJobsHint", "Quiet Midtown contracts. Credits only; each job has its own cooldown."), 11)];
+	for (const FCareerJobDef& Job : CareerEconomy::Jobs())
+	{
+		const FName JId = Job.Id;
+		const int32 Left = C->JobCooldownLeft(JId);
+		const FText Label = Left > 0
+			? FText::Format(LOCTEXT("PhJobCd", "{0}  (+{1} CR)  — ready in {2}m"), FText::FromString(Job.Name), FText::AsNumber(Job.Payout), FText::AsNumber((Left + 59) / 60))
+			: FText::Format(LOCTEXT("PhJobReady", "{0}  (+{1} CR)"), FText::FromString(Job.Name), FText::AsNumber(Job.Payout));
+		Line(Label, Btn(LOCTEXT("PhClaim", "CLAIM"), [C, JId, Self]()
+		{
+			if (C->ClaimJob(JId) && Self.IsValid()) { Self->Refresh(); }
+		}, Left == 0));
+	}
 	return Frame(LOCTEXT("PhoneTitle", "PHONE"), SNew(SScrollBox) + SScrollBox::Slot()[L], 560.f);
 }
 
@@ -1096,7 +1113,7 @@ int32 UCareerScreen::MaxBet() const
 {
 	const UCareerSubsystem* C = UCareerSubsystem::Get(this);
 	if (!C) { return 0; }
-	return FMath::Min3(Career::CasinoMaxBet, C->GetCredits(), C->GetCasinoLossAllowance());
+	return FMath::Min3(CareerEconomy::CasinoMaxBet(), C->GetCredits(), C->GetCasinoLossAllowance());
 }
 
 int32 UCareerScreen::HandValue(const TArray<int32>& Cards) const
@@ -1109,7 +1126,7 @@ int32 UCareerScreen::HandValue(const TArray<int32>& Cards) const
 
 void UCareerScreen::BlackjackDeal()
 {
-	if (bHandActive || Bet > MaxBet() || Bet < Career::CasinoMinBet) { return; }
+	if (bHandActive || Bet > MaxBet() || Bet < CareerEconomy::CasinoMinBet()) { return; }
 	UiSfx(TEXT("casino_card_shuffle"), 0.8f);
 	UiSfx(TEXT("casino_chip_lay"), 0.7f);
 	PlayerCards = { CasinoRng.RandRange(1, 13), CasinoRng.RandRange(1, 13) };
@@ -1170,10 +1187,10 @@ void UCareerScreen::CasinoPlay()
 	const ECasinoGame G = ECasinoGame(Param);
 	if (!bPendingSettle)
 	{
-		if (Bet < Career::CasinoMinBet || Bet > MaxBet()) { ResultText = LOCTEXT("BetLimit", "Bet over today's limit or your credits"); Refresh(); return; }
+		if (Bet < CareerEconomy::CasinoMinBet() || Bet > MaxBet()) { ResultText = LOCTEXT("BetLimit", "Bet over today's limit or your credits"); Refresh(); return; }
 		bPendingSettle = true;
 		UiSfx(G == ECasinoGame::Slots ? FName(TEXT("casino_chips_handle")) : FName(TEXT("casino_chips_stack")), 0.8f);
-		SpinTime = G == ECasinoGame::Slots ? 1.4f : G == ECasinoGame::Wheel ? 2.6f : 2.0f;
+		SpinTime = G == ECasinoGame::Slots ? 1.4f : G == ECasinoGame::Wheel ? 2.6f : (G == ECasinoGame::CoinFlip || G == ECasinoGame::HighLow) ? 0.9f : 2.0f;
 		ResultText = LOCTEXT("Spinning", "...");
 		Refresh();
 		return;
@@ -1222,6 +1239,41 @@ void UCareerScreen::CasinoPlay()
 		const float M = WheelMul[WheelSegment];
 		Net = FMath::RoundToInt(Bet * M) - Bet;
 		ResultText = M > 0.f ? FText::Format(LOCTEXT("WheelWin", "x{0}  -  {1}"), FText::AsNumber(M), Cr(Net + Bet)) : LOCTEXT("WheelLose", "LOSE");
+	}
+	else if (G == ECasinoGame::CoinFlip)
+	{
+		const bool bHeads = CasinoRng.FRand() < CareerEconomy::CoinFlipWinChance();
+		RouletteNumber = bHeads ? 1 : 0;
+		Net = bHeads ? Bet : -Bet; // even money; win chance < 0.5 gives the house its edge
+		ResultText = bHeads
+			? FText::Format(LOCTEXT("FlipWin", "HEADS  -  WIN {0}"), Cr(Net + Bet))
+			: LOCTEXT("FlipLose", "TAILS  -  no win");
+	}
+	else if (G == ECasinoGame::HighLow)
+	{
+		// RouletteBet: 0 = Low, 1 = High. Shown card was RouletteNumber; draw next.
+		const int32 Shown = FMath::Clamp(RouletteNumber, 1, 13);
+		int32 Next = CasinoRng.RandRange(1, 13);
+		// Soft house edge: with probability (1 - winChance) force a miss when not a push.
+		const bool bForceMiss = CasinoRng.FRand() >= CareerEconomy::HighLowWinChance();
+		if (Next == Shown) { Next = FMath::Clamp(Shown + (CasinoRng.FRand() < 0.5f ? -1 : 1), 1, 13); }
+		if (bForceMiss)
+		{
+			if (RouletteBet == 1) { Next = CasinoRng.RandRange(1, FMath::Max(1, Shown - 1)); }
+			else { Next = CasinoRng.RandRange(FMath::Min(13, Shown + 1), 13); }
+		}
+		else
+		{
+			if (RouletteBet == 1) { Next = CasinoRng.RandRange(FMath::Min(13, Shown + 1), 13); }
+			else { Next = CasinoRng.RandRange(1, FMath::Max(1, Shown - 1)); }
+		}
+		const bool bWin = (RouletteBet == 1) ? (Next > Shown) : (Next < Shown);
+		Net = bWin ? Bet : -Bet;
+		static const TCHAR* Rank[] = { TEXT("?"), TEXT("A"), TEXT("2"), TEXT("3"), TEXT("4"), TEXT("5"), TEXT("6"), TEXT("7"), TEXT("8"), TEXT("9"), TEXT("10"), TEXT("J"), TEXT("Q"), TEXT("K") };
+		ResultText = FText::Format(LOCTEXT("HLRes", "{0} → {1}  -  {2}"),
+			FText::FromString(Rank[Shown]), FText::FromString(Rank[Next]),
+			bWin ? FText::Format(LOCTEXT("HLWin", "WIN {0}"), Cr(Net + Bet)) : LOCTEXT("HLLose", "no win"));
+		RouletteNumber = Next;
 	}
 	C->SettleCasino(Net, G);
 	UiSfx(Net > 0 ? (G == ECasinoGame::Slots ? FName(TEXT("slot_win")) : FName(TEXT("coin"))) : FName(TEXT("ui_back")), Net > 0 ? 0.9f : 0.4f);
@@ -1308,7 +1360,7 @@ TSharedRef<SWidget> UCareerScreen::BuildCasino()
 		Game->AddSlot().AutoHeight().HAlign(HAlign_Center)[PlayBtn];
 		Game->AddSlot().AutoHeight()[WrapTxt(LOCTEXT("RRules", "European single-zero wheel. Even bets pay 1:1, dozens 2:1, a single number 35:1. Zero loses every outside bet."), 11)];
 	}
-	else
+	else if (G == ECasinoGame::Wheel)
 	{
 		TSharedRef<SUniformGridPanel> Grid = SNew(SUniformGridPanel).SlotPadding(2.f);
 		const int32 Lit = bPendingSettle ? (int32(WheelAngle / 18.f) % 20) : WheelSegment;
@@ -1329,6 +1381,43 @@ TSharedRef<SWidget> UCareerScreen::BuildCasino()
 		Game->AddSlot().AutoHeight().HAlign(HAlign_Center).Padding(8.f)[PlayBtn];
 		Game->AddSlot().AutoHeight()[WrapTxt(LOCTEXT("WRules", "20 segments: 10 lose, 5 x1.2, 3 x2, 1 x3, 1 x4 (return 95 %)."), 11)];
 	}
+	else if (G == ECasinoGame::CoinFlip)
+	{
+		const bool bHeads = RouletteNumber != 0;
+		Game->AddSlot().AutoHeight().HAlign(HAlign_Center)
+		[
+			SNew(SBox).WidthOverride(160.f).HeightOverride(160.f)
+			[
+				SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).HAlign(HAlign_Center).VAlign(VAlign_Center)
+				.BorderBackgroundColor(bPendingSettle ? FLinearColor(0.35f, 0.3f, 0.1f) : (bHeads ? UiGold : FLinearColor(0.25f, 0.25f, 0.28f)))
+				[Txt(bPendingSettle ? LOCTEXT("FlipSpin", "...") : (bHeads ? LOCTEXT("Heads", "HEADS") : LOCTEXT("Tails", "TAILS")), 28, FLinearColor::Black)]
+			]
+		];
+		const TSharedRef<SWidget> FlipBtn = Btn(LOCTEXT("Flip", "FLIP"), [Self]() { if (Self.IsValid()) { Self->CasinoPlay(); } }, !bBusy && Allow > 0, Hot, 20);
+		Game->AddSlot().AutoHeight().HAlign(HAlign_Center).Padding(8.f)[FlipBtn];
+		Game->AddSlot().AutoHeight()[WrapTxt(LOCTEXT("FlipRules", "Call heads. Even money; house edge from a slightly unfair coin. Credits only."), 11)];
+	}
+	else // HighLow
+	{
+		if (RouletteNumber < 1 || RouletteNumber > 13) { RouletteNumber = 7; }
+		static const TCHAR* Rank[] = { TEXT("?"), TEXT("A"), TEXT("2"), TEXT("3"), TEXT("4"), TEXT("5"), TEXT("6"), TEXT("7"), TEXT("8"), TEXT("9"), TEXT("10"), TEXT("J"), TEXT("Q"), TEXT("K") };
+		Game->AddSlot().AutoHeight().HAlign(HAlign_Center)
+		[
+			SNew(SBox).WidthOverride(120.f).HeightOverride(160.f)
+			[
+				SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).HAlign(HAlign_Center).VAlign(VAlign_Center)
+				.BorderBackgroundColor(FLinearColor(0.92f, 0.92f, 0.9f))
+				[Txt(FText::FromString(Rank[FMath::Clamp(RouletteNumber, 1, 13)]), 40, FLinearColor(0.05f, 0.05f, 0.08f))]
+			]
+		];
+		Game->AddSlot().AutoHeight().HAlign(HAlign_Center).Padding(8.f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().Padding(4.f)[Btn(LOCTEXT("HLLow", "LOW"), [Self]() { if (Self.IsValid()) { Self->RouletteBet = 0; Self->CasinoPlay(); } }, !bBusy && Allow > 0, RouletteBet == 0 ? Sel : Hot, 18)]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(4.f)[Btn(LOCTEXT("HLHigh", "HIGH"), [Self]() { if (Self.IsValid()) { Self->RouletteBet = 1; Self->CasinoPlay(); } }, !bBusy && Allow > 0, RouletteBet == 1 ? Sel : Hot, 18)]
+		];
+		Game->AddSlot().AutoHeight()[WrapTxt(LOCTEXT("HLRules", "Guess whether the next card is higher or lower. Aces low, kings high. Even money with a house edge. Credits only."), 11)];
+	}
 	return Frame(FText::Format(LOCTEXT("CasinoTitle", "ARC ROYALE  //  {0}"), Career::CasinoGameName(G)),
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot().AutoHeight()
@@ -1340,7 +1429,7 @@ TSharedRef<SWidget> UCareerScreen::BuildCasino()
 		]
 		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 14.f)[Game]
 		+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)[Txt(ResultText, 22, UiGold)]
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f)[WrapTxt(LOCTEXT("CasinoNote", "In-game credits only - no real money, nothing to buy. Daily loss limit 5,000 CR; bets 10 - 1,000 CR."), 11, UiDim)],
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 10.f)[WrapTxt(FText::Format(LOCTEXT("CasinoNote", "In-game credits only - no real money, nothing to buy. Daily loss limit {0} CR; bets {1} - {2} CR."), Cr(CareerEconomy::CasinoDailyLossLimit()), Cr(CareerEconomy::CasinoMinBet()), Cr(CareerEconomy::CasinoMaxBet())), 11, UiDim)],
 		900.f);
 }
 
@@ -1860,9 +1949,11 @@ void UCareerInput::TickInteract()
 			InteractKind = 2;
 			InteractId = P->Type;
 			InteractParam = P->Game;
-			const bool bShop = P->Type == FName(TEXT("barber")) || P->Type == FName(TEXT("clothing"));
+			const bool bShop = P->Type == FName(TEXT("barber")) || P->Type == FName(TEXT("clothing")) || P->Type == FName(TEXT("dealership"));
+			const bool bHours = bShop && !CareerEconomy::IsShopOpenAt(C->GetTimeOfDay());
 			Prompt = Char->IsFlying() ? FText::Format(LOCTEXT("PLand", "Land to use {0}"), FText::FromString(P->Name))
-				: (bShop && !bSuitOff) ? FText::Format(LOCTEXT("PSuitOff", "[O] take the suit off to enter {0}"), FText::FromString(P->Name))
+				: bHours ? FText::Format(LOCTEXT("PClosed", "{0} closed (opens {1}:00)"), FText::FromString(P->Name), FText::AsNumber(int32(CareerEconomy::ShopOpenHour())))
+				: (bShop && P->Type != FName(TEXT("dealership")) && !bSuitOff) ? FText::Format(LOCTEXT("PSuitOff", "[O] take the suit off to enter {0}"), FText::FromString(P->Name))
 				: FText::Format(LOCTEXT("PUse", "[E] {0}"), FText::FromString(P->Name));
 		}
 	}
@@ -1878,7 +1969,9 @@ void UCareerInput::TickInteract()
 				InteractKind = 3;
 				InteractId = D->Id;
 				Prompt = C->OwnsHouse(D->Id) ? (C->GetHomeHouse() == D->Id ? FText::Format(LOCTEXT("PAtHome", "{0} (home)"), FText::FromString(D->Name)) : FText::Format(LOCTEXT("PHome", "[E] set {0} as home"), FText::FromString(D->Name)))
-					: FText::Format(LOCTEXT("PBuyHouse", "[E] buy {0} for {1}"), FText::FromString(D->Name), Cr(D->Price));
+					: (D->IncomePerMinute < 0
+						? FText::Format(LOCTEXT("PLease", "[E] lease {0} for {1} (rent {2}/min)"), FText::FromString(D->Name), Cr(D->Price), Cr(-D->IncomePerMinute))
+						: FText::Format(LOCTEXT("PBuyHouse", "[E] buy {0} for {1}"), FText::FromString(D->Name), Cr(D->Price)));
 				break;
 			}
 		}
@@ -1893,7 +1986,12 @@ void UCareerInput::TickInteract()
 	}
 	else if (InteractKind == 2 && !Char->IsFlying())
 	{
-		if (InteractId == FName(TEXT("casino_game"))) { OpenScreen(ECareerScreen::Casino, InteractParam); }
+		const bool bShopPoi = InteractId == FName(TEXT("barber")) || InteractId == FName(TEXT("clothing")) || InteractId == FName(TEXT("dealership"));
+		if (bShopPoi && !CareerEconomy::IsShopOpenAt(C->GetTimeOfDay()))
+		{
+			C->Toast(FText::Format(LOCTEXT("ShopClosedToast", "Closed until {0}:00"), FText::AsNumber(int32(CareerEconomy::ShopOpenHour()))), FLinearColor(1.f, 0.55f, 0.35f));
+		}
+		else if (InteractId == FName(TEXT("casino_game"))) { OpenScreen(ECareerScreen::Casino, InteractParam); }
 		else if (InteractId == FName(TEXT("barber")) && bSuitOff) { OpenScreen(ECareerScreen::Barber); }
 		else if (InteractId == FName(TEXT("clothing")) && bSuitOff) { OpenScreen(ECareerScreen::Clothing); }
 		else if (InteractId == FName(TEXT("dealership"))) { OpenScreen(ECareerScreen::Shop, 3); }

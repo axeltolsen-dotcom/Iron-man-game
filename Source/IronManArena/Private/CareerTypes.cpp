@@ -59,6 +59,9 @@ namespace Career
 			{ FName(TEXT("harbor-loft")), TEXT("Harbor Loft"), TEXT("Small walk-up apartment over the harbor street. A bed, a bench, a place to start."), 2500, 0, false },
 			{ FName(TEXT("skyline-penthouse")), TEXT("Skyline Penthouse"), TEXT("Glass penthouse on top of a downtown tower with a rooftop pad. Earns +40 credits a minute (rent from the floors below)."), 15000, 40, false },
 			{ FName(TEXT("malibu-mansion")), TEXT("Cliffside Mansion"), TEXT("Malibu-style cliff house with a workshop and an armory bay: repairs, recharges and cools your suit. Earns +120 credits a minute."), 45000, 120, true },
+			{ FName(TEXT("workshop-bay")), TEXT("Workshop Bay"), TEXT("Converted garage loft near the hangar district. Quiet workbench, scrap bins, a place to tinker. Earns +15 credits a minute."), 8000, 15, false },
+			{ FName(TEXT("canal-flat")), TEXT("Canal Flat"), TEXT("Two-room walk-up over the canal promenade. Quiet mornings, damp evenings. Earns +25 credits a minute."), 11000, 25, false },
+			{ FName(TEXT("night-watch-lease")), TEXT("Night Watch Lease"), TEXT("Cheap dockside lease: low deposit, then -8 CR/min rent. A place to sleep until you buy something better."), 1200, -8, false },
 		};
 		return H;
 	}
@@ -141,7 +144,8 @@ namespace Career
 		static const TArray<FLinearColor> C = {
 			FLinearColor(0.015f, 0.012f, 0.01f), FLinearColor(0.06f, 0.035f, 0.02f), FLinearColor(0.16f, 0.09f, 0.045f),
 			FLinearColor(0.45f, 0.3f, 0.14f), FLinearColor(0.7f, 0.55f, 0.32f), FLinearColor(0.35f, 0.08f, 0.03f),
-			FLinearColor(0.55f, 0.55f, 0.56f), FLinearColor(0.25f, 0.05f, 0.35f), FLinearColor(0.04f, 0.2f, 0.45f), FLinearColor(0.6f, 0.15f, 0.3f) };
+			FLinearColor(0.55f, 0.55f, 0.56f), FLinearColor(0.25f, 0.05f, 0.35f), FLinearColor(0.04f, 0.2f, 0.45f), FLinearColor(0.6f, 0.15f, 0.3f),
+			FLinearColor(0.85f, 0.78f, 0.55f), FLinearColor(0.12f, 0.35f, 0.18f) };
 		return C;
 	}
 
@@ -150,7 +154,8 @@ namespace Career
 		static const TArray<FLinearColor> C = {
 			FLinearColor(0.18f, 0.18f, 0.2f), FLinearColor(0.6f, 0.6f, 0.6f), FLinearColor(0.02f, 0.02f, 0.022f),
 			FLinearColor(0.05f, 0.08f, 0.16f), FLinearColor(0.35f, 0.03f, 0.03f), FLinearColor(0.08f, 0.15f, 0.06f),
-			FLinearColor(0.32f, 0.22f, 0.12f), FLinearColor(0.5f, 0.38f, 0.05f), FLinearColor(0.25f, 0.08f, 0.32f), FLinearColor(0.5f, 0.2f, 0.28f) };
+			FLinearColor(0.32f, 0.22f, 0.12f), FLinearColor(0.5f, 0.38f, 0.05f), FLinearColor(0.25f, 0.08f, 0.32f), FLinearColor(0.5f, 0.2f, 0.28f),
+			FLinearColor(0.9f, 0.88f, 0.82f), FLinearColor(0.08f, 0.35f, 0.4f), FLinearColor(0.55f, 0.28f, 0.08f) };
 		return C;
 	}
 
@@ -171,6 +176,8 @@ namespace Career
 		case EAvatarHair::Bun:      return LOCTEXT("HBun", "Bun");
 		case EAvatarHair::Curly:    return LOCTEXT("HCurly", "Curly");
 		case EAvatarHair::Bald:     return LOCTEXT("HBald", "Bald");
+		case EAvatarHair::Undercut: return LOCTEXT("HUnder", "Undercut");
+		case EAvatarHair::Braids:   return LOCTEXT("HBraids", "Braids");
 		default:                    return FText::GetEmpty();
 		}
 	}
@@ -202,6 +209,11 @@ namespace Career
 			{ FName(TEXT("prop-plane")), TEXT("Skylark Prop Plane"), TEXT("Single-prop trainer. Takes off from the airstrip."), ECityVehicleKind::Plane, 15000, 280.f, FLinearColor(0.8f, 0.8f, 0.78f), FVector(800, 1100, 260) },
 			{ FName(TEXT("private-jet")), TEXT("Stark Industries Jet"), TEXT("Twin-engine private jet. Needs the full runway."), ECityVehicleKind::Plane, 60000, 750.f, FLinearColor(0.85f, 0.85f, 0.86f), FVector(2000, 1800, 520) },
 			{ FName(TEXT("helicopter")), TEXT("City Helicopter"), TEXT("Light helicopter. Lifts straight off any helipad."), ECityVehicleKind::Helicopter, 30000, 250.f, FLinearColor(0.05f, 0.07f, 0.12f), FVector(1000, 260, 300) },
+			{ FName(TEXT("city-sedan")), TEXT("Midtown Sedan"), TEXT("Everyday four-door. Cheap, reliable, blends into traffic."), ECityVehicleKind::Car, 2200, 160.f, FLinearColor(0.25f, 0.27f, 0.3f), FVector(470, 185, 140) },
+			{ FName(TEXT("cargo-van")), TEXT("Arc Hauler Van"), TEXT("Box van for scrap runs and shop deliveries."), ECityVehicleKind::Car, 3800, 150.f, FLinearColor(0.55f, 0.55f, 0.52f), FVector(520, 200, 200) },
+			{ FName(TEXT("hatchback")), TEXT("Metro Hatch"), TEXT("Compact city hatch. Easy parking, thrifty."), ECityVehicleKind::Car, 2800, 170.f, FLinearColor(0.12f, 0.35f, 0.28f), FVector(400, 175, 145) },
+			{ FName(TEXT("alley-scooter")), TEXT("Alley Scooter"), TEXT("Narrow electric scooter. Slips through Midtown gaps."), ECityVehicleKind::Bike, 900, 95.f, FLinearColor(0.85f, 0.75f, 0.15f), FVector(160, 55, 110) },
+			{ FName(TEXT("ultralight")), TEXT("Harbor Ultralight"), TEXT("Single-seat ultralight. Short hops from the airstrip."), ECityVehicleKind::Plane, 9000, 160.f, FLinearColor(0.7f, 0.72f, 0.55f), FVector(620, 900, 180) },
 		};
 		return V;
 	}
@@ -235,6 +247,13 @@ namespace Career
 			{ FName(TEXT("gl-aviators")), TEXT("Aviators"), 5, int32(EOutfitGlasses::Aviators), 350 },
 			{ FName(TEXT("gl-round")), TEXT("Round glasses"), 5, int32(EOutfitGlasses::Round), 250 },
 			{ FName(TEXT("gl-shades")), TEXT("Tinted shades"), 5, int32(EOutfitGlasses::Shades), 300 },
+			{ FName(TEXT("top-crop")), TEXT("Crop top"), 0, int32(EOutfitTop::CropTop), 220 },
+			{ FName(TEXT("top-coveralls")), TEXT("Workshop coveralls"), 0, int32(EOutfitTop::Coveralls), 550 },
+			{ FName(TEXT("jk-trench")), TEXT("Trench coat"), 1, int32(EOutfitJacket::Trench), 1800 },
+			{ FName(TEXT("pt-joggers")), TEXT("Joggers"), 2, int32(EOutfitPants::Joggers), 280 },
+			{ FName(TEXT("sh-loafers")), TEXT("Loafers"), 3, int32(EOutfitShoes::Loafers), 420 },
+			{ FName(TEXT("hat-visor")), TEXT("Sun visor"), 4, int32(EOutfitHat::Visor), 120 },
+			{ FName(TEXT("gl-clear")), TEXT("Clear frames"), 5, int32(EOutfitGlasses::ClearFrames), 200 },
 		};
 		return C;
 	}
@@ -266,8 +285,8 @@ namespace Career
 		if (Kind == 6) { return HairName(EAvatarHair(Style)); }
 		if (Kind == 7)
 		{
-			static const TCHAR* F[] = { TEXT("Clean shaven"), TEXT("Stubble"), TEXT("Moustache"), TEXT("Goatee"), TEXT("Full beard") };
-			return FText::FromString(F[FMath::Clamp(Style, 0, 4)]);
+			static const TCHAR* F[] = { TEXT("Clean shaven"), TEXT("Stubble"), TEXT("Moustache"), TEXT("Goatee"), TEXT("Full beard"), TEXT("Chinstrap") };
+			return FText::FromString(F[FMath::Clamp(Style, 0, 5)]);
 		}
 		if (Style == 0)
 		{
@@ -286,6 +305,8 @@ namespace Career
 		case ECasinoGame::Blackjack: return LOCTEXT("CBj", "BLACKJACK");
 		case ECasinoGame::Roulette:  return LOCTEXT("CRou", "ROULETTE");
 		case ECasinoGame::Wheel:     return LOCTEXT("CWheel", "WHEEL OF FORTUNE");
+		case ECasinoGame::CoinFlip:  return LOCTEXT("CFlip", "COIN FLIP");
+		case ECasinoGame::HighLow:   return LOCTEXT("CHL", "HIGH-LOW");
 		default:                     return FText::GetEmpty();
 		}
 	}

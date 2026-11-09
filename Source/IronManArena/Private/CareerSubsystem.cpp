@@ -1,4 +1,5 @@
 #include "CareerSubsystem.h"
+#include "CareerEconomy.h"
 #include "CareerWidgets.h"
 #include "ArenaAudio.h"
 
@@ -94,6 +95,9 @@ void UCareerSubsystem::Load()
 	bBossBeaten = S->bBossBeaten;
 	CasinoLossToday = S->CasinoLossToday;
 	CasinoDay = S->CasinoDay;
+	JobsClaimed = S->JobsClaimed;
+	JobClaimUnix = S->JobClaimUnix;
+	if (JobClaimUnix.Num() != JobsClaimed.Num()) { JobClaimUnix.SetNumZeroed(JobsClaimed.Num()); }
 	UpgradeLevels.SetNumZeroed(int32(ECareerUpgrade::Count));
 	OutfitSlots.SetNum(Career::OutfitSlots);
 }
@@ -118,6 +122,8 @@ void UCareerSubsystem::Save()
 	S->bBossBeaten = bBossBeaten;
 	S->CasinoLossToday = CasinoLossToday;
 	S->CasinoDay = CasinoDay;
+	S->JobsClaimed = JobsClaimed;
+	S->JobClaimUnix = JobClaimUnix;
 	S->Write(SlotName);
 	bDirty = false;
 	SaveTimer = 0.f;
@@ -267,6 +273,18 @@ bool UCareerSubsystem::BuyHouse(FName Id)
 	{
 		if (ACityHouse* H = Dist->FindHouse(Id)) { H->SetOwned(true); }
 	}
+	if (D->IncomePerMinute > 0)
+	{
+		Toast(FText::Format(LOCTEXT("HouseIncome", "Keys received. Passive +{0} CR/min."), FText::AsNumber(D->IncomePerMinute)), FLinearColor(0.55f, 0.95f, 0.7f));
+	}
+	else if (D->IncomePerMinute < 0)
+	{
+		Toast(FText::Format(LOCTEXT("HouseRent", "Lease signed. Rent -{0} CR/min."), FText::AsNumber(-D->IncomePerMinute)), FLinearColor(1.f, 0.75f, 0.4f));
+	}
+	else
+	{
+		Toast(LOCTEXT("HouseOwned", "Keys received. Welcome home."), FLinearColor(0.55f, 0.95f, 0.7f));
+	}
 	return true;
 }
 
@@ -363,7 +381,7 @@ void UCareerSubsystem::LoadOutfitSlot(int32 Index)
 int32 UCareerSubsystem::GetCasinoLossAllowance() const
 {
 	const int32 Lost = CasinoDay == TodayIndex() ? CasinoLossToday : 0;
-	return FMath::Max(0, Career::CasinoDailyLossLimit - Lost);
+	return FMath::Max(0, CareerEconomy::CasinoDailyLossLimit() - Lost);
 }
 
 void UCareerSubsystem::SettleCasino(int32 Net, ECasinoGame Game)
@@ -373,6 +391,44 @@ void UCareerSubsystem::SettleCasino(int32 Net, ECasinoGame Game)
 	CasinoLossToday = FMath::Max(0, CasinoLossToday - Net); // wins pay back today's losses first
 	if (Net != 0) { AddCredits(Net, Career::CasinoGameName(Game)); }
 	Save();
+}
+
+int32 UCareerSubsystem::JobCooldownLeft(FName JobId) const
+{
+	const FCareerJobDef* J = CareerEconomy::FindJob(JobId);
+	if (!J) { return 0; }
+	const int32 Idx = JobsClaimed.IndexOfByKey(JobId);
+	if (Idx == INDEX_NONE || !JobClaimUnix.IsValidIndex(Idx)) { return 0; }
+	const int64 Now = FDateTime::UtcNow().ToUnixTimestamp();
+	const int64 ReadyAt = JobClaimUnix[Idx] + int64(J->CooldownHours * 3600.0);
+	return int32(FMath::Max<int64>(0, ReadyAt - Now));
+}
+
+bool UCareerSubsystem::ClaimJob(FName JobId)
+{
+	const FCareerJobDef* J = CareerEconomy::FindJob(JobId);
+	if (!J) { return false; }
+	if (JobCooldownLeft(JobId) > 0) { return false; }
+	int32 Pay = J->Payout;
+	bool bOwnsPlane = false, bOwnsBike = false;
+	for (const FName& Vid : VehiclesOwned)
+	{
+		if (const FVehicleDef* V = Career::FindVehicle(Vid))
+		{
+			if (V->Kind == ECityVehicleKind::Plane) { bOwnsPlane = true; }
+			if (V->Kind == ECityVehicleKind::Bike) { bOwnsBike = true; }
+		}
+	}
+	if (bOwnsPlane) { Pay += J->BonusIfOwnsPlane; }
+	if (bOwnsBike) { Pay += J->BonusIfOwnsBike; }
+	if (HousesOwned.Num() > 0) { Pay += J->BonusIfOwnsHouse; }
+	const int32 Idx = JobsClaimed.IndexOfByKey(JobId);
+	const int64 Now = FDateTime::UtcNow().ToUnixTimestamp();
+	if (Idx == INDEX_NONE) { JobsClaimed.Add(JobId); JobClaimUnix.Add(Now); }
+	else { JobClaimUnix[Idx] = Now; }
+	AddCredits(Pay, FText::FromString(J->Name));
+	Save();
+	return true;
 }
 
 // ------------------------------------------------------------------ toasts
@@ -480,7 +536,10 @@ void UCareerSubsystem::TickHouses(float DeltaTime)
 	if (IncomeTimer >= 60.f)
 	{
 		IncomeTimer = 0.f;
-		if (const int32 Inc = GetPassiveIncome()) { AddCredits(Inc, LOCTEXT("Rent", "property income")); }
+		if (const int32 Inc = GetPassiveIncome())
+		{
+			AddCredits(Inc, Inc >= 0 ? LOCTEXT("PropIncome", "property income") : LOCTEXT("PropRent", "property rent"));
+		}
 	}
 	if (!Char || Char->IsDead()) { return; }
 	// Suit perk self-repair (nanotech / Rescue).

@@ -128,6 +128,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
 	int32 CasinoDay = 0;
 
+	/** Side jobs claimed (CareerEconomy::Jobs ids) whose cooldown has not expired. Parallel to JobClaimUnix. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<FName> JobsClaimed;
+
+	/** Unix seconds when each JobsClaimed entry was last claimed. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
+	TArray<int64> JobClaimUnix;
+
 	bool HasUpgrade(FName Id) const { return Upgrades.Contains(Id); }
 	bool IsCosmeticActive(FName Id) const { return Cosmetics.Contains(Id) && !CosmeticsDisabled.Contains(Id); }
 };

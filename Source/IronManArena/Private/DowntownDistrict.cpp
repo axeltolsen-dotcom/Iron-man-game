@@ -689,11 +689,16 @@ void ADowntownDistrict::BuildCasino(const FVector2D& Center)
 	Add(TEXT("Casino|table"), EArenaShape::Cylinder, Felt, true, PropCull, true, C + FVector(1500.f, 0.f, 50.f), FVector(400.f, 400.f, 100.f));   // roulette
 	Add(TEXT("Casino|wheel"), EArenaShape::Cylinder, Mid(TEXT("casino_wheelface"), ArenaVisuals::GetParentMaterial(), FLinearColor(1.f, 0.8f, 0.2f), 1.5f), false, PropCull, false,
 		C + FVector(3200.f, 3000.f, 500.f), FVector(700.f, 700.f, 40.f), FRotator(90.f, 0.f, 0.f));
+	Add(TEXT("Casino|coin"), EArenaShape::Cylinder, Mid(TEXT("casino_coin"), ArenaVisuals::GetSurfaceMaterial(EArenaSurface::SuitGold), FLinearColor(0.9f, 0.75f, 0.2f), 0.8f),
+		true, PropCull, true, C + FVector(-3200.f, -500.f, 80.f), FVector(180.f, 180.f, 20.f));
+	Add(TEXT("Casino|highlow"), EArenaShape::Cube, Felt, true, PropCull, true, C + FVector(3200.f, -500.f, 50.f), FVector(360.f, 220.f, 100.f));
 	const struct { ECasinoGame G; FVector L; const TCHAR* N; } St[] = {
 		{ ECasinoGame::Slots, FVector(-2550.f, 2500.f, 100.f), TEXT("Slot machines") },
 		{ ECasinoGame::Blackjack, FVector(-1200.f, -500.f, 100.f), TEXT("Blackjack table") },
 		{ ECasinoGame::Roulette, FVector(1500.f, -600.f, 100.f), TEXT("Roulette table") },
-		{ ECasinoGame::Wheel, FVector(3200.f, 2500.f, 100.f), TEXT("Wheel of fortune") } };
+		{ ECasinoGame::Wheel, FVector(3200.f, 2500.f, 100.f), TEXT("Wheel of fortune") },
+		{ ECasinoGame::CoinFlip, FVector(-3200.f, -800.f, 100.f), TEXT("Coin flip booth") },
+		{ ECasinoGame::HighLow, FVector(3200.f, -800.f, 100.f), TEXT("High-Low table") } };
 	for (const auto& S : St)
 	{
 		FCityPoi P;
@@ -928,6 +933,10 @@ void ADowntownDistrict::BuildHouses()
 	const FVector2D LoftLot = ReservedLots.IsValidIndex(1) ? ReservedLots[1] : FVector2D(HalfExtent - Pitch * 0.5f, 0.f);
 	Spawn(TEXT("skyline-penthouse"), ECityHouseKind::Penthouse, FVector(PentLot.X, PentLot.Y, 18.f), false);
 	Spawn(TEXT("harbor-loft"), ECityHouseKind::Loft, FVector(LoftLot.X - 3600.f, LoftLot.Y, 18.f), false);
+	// Dum-E: workshop bay (catalogue house) next to the harbor loft — same Loft shell, different id/price.
+	Spawn(TEXT("workshop-bay"), ECityHouseKind::Loft, FVector(LoftLot.X - 7200.f, LoftLot.Y + 2800.f, 18.f), false);
+	Spawn(TEXT("canal-flat"), ECityHouseKind::Loft, FVector(LoftLot.X - 10800.f, LoftLot.Y - 2400.f, 18.f), false);
+	Spawn(TEXT("night-watch-lease"), ECityHouseKind::Loft, FVector(LoftLot.X - 3600.f, LoftLot.Y + 5600.f, 18.f), false);
 	// Cliff mansion: out in the harbor's sea, or on a bluff past the beach when there is no harbor.
 	if (bHarbor)
 	{

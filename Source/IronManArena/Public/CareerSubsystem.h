@@ -104,6 +104,12 @@ public:
 	/** Settles a round: Net > 0 win, < 0 loss. */
 	void SettleCasino(int32 Net, ECasinoGame Game);
 
+	// ---- side jobs (phone board; credits only)
+	/** Seconds remaining before JobId can be claimed again (0 = ready). */
+	int32 JobCooldownLeft(FName JobId) const;
+	/** Pays out the job if off cooldown; returns false if still cooling or unknown. */
+	bool ClaimJob(FName JobId);
+
 	// ---- toasts (HUD)
 	void Toast(const FText& Text, const FLinearColor& Color = FLinearColor(1.f, 0.85f, 0.35f));
 	const TArray<FCareerToast>& GetToasts() const { return Toasts; }
@@ -163,6 +169,8 @@ private:
 	bool bBossBeaten = false;
 	int32 CasinoLossToday = 0;
 	int32 CasinoDay = 0;
+	TArray<FName> JobsClaimed;
+	TArray<int64> JobClaimUnix;
 
 	TArray<FCareerToast> Toasts;
 	bool bDirty = false;

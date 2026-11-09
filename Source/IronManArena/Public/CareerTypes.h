@@ -36,23 +36,25 @@ enum class EAvatarHair : uint8
 	Bun,
 	Curly,
 	Bald,
+	Undercut,
+	Braids,
 	Count UMETA(Hidden)
 };
 
 UENUM(BlueprintType)
-enum class EAvatarFacialHair : uint8 { None, Stubble, Moustache, Goatee, FullBeard, Count UMETA(Hidden) };
+enum class EAvatarFacialHair : uint8 { None, Stubble, Moustache, Goatee, FullBeard, Chinstrap, Count UMETA(Hidden) };
 UENUM(BlueprintType)
-enum class EOutfitTop : uint8 { TShirt, BandTee, Hoodie, ShirtAndTie, TankTop, Count UMETA(Hidden) };
+enum class EOutfitTop : uint8 { TShirt, BandTee, Hoodie, ShirtAndTie, TankTop, CropTop, Coveralls, Count UMETA(Hidden) };
 UENUM(BlueprintType)
-enum class EOutfitJacket : uint8 { None, Leather, SuitJacket, Bomber, Count UMETA(Hidden) };
+enum class EOutfitJacket : uint8 { None, Leather, SuitJacket, Bomber, Trench, Count UMETA(Hidden) };
 UENUM(BlueprintType)
-enum class EOutfitPants : uint8 { Jeans, Chinos, SuitTrousers, Shorts, Skirt, Count UMETA(Hidden) };
+enum class EOutfitPants : uint8 { Jeans, Chinos, SuitTrousers, Shorts, Skirt, Joggers, Count UMETA(Hidden) };
 UENUM(BlueprintType)
-enum class EOutfitShoes : uint8 { Sneakers, Boots, DressShoes, Count UMETA(Hidden) };
+enum class EOutfitShoes : uint8 { Sneakers, Boots, DressShoes, Loafers, Count UMETA(Hidden) };
 UENUM(BlueprintType)
-enum class EOutfitHat : uint8 { None, Cap, Beanie, Fedora, Count UMETA(Hidden) };
+enum class EOutfitHat : uint8 { None, Cap, Beanie, Fedora, Visor, Count UMETA(Hidden) };
 UENUM(BlueprintType)
-enum class EOutfitGlasses : uint8 { None, Aviators, Round, Shades, Count UMETA(Hidden) };
+enum class EOutfitGlasses : uint8 { None, Aviators, Round, Shades, ClearFrames, Count UMETA(Hidden) };
 
 /** Clothes (clothing store, outfit slots). Colour fields index Career::OutfitColors(). */
 USTRUCT(BlueprintType)
@@ -137,7 +139,7 @@ struct FClothingItem
 };
 
 UENUM(BlueprintType)
-enum class ECasinoGame : uint8 { Slots, Blackjack, Roulette, Wheel, Count UMETA(Hidden) };
+enum class ECasinoGame : uint8 { Slots, Blackjack, Roulette, Wheel, CoinFlip, HighLow, Count UMETA(Hidden) };
 
 /** A paint preset in the avatar creator. */
 struct FSuitPaintPreset
@@ -216,7 +218,7 @@ namespace Career
 	constexpr int32 BarberColorPrice = 100;
 	constexpr int32 OutfitSlots = 3;
 
-	/** Casino: credits only. Max net loss per real day; table bet limits. */
+	/** Casino: credits only. Defaults; runtime overlays come from CareerEconomy (city_economy.json). */
 	constexpr int32 CasinoDailyLossLimit = 5000;
 	constexpr int32 CasinoMinBet = 10;
 	constexpr int32 CasinoMaxBet = 1000;
