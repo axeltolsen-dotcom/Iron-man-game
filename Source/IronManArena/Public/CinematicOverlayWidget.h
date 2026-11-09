@@ -1,5 +1,6 @@
 // UCinematicOverlayWidget: letterbox bars, suit title card and skip hint for the suit-up
 // cinematics (and story cutscenes). Built in C++, no UMG asset. ASuitUpCinematic drives it.
+// Film pass: staggered ease-out title card, caption fades, optional fade-to-black layer (HitTestInvisible).
 #pragma once
 
 #include "CoreMinimal.h"
@@ -30,6 +31,12 @@ public:
 	/** Optional subtitle line under the title card area (story cutscenes). */
 	void SetCaption(const FText& Speaker, const FText& Line, const FLinearColor& Color);
 
+	/** Caption opacity 0..1 (story cutscenes fade each line in/out instead of popping). Default 1. */
+	void SetCaptionAlpha(float Alpha);
+
+	/** Full-screen fade to black: 0 = clear (default, collapsed), 1 = black. Never takes input (skip keeps working). */
+	void SetFade(float Alpha);
+
 	/** Helmet HUD boot (suit-up eyes-on beat): 0 = off, 1 = full. Line = optional status text. */
 	void SetHudBoot(float Alpha, const FText& Line, const FLinearColor& Color);
 
@@ -51,6 +58,7 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> AIText;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> SkipText;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> CaptionText;
+	UPROPERTY(Transient) TObjectPtr<UBorder> FadeBorder;
 
 	bool bCompactCard = false;
 	float HudAlpha = 0.f;

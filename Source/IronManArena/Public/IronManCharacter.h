@@ -504,6 +504,8 @@ protected:
 	void Input_Ascend(const FInputActionValue& Value);
 	void Input_AscendStarted(const FInputActionValue& Value);
 	void Input_Descend(const FInputActionValue& Value);
+	/** Clears sticky vertical thrust when Ascend/Descend completes or cancels. */
+	void Input_VertReleased(const FInputActionValue& Value);
 	void Input_ToggleFlight(const FInputActionValue& Value);
 	void Input_FireStarted(const FInputActionValue& Value);
 	void Input_FireCompleted(const FInputActionValue& Value);
@@ -715,8 +717,20 @@ protected:
 	// ---- force-based flight (Camouflaj-style; contrib/research/flight_and_combat.md) ----
 	void TickFlightPhysics(float DeltaSeconds);
 	void ApplyFlightCamera(bool bFly);
+	/** Per-state chase-cam lag (hover/cruise/boost). Called when FlightState changes. */
+	void ApplyFlightCameraForState(int32 InState);
 	FVector2D FlightMoveInput = FVector2D::ZeroVector;
 	float FlightVertInput = 0.f;
+	/** Smoothed stick for force flight (decays when raw axis is zero). ULTRON flight feel. */
+	FVector2D FlightMoveSmoothed = FVector2D::ZeroVector;
+	/** Sticky vertical thrust while Ascend/Descend is held (Triggered). */
+	float FlightVertHeld = 0.f;
+	/** Accumulates stick-forward time before hover→cruise (hysteresis). */
+	float CruiseStickHold = 0.f;
+	/** Remaining seconds of post-exit / near-floor XY braking. */
+	float LandingAssistLeft = 0.f;
+	/** Last FlightState we pushed into CameraBoom lag settings (-1 = ground). */
+	int32 LastAppliedFlightCamState = -1;
 	float FlightBank = 0.f;
 	float FlightLeanPitch = 0.f;
 	float FlightThrottleVis = 0.f;

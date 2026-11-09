@@ -119,6 +119,8 @@ namespace
 		double Shade = 1.0;
 		double GlowIntensity = -1.0;
 		int32 Layer = 1;
+		double BevelRadius = 0.3;   // plate "bevel.radius" (cm, before style / quality clamps)
+		int32 BevelSegments = 3;    // plate "bevel.segments"
 		TArray<FPanelLine> Lines;
 	};
 
@@ -128,7 +130,31 @@ namespace
 		double WidthScale = 1.0;
 		double FixedWidth = -1.0;
 		bool bMajorOnly = false;
+		double BevelRadius = -1.0;  // style override (<0 = plate value)
+		int32 BevelSegments = -1;
+		bool bCrude = false;        // Mark I scrap iron: keep hard, faceted edges
 		TArray<FString> Remove;
+	};
+
+	/**
+	 * Runtime tessellation / smoothness knobs (armor_kit.json "runtimeQuality", all optional).
+	 * Defaults are the "smooth, movie-like" settings (U, 2026-11-05); lower them for weak GPUs.
+	 */
+	struct FQuality
+	{
+		double LoftSegments360 = 64.0;   // columns around a full 360-degree loft
+		double LoftZStep = 1.5;          // cm between loft rows
+		double BoundaryStep = 0.6;       // cm between resampled outline points of extrude plates
+		double MinBevelRadius = 0.22;    // cm; every non-crude plate gets at least this rolled edge
+		int32 MinBevelSegments = 3;
+		double MaxBevelFraction = 0.75;  // bevel radius <= this x plate thickness
+		double CornerRadius = 0.45;      // cm; profile corners are filleted (cornerRadius on the plate wins)
+		int32 CornerSegments = 4;
+		int32 SuperLat = 32;
+		int32 SuperLon = 64;
+		int32 RevolveMinSegments = 32;
+		int32 RevolveMaxSegments = 96;
+		double RevolveFillet = 0.6;      // cm cap for revolve / cylinder profile fillets
 	};
 
 	struct FKitFile
@@ -138,6 +164,9 @@ namespace
 		TArray<TSharedPtr<FJsonObject>> BasePlates;
 		TMap<FString, FVector> Joints;      // nominal pose, left side + centre
 		TMap<FString, FString> LimbChild;   // left side
+		FQuality Quality;
+		double DefaultBevelRadius = 0.3;
+		int32 DefaultBevelSegments = 3;
 	};
 
 	const FKitFile& Kit()
@@ -180,6 +209,28 @@ namespace
 				if (Pair.Value.IsValid() && Pair.Value->TryGetString(Target)) { File.LimbChild.Add(Key, Target); }
 			}
 		}
+		if (const TSharedPtr<FJsonObject> Bevel = ObjField(ObjField(File.Root, TEXT("defaults")), TEXT("bevel")))
+		{
+			File.DefaultBevelRadius = Num(Bevel, TEXT("radius"), File.DefaultBevelRadius);
+			File.DefaultBevelSegments = int32(Num(Bevel, TEXT("segments"), File.DefaultBevelSegments));
+		}
+		if (const TSharedPtr<FJsonObject> Q = ObjField(File.Root, TEXT("runtimeQuality")))
+		{
+			FQuality& D = File.Quality;
+			D.LoftSegments360 = FMath::Clamp(Num(Q, TEXT("loftSegments360"), D.LoftSegments360), 24.0, 128.0);
+			D.LoftZStep = FMath::Clamp(Num(Q, TEXT("loftZStep"), D.LoftZStep), 0.5, 4.0);
+			D.BoundaryStep = FMath::Clamp(Num(Q, TEXT("boundaryStep"), D.BoundaryStep), 0.3, 3.0);
+			D.MinBevelRadius = FMath::Clamp(Num(Q, TEXT("minBevelRadius"), D.MinBevelRadius), 0.0, 1.5);
+			D.MinBevelSegments = FMath::Clamp(int32(Num(Q, TEXT("minBevelSegments"), D.MinBevelSegments)), 1, 8);
+			D.MaxBevelFraction = FMath::Clamp(Num(Q, TEXT("maxBevelFraction"), D.MaxBevelFraction), 0.1, 0.95);
+			D.CornerRadius = FMath::Clamp(Num(Q, TEXT("cornerRadius"), D.CornerRadius), 0.0, 3.0);
+			D.CornerSegments = FMath::Clamp(int32(Num(Q, TEXT("cornerSegments"), D.CornerSegments)), 1, 12);
+			D.SuperLat = FMath::Clamp(int32(Num(Q, TEXT("superLat"), D.SuperLat)), 12, 64);
+			D.SuperLon = FMath::Clamp(int32(Num(Q, TEXT("superLon"), D.SuperLon)), 16, 128);
+			D.RevolveMinSegments = FMath::Clamp(int32(Num(Q, TEXT("revolveMinSegments"), D.RevolveMinSegments)), 6, 96);
+			D.RevolveMaxSegments = FMath::Clamp(int32(Num(Q, TEXT("revolveMaxSegments"), D.RevolveMaxSegments)), D.RevolveMinSegments, 128);
+			D.RevolveFillet = FMath::Clamp(Num(Q, TEXT("revolveFillet"), D.RevolveFillet), 0.0, 3.0);
+		}
 		UE_LOG(LogArmorKit, Log, TEXT("Loaded armour kit: %d base plates, %d nominal joints."), File.BasePlates.Num(), File.Joints.Num());
 		return File;
 	}
@@ -210,6 +261,13 @@ namespace
 		P.Thickness = Num(O, TEXT("thickness"), 0.8);
 		P.Layer = int32(Num(O, TEXT("layer"), 1));
 		P.Shade = Num(O, TEXT("shade"), 1.0);
+		P.BevelRadius = Kit().DefaultBevelRadius;
+		P.BevelSegments = Kit().DefaultBevelSegments;
+		if (const TSharedPtr<FJsonObject> Bevel = ObjField(O, TEXT("bevel")))
+		{
+			P.BevelRadius = Num(Bevel, TEXT("radius"), P.BevelRadius);
+			P.BevelSegments = int32(Num(Bevel, TEXT("segments"), P.BevelSegments));
+		}
 		if (const TSharedPtr<FJsonObject> Glow = ObjField(O, TEXT("glow"))) { P.GlowIntensity = Num(Glow, TEXT("intensity"), -1.0); }
 		if (const TArray<TSharedPtr<FJsonValue>>* Lines = ArrField(O, TEXT("panelLines")))
 		{
@@ -247,13 +305,21 @@ namespace
 			else if (Key == TEXT("layer") && bNum) { P.Layer = int32(D); }
 			else if (Key == TEXT("slot")) { Pair.Value->TryGetString(P.SlotName); }
 			else if (Key == TEXT("offsetAdd")) { P.Loc += Vec3(Pair.Value); }
-			else if (Key == TEXT("profileOverride")) { P.Geo->SetField(TEXT("profile"), Pair.Value); }
+			else if (Key == TEXT("profileOverride"))
+			{
+				// A named plan ("roundedHex") reshapes a revolve's cross-section; an array replaces the profile.
+				if (Pair.Value->Type == EJson::String) { P.Geo->SetField(TEXT("plan"), Pair.Value); }
+				else { P.Geo->SetField(TEXT("profile"), Pair.Value); }
+			}
+			else if (Key == TEXT("bevelRadius") && bNum) { P.BevelRadius = D; }
+			else if (Key == TEXT("bevelSegments") && bNum) { P.BevelSegments = int32(D); }
 			else if (Key == TEXT("radii") || Key == TEXT("exponents") || Key == TEXT("circleCuts") || Key == TEXT("polyCuts")
-				|| Key == TEXT("profile") || Key == TEXT("stations") || Key == TEXT("radialSegments") || Key == TEXT("size"))
+				|| Key == TEXT("profile") || Key == TEXT("stations") || Key == TEXT("radialSegments") || Key == TEXT("size")
+				|| Key == TEXT("cornerRadius") || Key == TEXT("plan") || Key == TEXT("wrapU") || Key == TEXT("wrapV"))
 			{
 				P.Geo->SetField(Key, Pair.Value);
 			}
-			// bevelRadius / bevelSegments / facetize / cornerRadius / notes: no geometric bevel (see header).
+			// facetize / notes: not implemented (see header).
 		}
 	}
 
@@ -311,6 +377,10 @@ namespace
 		S.WidthScale = Num(O, TEXT("panelLineWidthScale"), 1.0);
 		S.FixedWidth = Num(O, TEXT("panelLineWidth"), -1.0);
 		S.bMajorOnly = Str(O, TEXT("keepPanelLines")) == TEXT("major");
+		S.BevelRadius = Num(O, TEXT("bevelRadius"), -1.0);           // JSON null -> keep the plate's own bevel
+		S.BevelSegments = int32(Num(O, TEXT("bevelSegments"), -1.0));
+		bool bFacet = false;
+		S.bCrude = Name == TEXT("crude") || (O->TryGetBoolField(TEXT("facetize"), bFacet) && bFacet);
 		O->TryGetStringArrayField(TEXT("remove"), S.Remove);
 		return S;
 	}
@@ -323,10 +393,20 @@ namespace
 		}
 	}
 
-	/** add / remove / modify block (variant, or suit override). */
-	void ApplyEdit(TArray<FPlate>& Plates, const TSharedPtr<FJsonObject>& Edit)
+	/** add / remove / modify block (variant, or suit override). "includes": ["group.key"] applies that variant first. */
+	void ApplyEdit(TArray<FPlate>& Plates, const TSharedPtr<FJsonObject>& Edit, int32 Depth = 0)
 	{
 		if (!Edit.IsValid()) { return; }
+		TArray<FString> Includes;
+		if (Depth < 4 && Edit->TryGetStringArrayField(TEXT("includes"), Includes))
+		{
+			const TSharedPtr<FJsonObject> Variants = ObjField(Kit().Root, TEXT("variants"));
+			for (const FString& Inc : Includes)
+			{
+				FString Group, Key;
+				if (Inc.Split(TEXT("."), &Group, &Key)) { ApplyEdit(Plates, ObjField(ObjField(Variants, *Group), *Key), Depth + 1); }
+			}
+		}
 		TArray<FString> Remove;
 		Edit->TryGetStringArrayField(TEXT("remove"), Remove);
 		RemoveMatching(Plates, Remove);
@@ -511,9 +591,130 @@ namespace
 		}
 	};
 
-	/** extrudeShell: CDT of the profile (holes as constraints, Steiner grid for the wrap, groove lines). */
-	bool BuildExtrude(const FPlate& P, double Thick, double Depth, double WidthScale, double FixedWidth, bool bMajorOnly, FKitMesh& M)
+	// ------------------------------------------------------------------ smoothing helpers (U, 2026-11-05)
+	struct FBevel { double R = 0.0; int32 Segs = 0; };
+
+	/** Rolled-edge radius / segments for a plate: style override, else the plate's own, floored by the quality
+	 *  minimum (except crude / faceted styles) and capped at MaxBevelFraction x thickness for shells. */
+	FBevel BevelFor(const FPlate& P, const FStyle& Style, double Thick)
 	{
+		const FQuality& Q = Kit().Quality;
+		double R = Style.BevelRadius >= 0.0 ? Style.BevelRadius : P.BevelRadius;
+		int32 S = Style.BevelSegments >= 0 ? Style.BevelSegments : P.BevelSegments;
+		if (!Style.bCrude)
+		{
+			R = FMath::Max(R, Q.MinBevelRadius);
+			S = FMath::Max(S, Q.MinBevelSegments);
+		}
+		FBevel B;
+		B.R = FMath::Min(R * P.Scale, Q.MaxBevelFraction * Thick);
+		B.Segs = FMath::Clamp(S, 1, 8);
+		if (B.R < 0.015) { B.R = 0.0; B.Segs = 0; }
+		return B;
+	}
+
+	/** Quarter-round bevel: how far the outer surface drops (cm) at distance D from the plate edge. */
+	double BevelDrop(double D, double R)
+	{
+		if (R <= 1e-4 || D >= R) { return 0.0; }
+		const double A = R - FMath::Max(D, 0.0);
+		return R - FMath::Sqrt(FMath::Max(0.0, R * R - A * A));
+	}
+
+	/** Two edges meeting (loft end + open arc side): spherical corner blend of two quarter-rounds. */
+	double CornerDrop(double Dz, double Ds, double R)
+	{
+		if (R <= 1e-4) { return 0.0; }
+		const double A = FMath::Max(0.0, R - Dz), B = FMath::Max(0.0, R - Ds);
+		const double Q = R * R - A * A - B * B;
+		return Q <= 0.0 ? R : R - FMath::Sqrt(Q);
+	}
+
+	/** Rounds one polygon corner (quadratic Bezier tangent to both edges); appends to Out. */
+	void FilletCorner(const FVector2d& Prev, const FVector2d& Cur, const FVector2d& Next, double Radius, int32 Segs, double MinTurnDeg,
+		TArray<FVector2d>& Out)
+	{
+		const double L0 = FVector2d::Distance(Prev, Cur), L1 = FVector2d::Distance(Cur, Next);
+		if (L0 < 1e-5 || L1 < 1e-5 || Radius <= 1e-3 || Segs < 1) { Out.Add(Cur); return; }
+		const FVector2d U0 = (Cur - Prev) / L0, U1 = (Next - Cur) / L1;
+		const double Turn = FMath::Acos(FMath::Clamp(FVector2d::DotProduct(U0, U1), -1.0, 1.0));
+		if (Turn < FMath::DegreesToRadians(MinTurnDeg) || Turn > FMath::DegreesToRadians(170.0)) { Out.Add(Cur); return; }
+		const double T = FMath::Min(Radius * FMath::Tan(Turn * 0.5), 0.45 * FMath::Min(L0, L1));
+		const FVector2d A = Cur - U0 * T, B = Cur + U1 * T;
+		for (int32 k = 0; k <= Segs; ++k)
+		{
+			const double S = double(k) / Segs;
+			Out.Add(A * ((1.0 - S) * (1.0 - S)) + Cur * (2.0 * S * (1.0 - S)) + B * (S * S));
+		}
+	}
+
+	TArray<FVector2d> DedupLoop(const TArray<FVector2d>& In, bool bClosed)
+	{
+		TArray<FVector2d> Clean;
+		Clean.Reserve(In.Num());
+		for (const FVector2d& Q : In) { if (Clean.Num() == 0 || FVector2d::Distance(Clean.Last(), Q) > 1e-3) { Clean.Add(Q); } }
+		while (bClosed && Clean.Num() > 3 && FVector2d::Distance(Clean[0], Clean.Last()) <= 1e-3) { Clean.RemoveAt(Clean.Num() - 1); }
+		return Clean;
+	}
+
+	/** Fillets every corner of a closed outline (profiles are authored with sharp machined corners). */
+	TArray<FVector2d> FilletLoop(const TArray<FVector2d>& In, double Radius, int32 Segs)
+	{
+		const int32 N = In.Num();
+		if (N < 3 || Radius <= 1e-3 || Segs < 1) { return In; }
+		TArray<FVector2d> Out;
+		Out.Reserve(N * (Segs + 1));
+		for (int32 i = 0; i < N; ++i) { FilletCorner(In[(i + N - 1) % N], In[i], In[(i + 1) % N], Radius, Segs, 12.0, Out); }
+		const TArray<FVector2d> Clean = DedupLoop(Out, true);
+		return Clean.Num() >= 3 ? Clean : In;
+	}
+
+	/** Fillets the interior vertices of an open [r, h] revolve profile; points on the axis stay sharp. */
+	TArray<FVector2d> FilletOpen(const TArray<FVector2d>& In, double Radius, int32 Segs)
+	{
+		const int32 N = In.Num();
+		if (N < 3 || Radius <= 1e-3 || Segs < 1) { return In; }
+		TArray<FVector2d> Out;
+		Out.Add(In[0]);
+		for (int32 i = 1; i + 1 < N; ++i)
+		{
+			if (In[i].X < 1e-3) { Out.Add(In[i]); continue; }
+			FilletCorner(In[i - 1], In[i], In[i + 1], Radius, Segs, 12.0, Out);
+		}
+		Out.Add(In.Last());
+		const TArray<FVector2d> Clean = DedupLoop(Out, false);
+		return Clean.Num() >= 2 ? Clean : In;
+	}
+
+	/** Closed outline resampled so no edge is longer than Step (dense rim for the rolled edge and the wrap). */
+	TArray<FVector2d> ResampleLoop(const TArray<FVector2d>& In, double Step)
+	{
+		TArray<FVector2d> Out;
+		const int32 N = In.Num();
+		for (int32 i = 0; i < N; ++i)
+		{
+			const FVector2d A = In[i];
+			const FVector2d B = In[(i + 1) % N];
+			const int32 K = FMath::Clamp(FMath::CeilToInt(FVector2d::Distance(A, B) / FMath::Max(Step, 0.05)), 1, 200);
+			for (int32 k = 0; k < K; ++k) { Out.Add(A + (B - A) * (double(k) / K)); }
+		}
+		return Out;
+	}
+
+	double LoopLength(const TArray<FVector2d>& L)
+	{
+		double S = 0.0;
+		for (int32 i = 0; i < L.Num(); ++i) { S += FVector2d::Distance(L[i], L[(i + 1) % L.Num()]); }
+		return S;
+	}
+
+	/** extrudeShell: CDT of the filleted + resampled profile (holes as constraints, Steiner grid for the wrap,
+	 *  groove lines), quarter-round rolled edges on every outline (bevel rows), smooth rim walls. */
+	bool BuildExtrude(const FPlate& P, double Thick, double Depth, const FStyle& Style, FKitMesh& M)
+	{
+		const FQuality& Q = Kit().Quality;
+		const double WidthScale = Style.WidthScale, FixedWidth = Style.FixedWidth;
+		const bool bMajorOnly = Style.bMajorOnly;
 		TArray<FVector2d> Outer = Poly2(P.Geo->TryGetField(TEXT("profile")));
 		if (Outer.Num() < 3) { return false; }
 		for (FVector2d& V : Outer) { V *= P.Scale; }
@@ -528,6 +729,21 @@ namespace
 				if (Hole.Num() >= 3) { if (SignedArea(Hole) > 0.0) { Algo::Reverse(Hole); } Holes.Add(Hole); }
 			}
 		}
+		// Smoothness: round the outline corners (cornerRadius on the plate wins), then resample densely.
+		const FBevel Bev = BevelFor(P, Style, Thick);
+		if (!Style.bCrude)
+		{
+			const double Corner = Num(P.Geo, TEXT("cornerRadius"), Q.CornerRadius) * P.Scale;
+			Outer = FilletLoop(Outer, Corner, Q.CornerSegments);
+			for (TArray<FVector2d>& Hole : Holes) { Hole = FilletLoop(Hole, FMath::Min(Corner, 0.25), Q.CornerSegments); }
+		}
+		{
+			double Total = LoopLength(Outer);
+			for (const TArray<FVector2d>& Hole : Holes) { Total += LoopLength(Hole); }
+			const double Step = FMath::Max(Q.BoundaryStep, Total / 900.0); // cap: ~900 rim points per plate
+			Outer = ResampleLoop(Outer, Step);
+			for (TArray<FVector2d>& Hole : Holes) { Hole = ResampleLoop(Hole, Step); }
+		}
 		// Cuts that may cross the outline (reactor circle in the pecs): triangles inside are dropped.
 		TArray<TArray<FVector2d>> Cuts;
 		if (const TArray<TSharedPtr<FJsonValue>>* C = ArrField(P.Geo, TEXT("circleCuts")))
@@ -540,7 +756,7 @@ namespace
 				const double R = Num(*CO, TEXT("radius"), 0.0) * P.Scale;
 				if (Ctr.Num() != 1 || R <= 0.0) { continue; }
 				TArray<FVector2d> Circle;
-				for (int32 i = 0; i < 32; ++i) { const double A = 2.0 * PI * i / 32.0; Circle.Add(Ctr[0] * P.Scale + FVector2d(FMath::Cos(A), FMath::Sin(A)) * R); }
+				for (int32 i = 0; i < 48; ++i) { const double A = 2.0 * PI * i / 48.0; Circle.Add(Ctr[0] * P.Scale + FVector2d(FMath::Cos(A), FMath::Sin(A)) * R); }
 				Cuts.Add(Circle);
 			}
 		}
@@ -555,31 +771,73 @@ namespace
 		}
 
 		TArray<FVector2d> Verts;
+		TArray<double> VDrop; // rolled-edge drop per 2D vertex (kept in step with Verts)
 		TArray<FIndex2i> Boundary;
 		TArray<FIndex2i> HoleEdges;
-		auto AddLoop = [&Verts](const TArray<FVector2d>& Loop, TArray<FIndex2i>& Edges)
+		auto AddLoop = [&Verts, &VDrop, &Bev](const TArray<FVector2d>& Loop, TArray<FIndex2i>& Edges)
 		{
 			const int32 Base = Verts.Num();
 			Verts.Append(Loop);
-			for (int32 i = 0; i < Loop.Num(); ++i) { Edges.Add(FIndex2i(Base + i, Base + (i + 1) % Loop.Num())); }
+			for (int32 i = 0; i < Loop.Num(); ++i) { VDrop.Add(Bev.R); Edges.Add(FIndex2i(Base + i, Base + (i + 1) % Loop.Num())); }
 		};
 		AddLoop(Outer, Boundary);
 		for (const TArray<FVector2d>& Hole : Holes) { AddLoop(Hole, HoleEdges); }
 		const int32 NumLoopVerts = Verts.Num();
 
-		auto Inside = [&](const FVector2d& Q, double Margin)
+		auto Inside = [&](const FVector2d& Qp, double Margin)
 		{
-			if (!InPoly(Outer, Q)) { return false; }
-			for (const TArray<FVector2d>& Hole : Holes) { if (InPoly(Hole, Q)) { return false; } }
-			auto NearLoop = [&Q, Margin](const TArray<FVector2d>& Loop)
+			if (!InPoly(Outer, Qp)) { return false; }
+			for (const TArray<FVector2d>& Hole : Holes) { if (InPoly(Hole, Qp)) { return false; } }
+			auto NearLoop = [&Qp, Margin](const TArray<FVector2d>& Loop)
 			{
-				for (int32 i = 0; i < Loop.Num(); ++i) { if (DistToSegment(Q, Loop[i], Loop[(i + 1) % Loop.Num()]) < Margin) { return true; } }
+				for (int32 i = 0; i < Loop.Num(); ++i) { if (DistToSegment(Qp, Loop[i], Loop[(i + 1) % Loop.Num()]) < Margin) { return true; } }
 				return false;
 			};
 			if (NearLoop(Outer)) { return false; }
 			for (const TArray<FVector2d>& Hole : Holes) { if (NearLoop(Hole)) { return false; } }
 			return true;
 		};
+		auto EdgeDist = [&](const FVector2d& Qp)
+		{
+			double D = 1e30;
+			auto Scan = [&Qp, &D](const TArray<FVector2d>& Loop)
+			{
+				for (int32 i = 0; i < Loop.Num(); ++i) { D = FMath::Min(D, DistToSegment(Qp, Loop[i], Loop[(i + 1) % Loop.Num()])); }
+			};
+			Scan(Outer);
+			for (const TArray<FVector2d>& Hole : Holes) { Scan(Hole); }
+			return D;
+		};
+		auto AddV = [&Verts, &VDrop](const FVector2d& Qp, double Drop) { VDrop.Add(Drop); return Verts.Add(Qp); };
+
+		// Rolled edge: Segs inset rows following every outline (quarter circle: inset r(1 - sin), drop r(1 - cos)).
+		if (Bev.R > 0.0 && Bev.Segs > 0)
+		{
+			auto Band = [&](const TArray<FVector2d>& Loop)
+			{
+				const int32 N = Loop.Num();
+				for (int32 i = 0; i < N; ++i)
+				{
+					const FVector2d D0 = (Loop[i] - Loop[(i + N - 1) % N]).GetSafeNormal();
+					const FVector2d D1 = (Loop[(i + 1) % N] - Loop[i]).GetSafeNormal();
+					// Left of the travel direction = into the material (outer loop CCW, holes CW).
+					const FVector2d L0(-D0.Y, D0.X), L1(-D1.Y, D1.X);
+					FVector2d In2 = (L0 + L1).GetSafeNormal();
+					if (In2.IsNearlyZero()) { In2 = L1; }
+					const double Miter = 1.0 / FMath::Max(0.5, FVector2d::DotProduct(In2, L1));
+					for (int32 j = 0; j < Bev.Segs; ++j)
+					{
+						const double D = Bev.R * (1.0 - FMath::Sin(HALF_PI * double(j) / Bev.Segs));
+						const FVector2d Qp = Loop[i] + In2 * (D * Miter);
+						if (!Inside(Qp, D * 0.6)) { continue; }
+						AddV(Qp, BevelDrop(EdgeDist(Qp), Bev.R));
+					}
+				}
+			};
+			Band(Outer);
+			for (const TArray<FVector2d>& Hole : Holes) { Band(Hole); }
+		}
+		const int32 NumBandVerts = Verts.Num();
 
 		// Grooves: centre line (displaced by Depth) flanked by two lines at +-Width/2, sampled densely.
 		TArray<TArray<FVector2d>> Grooves;
@@ -596,7 +854,6 @@ namespace
 			GrooveWidth.Add(W);
 			GrooveDepth.Add(D);
 		}
-		TSet<int32> GrooveCentre;
 		TMap<int32, double> CentreDepth;
 		const double Margin = 0.25;
 		for (int32 g = 0; g < Grooves.Num(); ++g)
@@ -613,44 +870,44 @@ namespace
 				{
 					const FVector2d C = A + (B - A) * (double(k) / Steps);
 					if (!Inside(C, Margin)) { continue; }
-					CentreDepth.Add(Verts.Num(), GrooveDepth[g]);
-					GrooveCentre.Add(Verts.Add(C));
+					CentreDepth.Add(AddV(C, BevelDrop(EdgeDist(C), Bev.R)), GrooveDepth[g]);
 					for (const double Sgn : { -1.0, 1.0 })
 					{
-						const FVector2d Q = C + Perp * (Half * Sgn);
-						if (Inside(Q, Margin * 0.5)) { Verts.Add(Q); }
+						const FVector2d Qp = C + Perp * (Half * Sgn);
+						if (Inside(Qp, Margin * 0.5)) { AddV(Qp, BevelDrop(EdgeDist(Qp), Bev.R)); }
 					}
 				}
 			}
 		}
-		auto NearGroove = [&](const FVector2d& Q)
+		auto NearGroove = [&](const FVector2d& Qp)
 		{
 			for (int32 g = 0; g < Grooves.Num(); ++g)
 			{
 				for (int32 s = 0; s + 1 < Grooves[g].Num(); ++s)
 				{
-					if (DistToSegment(Q, Grooves[g][s], Grooves[g][s + 1]) < GrooveWidth[g] + 0.3) { return true; }
+					if (DistToSegment(Qp, Grooves[g][s], Grooves[g][s + 1]) < GrooveWidth[g] + 0.3) { return true; }
 				}
 			}
 			return false;
 		};
 
-		// Steiner grid so the cylinder wrap actually curves the plate.
+		// Steiner grid so the cylinder wrap actually curves the plate (kept clear of the rolled-edge band).
 		FBox2d Bounds(Outer);
 		const FVector2d Ext = Bounds.GetSize();
-		const double Spacing = FMath::Clamp(FMath::Min(Ext.X, Ext.Y) / 8.0, 0.6, 2.0);
+		const double Spacing = FMath::Clamp(FMath::Min(Ext.X, Ext.Y) / 8.0, 0.6, 1.6);
+		const double GridMargin = FMath::Max(Spacing * 0.35, Bev.R * 1.15);
 		for (double U = Bounds.Min.X + Spacing * 0.5; U < Bounds.Max.X; U += Spacing)
 		{
 			for (double V = Bounds.Min.Y + Spacing * 0.5; V < Bounds.Max.Y; V += Spacing)
 			{
-				const FVector2d Q(U, V);
-				if (Inside(Q, Spacing * 0.35) && !NearGroove(Q)) { Verts.Add(Q); }
+				const FVector2d Qp(U, V);
+				if (Inside(Qp, GridMargin) && !NearGroove(Qp)) { AddV(Qp, 0.0); }
 			}
 		}
 		// Cut outlines as Steiner points too, so the dropped region has a clean-ish edge.
 		for (const TArray<FVector2d>& Cut : Cuts)
 		{
-			for (const FVector2d& Q : Cut) { if (Inside(Q, 0.2)) { Verts.Add(Q); } }
+			for (const FVector2d& Qp : Cut) { if (Inside(Qp, 0.2)) { AddV(Qp, BevelDrop(EdgeDist(Qp), Bev.R)); } }
 		}
 
 		UE::Geometry::FDelaunay2 Delaunay;
@@ -676,11 +933,16 @@ namespace
 		};
 		if (!Fill())
 		{
-			// Retry without the extra points (pathological grooves).
-			Verts.SetNum(NumLoopVerts);
-			GrooveCentre.Reset();
+			// Retry without grooves / grid (pathological grooves), then with the bare outline.
+			Verts.SetNum(NumBandVerts);
+			VDrop.SetNum(NumBandVerts);
 			CentreDepth.Reset();
-			if (!Fill()) { return false; }
+			if (!Fill())
+			{
+				Verts.SetNum(NumLoopVerts);
+				VDrop.SetNum(NumLoopVerts);
+				if (!Fill()) { return false; }
+			}
 		}
 		Tris.RemoveAll([&](const FIndex3i& T)
 		{
@@ -698,7 +960,7 @@ namespace
 		FWrap W;
 		W.Ru = Num(P.Geo, TEXT("wrapU"), 0.0) * P.WrapScale;
 		W.Rv = Num(P.Geo, TEXT("wrapV"), 0.0) * P.WrapScale;
-		// Outer and inner vertices per 2D vertex.
+		// Outer and inner vertices per 2D vertex. Outer = surface - (max of groove depth, rolled-edge drop).
 		TArray<int32> OuterIdx, InnerIdx;
 		OuterIdx.SetNum(Verts.Num());
 		InnerIdx.SetNum(Verts.Num());
@@ -707,7 +969,8 @@ namespace
 			const FVector N = W.Normal(Verts[v].X, Verts[v].Y);
 			const FVector S = W.Surface(Verts[v].X, Verts[v].Y);
 			const double* GD = CentreDepth.Find(v);
-			OuterIdx[v] = M.Add(S - N * (GD ? *GD : 0.0), N);
+			const double Drop = FMath::Max(GD ? *GD : 0.0, VDrop.IsValidIndex(v) ? VDrop[v] : 0.0);
+			OuterIdx[v] = M.Add(S - N * Drop, N);
 			InnerIdx[v] = M.Add(S - N * Thick, -N);
 		}
 		for (const FIndex3i& T : Tris)
@@ -717,21 +980,43 @@ namespace
 			M.Tri(InnerIdx[T.A], InnerIdx[T.B], InnerIdx[T.C], -N);
 		}
 		M.SmoothNormals();
-		// Rim walls (separate vertices: crisp edge, normals across the wall).
+		// Rim walls from the bottom of the rolled edge to the back face. Rim vertices are shared along each
+		// outline (per-vertex outward normal), so curved outlines shade smoothly instead of in facets.
 		auto Rim = [&](const TArray<FIndex2i>& Edges)
 		{
+			TArray<FVector2d> Out2D;
+			Out2D.Init(FVector2d::ZeroVector, Verts.Num());
+			TArray<int32> Top, Bot;
+			Top.Init(INDEX_NONE, Verts.Num());
+			Bot.Init(INDEX_NONE, Verts.Num());
 			for (const FIndex2i& E : Edges)
 			{
-				const FVector2d A = Verts[E.A], B = Verts[E.B];
-				const FVector2d Dir = (B - A).GetSafeNormal();
-				// CCW outer loop: outward = right-hand perpendicular; holes (CW) likewise point into the hole.
-				FVector2d Out2(Dir.Y, -Dir.X);
-				const FVector NA = W.Normal(A.X, A.Y), NB = W.Normal(B.X, B.Y);
-				const FVector SA = W.Surface(A.X, A.Y), SB = W.Surface(B.X, B.Y);
-				const FVector OutDir = (W.Surface(A.X + Out2.X * 0.05, A.Y + Out2.Y * 0.05) - SA).GetSafeNormal();
-				const int32 I0 = M.Add(SA, OutDir), I1 = M.Add(SB, OutDir), I2 = M.Add(SB - NB * Thick, OutDir), I3 = M.Add(SA - NA * Thick, OutDir);
-				M.Tri(I0, I1, I2, OutDir);
-				M.Tri(I0, I2, I3, OutDir);
+				const FVector2d Dir = (Verts[E.B] - Verts[E.A]).GetSafeNormal();
+				const FVector2d O(Dir.Y, -Dir.X); // right-hand = away from the material
+				Out2D[E.A] += O;
+				Out2D[E.B] += O;
+			}
+			auto RimVert = [&](int32 V)
+			{
+				if (Top[V] != INDEX_NONE) { return; }
+				const FVector2d Qp = Verts[V];
+				const FVector2d O = Out2D[V].GetSafeNormal();
+				const FVector N = W.Normal(Qp.X, Qp.Y), S = W.Surface(Qp.X, Qp.Y);
+				FVector OutDir = (W.Surface(Qp.X + O.X * 0.05, Qp.Y + O.Y * 0.05) - S).GetSafeNormal();
+				if (OutDir.IsNearlyZero()) { OutDir = N; }
+				Top[V] = M.Add(S - N * (VDrop.IsValidIndex(V) ? VDrop[V] : 0.0), OutDir);
+				Bot[V] = M.Add(S - N * Thick, OutDir);
+			};
+			for (const FIndex2i& E : Edges)
+			{
+				RimVert(E.A);
+				RimVert(E.B);
+				const FVector2d Dir = (Verts[E.B] - Verts[E.A]).GetSafeNormal();
+				const FVector2d O(Dir.Y, -Dir.X);
+				const FVector2d Mid = (Verts[E.A] + Verts[E.B]) * 0.5;
+				const FVector Face = W.Surface(Mid.X + O.X * 0.05, Mid.Y + O.Y * 0.05) - W.Surface(Mid.X, Mid.Y);
+				M.Tri(Top[E.A], Top[E.B], Bot[E.B], Face);
+				M.Tri(Top[E.A], Bot[E.B], Bot[E.A], Face);
 			}
 		};
 		Rim(Boundary);
@@ -755,9 +1040,13 @@ namespace
 		return S.Last();
 	}
 
-	/** loftShell: superellipse sections along plate Z, arc in degrees from +X toward +Y; ring grooves. */
-	bool BuildLoft(const FPlate& P, double Thick, double Depth, double WidthScale, double FixedWidth, bool bMajorOnly, FKitMesh& M)
+	/** loftShell: superellipse sections along plate Z, arc in degrees from +X toward +Y; ring grooves;
+	 *  rolled edges at both ends and (open arcs) both sides, spherical blend in the corners. */
+	bool BuildLoft(const FPlate& P, double Thick, double Depth, const FStyle& Style, FKitMesh& M)
 	{
+		const FQuality& Q = Kit().Quality;
+		const double WidthScale = Style.WidthScale, FixedWidth = Style.FixedWidth;
+		const bool bMajorOnly = Style.bMajorOnly;
 		TArray<FStation> St;
 		if (const TArray<TSharedPtr<FJsonValue>>* A = ArrField(P.Geo, TEXT("stations")))
 		{
@@ -775,12 +1064,17 @@ namespace
 		St.Sort([](const FStation& A, const FStation& B) { return A.Z < B.Z; });
 		const TSharedPtr<FJsonObject> Arc = ObjField(P.Geo, TEXT("arc"));
 		const double Start = Num(Arc, TEXT("start"), -180), End = Num(Arc, TEXT("end"), 180);
-		const bool bClosed = FMath::Abs(End - Start) >= 359.9;
-		const int32 Seg = FMath::Max(6, FMath::CeilToInt(48.0 * FMath::Abs(End - Start) / 360.0));
+		const double Span = FMath::Abs(End - Start);
+		const bool bClosed = Span >= 359.9;
+		const int32 Seg = FMath::Max(8, FMath::CeilToInt(Q.LoftSegments360 * Span / 360.0));
+		const FBevel Bev = BevelFor(P, Style, Thick);
+		double RMean = 0.0;
+		for (const FStation& S : St) { RMean += 0.5 * (S.Rx + S.Ry); }
+		RMean = FMath::Max(0.5, RMean / St.Num());
+		const double Z0 = St[0].Z, Z1 = St.Last().Z;
 
-		// Z samples: stations, every ~2 cm, plus ring grooves (z - w/2, z, z + w/2).
+		// Z samples: stations, every LoftZStep cm, ring grooves (z - w/2, z, z + w/2), rolled-edge rows at both ends.
 		TArray<double> Zs;
-		TMap<int32, double> GrooveAt; // index into Zs (after sort) is resolved below
 		TArray<TPair<double, double>> Rings; // z, depth
 		for (const FPanelLine& L : P.Lines)
 		{
@@ -789,19 +1083,46 @@ namespace
 			if (D < 0.02) { continue; }
 			const double W = FMath::Max(FixedWidth > 0.0 ? FixedWidth : L.Width * WidthScale, 1.5 * D);
 			const double Z = L.RingZ * P.Scale;
-			if (Z <= St[0].Z + W || Z >= St.Last().Z - W) { continue; }
+			if (Z <= Z0 + W + Bev.R || Z >= Z1 - W - Bev.R) { continue; }
 			Zs.Append({ Z - W * 0.5, Z + W * 0.5 });
 			Rings.Add(TPair<double, double>(Z, D));
 		}
 		for (int32 i = 0; i + 1 < St.Num(); ++i)
 		{
-			const int32 Steps = FMath::Max(1, FMath::CeilToInt((St[i + 1].Z - St[i].Z) / 2.0));
+			const int32 Steps = FMath::Max(1, FMath::CeilToInt((St[i + 1].Z - St[i].Z) / Q.LoftZStep));
 			for (int32 k = 0; k < Steps; ++k) { Zs.Add(FMath::Lerp(St[i].Z, St[i + 1].Z, double(k) / Steps)); }
 		}
-		Zs.Add(St.Last().Z);
+		Zs.Add(Z1);
 		for (const TPair<double, double>& R : Rings) { Zs.Add(R.Key); }
+		auto BevelInset = [&Bev](int32 j) { return Bev.R * (1.0 - FMath::Sin(HALF_PI * double(j) / FMath::Max(1, Bev.Segs))); };
+		if (Bev.R > 0.0)
+		{
+			for (int32 j = 0; j < Bev.Segs; ++j)
+			{
+				const double D = BevelInset(j);
+				if (Z1 - Z0 > 2.0 * D) { Zs.Add(Z0 + D); Zs.Add(Z1 - D); }
+			}
+		}
 		Zs.Sort();
 		for (int32 i = Zs.Num() - 1; i > 0; --i) { if (Zs[i] - Zs[i - 1] < 0.01) { Zs.RemoveAt(i); } }
+
+		// Columns: uniform, plus rolled-edge columns next to the open sides of a partial arc.
+		TArray<double> Ths;
+		for (int32 c = 0; c <= Seg; ++c) { Ths.Add(FMath::Lerp(Start, End, double(c) / Seg)); }
+		if (!bClosed && Bev.R > 0.0)
+		{
+			const double Dir = End >= Start ? 1.0 : -1.0;
+			for (int32 j = 0; j < Bev.Segs; ++j)
+			{
+				const double DA = FMath::RadiansToDegrees(BevelInset(j) / RMean);
+				if (DA * 2.0 < Span) { Ths.Add(Start + Dir * DA); Ths.Add(End - Dir * DA); }
+			}
+			Ths.Sort();
+			for (int32 i = Ths.Num() - 1; i > 0; --i) { if (Ths[i] - Ths[i - 1] < 1e-4) { Ths.RemoveAt(i); } }
+			if (Dir < 0.0) { Algo::Reverse(Ths); } // keep Ths[0] == Start (side walls below)
+		}
+		const int32 SegN = Ths.Num() - 1;
+		if (SegN < 1) { return false; }
 
 		auto Point = [](const FStation& S, double ThetaDeg, double Inset) -> FVector
 		{
@@ -809,17 +1130,20 @@ namespace
 			const double E = 2.0 / S.N;
 			return FVector(FMath::Max(0.1, S.Rx - Inset) * SgnPow(FMath::Cos(T), E), FMath::Max(0.1, S.Ry - Inset) * SgnPow(FMath::Sin(T), E), S.Z);
 		};
-		const int32 Cols = Seg + 1;
+		const int32 Cols = SegN + 1;
 		TArray<int32> OuterGrid, InnerGrid;
 		for (int32 r = 0; r < Zs.Num(); ++r)
 		{
 			const FStation S = SampleStations(St, Zs[r]);
 			double Groove = 0.0;
 			for (const TPair<double, double>& R : Rings) { if (FMath::Abs(R.Key - Zs[r]) < 0.005) { Groove = R.Value; } }
+			const double Dz = FMath::Min(Zs[r] - Z0, Z1 - Zs[r]);
 			for (int32 c = 0; c < Cols; ++c)
 			{
-				const double Th = FMath::Lerp(Start, End, double(c) / Seg);
-				const FVector O = Point(S, Th, Groove);
+				const double Th = Ths[c];
+				const double Ds = bClosed ? 1e9
+					: FMath::DegreesToRadians(FMath::Min(FMath::Abs(Th - Start), FMath::Abs(End - Th))) * 0.5 * (S.Rx + S.Ry);
+				const FVector O = Point(S, Th, FMath::Max(Groove, CornerDrop(Dz, Ds, Bev.R)));
 				OuterGrid.Add(M.Add(O, FVector(O.X, O.Y, 0.0)));
 				const FVector I = Point(S, Th, Thick);
 				InnerGrid.Add(M.Add(I, -FVector(I.X, I.Y, 0.0)));
@@ -828,7 +1152,7 @@ namespace
 		auto AxisRef = [&M](int32 V) { return FVector(0.0, 0.0, M.Pos[V].Z); };
 		for (int32 r = 0; r + 1 < Zs.Num(); ++r)
 		{
-			for (int32 c = 0; c < Seg; ++c)
+			for (int32 c = 0; c < SegN; ++c)
 			{
 				const int32 A = r * Cols + c, B = A + 1, C = A + Cols, D = C + 1;
 				const FVector Ref = AxisRef(OuterGrid[A]);
@@ -852,7 +1176,7 @@ namespace
 		{
 			const int32 r = End2 == 0 ? 0 : Zs.Num() - 1;
 			const FVector N = End2 == 0 ? FVector(0, 0, -1) : FVector(0, 0, 1);
-			for (int32 c = 0; c < Seg; ++c)
+			for (int32 c = 0; c < SegN; ++c)
 			{
 				Quad(FVector(M.Pos[OuterGrid[r * Cols + c]]), FVector(M.Pos[OuterGrid[r * Cols + c + 1]]),
 					FVector(M.Pos[InnerGrid[r * Cols + c + 1]]), FVector(M.Pos[InnerGrid[r * Cols + c]]), N);
@@ -862,7 +1186,7 @@ namespace
 		{
 			for (int32 Side2 = 0; Side2 < 2; ++Side2)
 			{
-				const int32 c = Side2 == 0 ? 0 : Seg;
+				const int32 c = Side2 == 0 ? 0 : SegN;
 				const double Th = FMath::DegreesToRadians(Side2 == 0 ? Start : End);
 				const FVector Tangent(-FMath::Sin(Th), FMath::Cos(Th), 0.0);
 				const FVector N = Side2 == 0 ? -Tangent : Tangent;
@@ -881,38 +1205,93 @@ namespace
 		// Local build axis is +X; rotate to the requested axis.
 		if (Axis == TEXT("Y")) { return FRotator(0.f, 90.f, 0.f).Quaternion(); }
 		if (Axis == TEXT("Z")) { return FRotator(90.f, 0.f, 0.f).Quaternion(); }
+		// Negative axes (jet pods use "-Z": the nozzle end points down).
+		if (Axis == TEXT("-X")) { return FRotator(0.f, 180.f, 0.f).Quaternion(); }
+		if (Axis == TEXT("-Y")) { return FRotator(0.f, -90.f, 0.f).Quaternion(); }
+		if (Axis == TEXT("-Z")) { return FRotator(-90.f, 0.f, 0.f).Quaternion(); }
 		return FQuat::Identity;
 	}
 
-	/** Profile [[r, h]] revolved about +X (h along X), closed at the axis. */
-	void Revolve(TArray<FVector2d> Prof, int32 Segs, double SweepDeg, FKitMesh& M)
+	/** Closed outline (last == first) of a regular polygon with rounded corners, circumradius 1 (revolve plan). */
+	TArray<FVector2d> RoundedPolygonPlan(int32 Sides, double CornerRel, int32 ArcSegs, int32 EdgeSegs)
+	{
+		TArray<FVector2d> Out;
+		Sides = FMath::Clamp(Sides, 3, 12);
+		const double HalfStep = PI / Sides;
+		const double Rc = FMath::Clamp(CornerRel, 0.02, 0.9 * FMath::Cos(HalfStep));
+		const double Dc = 1.0 - Rc / FMath::Cos(HalfStep); // corner-circle centre distance
+		for (int32 k = 0; k < Sides; ++k)
+		{
+			const double Th = 2.0 * PI * k / Sides;
+			const double ThN = 2.0 * PI * (k + 1) / Sides;
+			const FVector2d C(Dc * FMath::Cos(Th), Dc * FMath::Sin(Th));
+			const FVector2d CN(Dc * FMath::Cos(ThN), Dc * FMath::Sin(ThN));
+			for (int32 a = 0; a < ArcSegs; ++a)
+			{
+				const double Ang = Th - HalfStep + 2.0 * HalfStep * a / ArcSegs;
+				Out.Add(C + FVector2d(FMath::Cos(Ang), FMath::Sin(Ang)) * Rc);
+			}
+			const FVector2d EdgeN(FMath::Cos(Th + HalfStep), FMath::Sin(Th + HalfStep));
+			const FVector2d A = C + EdgeN * Rc, B = CN + EdgeN * Rc;
+			for (int32 e = 0; e < EdgeSegs; ++e) { Out.Add(A + (B - A) * (double(e) / EdgeSegs)); }
+		}
+		Out.Add(Out[0]);
+		return Out;
+	}
+
+	/**
+	 * Profile [[r, h]] revolved about +X (h along X), closed at the axis. Plan (optional, closed, last == first)
+	 * replaces the circle with another cross-section (rounded hex reactor housings). Faces are oriented from the
+	 * profile's own winding, so fillets and recesses get correct outward normals.
+	 */
+	void Revolve(TArray<FVector2d> Prof, int32 Segs, double SweepDeg, FKitMesh& M, const TArray<FVector2d>* Plan = nullptr)
 	{
 		if (Prof.Num() < 2) { return; }
 		if (Prof[0].X > 1e-3) { Prof.Insert(FVector2d(0.0, Prof[0].Y), 0); }
 		if (Prof.Last().X > 1e-3) { Prof.Add(FVector2d(0.0, Prof.Last().Y)); }
+		const bool bPlan = Plan && Plan->Num() >= 4;
+		if (bPlan) { Segs = Plan->Num() - 1; SweepDeg = 360.0; }
+		Segs = FMath::Max(3, Segs);
 		double HMin = Prof[0].Y, HMax = Prof[0].Y;
 		for (const FVector2d& Q : Prof) { HMin = FMath::Min(HMin, Q.Y); HMax = FMath::Max(HMax, Q.Y); }
 		const FVector Ref(0.5 * (HMin + HMax), 0.0, 0.0);
+		const double Area = SignedArea(Prof); // (r, h) polygon closed along the axis
 		const int32 Cols = Segs + 1;
 		const int32 Base = M.Pos.Num();
+		auto Dir2 = [&](int32 c) -> FVector2d // multiplier for r: point = (h, r * Dir.Y, r * Dir.X)
+		{
+			if (bPlan) { return (*Plan)[c]; }
+			const double A = FMath::DegreesToRadians(SweepDeg * c / Segs);
+			return FVector2d(FMath::Cos(A), FMath::Sin(A));
+		};
 		for (const FVector2d& Q : Prof)
 		{
 			for (int32 c = 0; c < Cols; ++c)
 			{
-				const double A = FMath::DegreesToRadians(SweepDeg * c / Segs);
-				const FVector Pt(Q.Y, Q.X * FMath::Sin(A), Q.X * FMath::Cos(A));
+				const FVector2d D = Dir2(c);
+				const FVector Pt(Q.Y, Q.X * D.Y, Q.X * D.X);
 				M.Add(Pt, Pt - Ref);
 			}
 		}
 		for (int32 r = 0; r + 1 < Prof.Num(); ++r)
 		{
-			// Flat rings (equal h) need the axial direction, not the centroid, to orient.
+			const FVector2d E = Prof[r + 1] - Prof[r];
+			const FVector2d N2 = Area >= 0.0 ? FVector2d(E.Y, -E.X) : FVector2d(-E.Y, E.X); // outward in (r, h)
+			const bool bUse2D = FMath::Abs(Area) > 1e-6 && !N2.IsNearlyZero();
+			// Fallback (degenerate profile): flat rings need the axial direction, not the centroid, to orient.
 			const bool bFlat = FMath::Abs(Prof[r].Y - Prof[r + 1].Y) < 1e-4;
 			const FVector Axial(Prof[r].Y >= Ref.X ? 1.0 : -1.0, 0.0, 0.0);
 			for (int32 c = 0; c < Segs; ++c)
 			{
 				const int32 A = Base + r * Cols + c, B = A + 1, C = A + Cols, D = C + 1;
-				if (bFlat) { M.Tri(A, B, D, Axial); M.Tri(A, D, C, Axial); }
+				if (bUse2D)
+				{
+					const FVector2d Dm = (Dir2(c) + Dir2(c + 1)).GetSafeNormal();
+					const FVector Desired(N2.Y, N2.X * Dm.Y, N2.X * Dm.X);
+					M.Tri(A, B, D, Desired);
+					M.Tri(A, D, C, Desired);
+				}
+				else if (bFlat) { M.Tri(A, B, D, Axial); M.Tri(A, D, C, Axial); }
 				else
 				{
 					const FVector Mid = FVector(M.Pos[A] + M.Pos[D]) * 0.5;
@@ -924,12 +1303,30 @@ namespace
 		}
 	}
 
-	bool BuildRevolve(const FPlate& P, FKitMesh& M)
+	bool BuildRevolve(const FPlate& P, const FStyle& Style, FKitMesh& M)
 	{
+		const FQuality& Q = Kit().Quality;
 		TArray<FVector2d> Prof = Poly2(P.Geo->TryGetField(TEXT("profile")));
-		for (FVector2d& Q : Prof) { Q.X *= P.Scale * P.RadiusScale; Q.Y *= P.Scale; }
+		if (Prof.Num() < 2) { return false; }
+		for (FVector2d& V : Prof) { V.X *= P.Scale * P.RadiusScale; V.Y *= P.Scale; }
+		const FBevel Bev = BevelFor(P, Style, 1e6); // solid: no thickness cap
+		if (!Style.bCrude && Bev.R > 0.0) { Prof = FilletOpen(Prof, FMath::Min(Bev.R, Q.RevolveFillet), FMath::Max(2, Bev.Segs)); }
+		const int32 Raw = int32(Num(P.Geo, TEXT("radialSegments"), 48));
+		const FString PlanName = Str(P.Geo, TEXT("plan"));
 		FKitMesh Local;
-		Revolve(Prof, FMath::Clamp(int32(Num(P.Geo, TEXT("radialSegments"), 32)), 6, 64), Num(P.Geo, TEXT("sweep"), 360), Local);
+		if (PlanName == TEXT("roundedHex") || (Raw >= 3 && Raw <= 8))
+		{
+			// Low radial counts were authored as polygons (hex housings): build a smooth rounded polygon instead.
+			double MaxR = 0.1;
+			for (const FVector2d& V : Prof) { MaxR = FMath::Max(MaxR, V.X); }
+			const int32 Sides = PlanName == TEXT("roundedHex") ? 6 : Raw;
+			const TArray<FVector2d> Plan = RoundedPolygonPlan(Sides, Num(P.Geo, TEXT("cornerRadius"), 0.15 * MaxR) * P.Scale / MaxR, 8, 6);
+			Revolve(Prof, Plan.Num() - 1, 360.0, Local, &Plan);
+		}
+		else
+		{
+			Revolve(Prof, FMath::Clamp(FMath::Max(Raw, Q.RevolveMinSegments), 6, Q.RevolveMaxSegments), Num(P.Geo, TEXT("sweep"), 360), Local);
+		}
 		Local.SmoothNormals();
 		M.Append(Local, FTransform(AxisRotation(Str(P.Geo, TEXT("axis"), TEXT("X")))));
 		return M.Idx.Num() > 0;
@@ -937,15 +1334,14 @@ namespace
 
 	bool BuildSuperellipsoid(const FPlate& P, FKitMesh& M)
 	{
+		const FQuality& Q = Kit().Quality;
 		const FVector Ctr = Vec3(P.Geo->TryGetField(TEXT("center"))) * P.Scale;
 		const FVector Rad = Vec3(P.Geo->TryGetField(TEXT("radii")), FVector(10)) * P.Scale * P.RadiusScale;
-		const FVector Ex = Vec3(MakeShared<FJsonValueArray>(TArray<TSharedPtr<FJsonValue>>()), FVector(2, 2, 0));
 		double E1 = 2.0, E2 = 2.0;
 		if (const TArray<TSharedPtr<FJsonValue>>* E = ArrField(P.Geo, TEXT("exponents")))
 		{
 			if (E->Num() >= 2) { E1 = FMath::Max(0.5, (*E)[0]->AsNumber()); E2 = FMath::Max(0.5, (*E)[1]->AsNumber()); }
 		}
-		(void)Ex;
 		TArray<TPair<FVector, double>> Clips;
 		if (const TArray<TSharedPtr<FJsonValue>>* C = ArrField(P.Geo, TEXT("clip")))
 		{
@@ -958,7 +1354,7 @@ namespace
 				}
 			}
 		}
-		const int32 Lat = 24, Lon = 40;
+		const int32 Lat = Q.SuperLat, Lon = Q.SuperLon;
 		const int32 Base = M.Pos.Num();
 		for (int32 i = 0; i <= Lat; ++i)
 		{
@@ -966,15 +1362,15 @@ namespace
 			for (int32 j = 0; j <= Lon; ++j)
 			{
 				const double Om = -PI + 2.0 * PI * j / Lon;
-				FVector Q = Ctr + FVector(Rad.X * SgnPow(FMath::Cos(Eta), 2.0 / E1) * SgnPow(FMath::Cos(Om), 2.0 / E2),
+				FVector Pt = Ctr + FVector(Rad.X * SgnPow(FMath::Cos(Eta), 2.0 / E1) * SgnPow(FMath::Cos(Om), 2.0 / E2),
 					Rad.Y * SgnPow(FMath::Cos(Eta), 2.0 / E1) * SgnPow(FMath::Sin(Om), 2.0 / E2),
 					Rad.Z * SgnPow(FMath::Sin(Eta), 2.0 / E1));
 				for (const TPair<FVector, double>& Cl : Clips)
 				{
-					const double Over = FVector::DotProduct(Cl.Key, Q) - Cl.Value;
-					if (Over > 0.0) { Q -= Cl.Key * Over; }
+					const double Over = FVector::DotProduct(Cl.Key, Pt) - Cl.Value;
+					if (Over > 0.0) { Pt -= Cl.Key * Over; }
 				}
-				M.Add(Q, Q - Ctr);
+				M.Add(Pt, Pt - Ctr);
 			}
 		}
 		for (int32 i = 0; i < Lat; ++i)
@@ -1005,15 +1401,79 @@ namespace
 		}
 	}
 
-	bool BuildPrimitive(const FPlate& P, const FString& Type, FKitMesh& M)
+	/** Box with every edge and corner rounded by Radius (cube grid projected onto the inner box + radius). */
+	void RoundedBoxMesh(const FVector& Size, double Radius, int32 BevelSegs, FKitMesh& M)
 	{
+		const FVector H = Size * 0.5;
+		const double R = FMath::Min(Radius, 0.45 * FMath::Min3(H.X, H.Y, H.Z));
+		if (R < 0.02 || BevelSegs < 1) { BoxMesh(Size, M); return; }
+		const FVector Inn = H - FVector(R);
+		auto Coords = [BevelSegs](double Half, double Inner)
+		{
+			TArray<double> C;
+			const int32 Mid = FMath::Max(1, FMath::CeilToInt(Inner)); // ~2 cm interior quads
+			for (int32 k = 0; k < BevelSegs; ++k) { C.Add(-Half + (Half - Inner) * double(k) / BevelSegs); }
+			for (int32 k = 0; k < Mid; ++k) { C.Add(-Inner + 2.0 * Inner * double(k) / Mid); }
+			for (int32 k = 0; k <= BevelSegs; ++k) { C.Add(Inner + (Half - Inner) * double(k) / BevelSegs); }
+			return C;
+		};
+		for (int32 Axis = 0; Axis < 3; ++Axis)
+		{
+			const int32 UA = (Axis + 1) % 3, VA = (Axis + 2) % 3;
+			const TArray<double> CU = Coords(H[UA], Inn[UA]);
+			const TArray<double> CV = Coords(H[VA], Inn[VA]);
+			const int32 NU = CU.Num();
+			for (const double Sign : { -1.0, 1.0 })
+			{
+				TArray<int32> Grid;
+				Grid.Reserve(NU * CV.Num());
+				for (const double V : CV)
+				{
+					for (const double U : CU)
+					{
+						FVector P0(0.0);
+						P0[Axis] = Sign * H[Axis];
+						P0[UA] = U;
+						P0[VA] = V;
+						const FVector Qc(FMath::Clamp(P0.X, -Inn.X, Inn.X), FMath::Clamp(P0.Y, -Inn.Y, Inn.Y), FMath::Clamp(P0.Z, -Inn.Z, Inn.Z));
+						const FVector Dn = (P0 - Qc).GetSafeNormal();
+						Grid.Add(M.Add(Qc + Dn * R, Dn));
+					}
+				}
+				for (int32 j = 0; j + 1 < CV.Num(); ++j)
+				{
+					for (int32 i = 0; i + 1 < NU; ++i)
+					{
+						const int32 A = Grid[j * NU + i], B = Grid[j * NU + i + 1], C = Grid[(j + 1) * NU + i], D = Grid[(j + 1) * NU + i + 1];
+						M.TriOut(A, B, D, FVector::ZeroVector);
+						M.TriOut(A, D, C, FVector::ZeroVector);
+					}
+				}
+			}
+		}
+	}
+
+	/** Closed solid-of-revolution profile for a cylinder / cone / barrel with filleted rims. */
+	TArray<FVector2d> CapsuleProfile(double R0, double R1, double L, double Fillet, int32 Segs)
+	{
+		TArray<FVector2d> Prof = { FVector2d(0.0, -L * 0.5), FVector2d(R0, -L * 0.5), FVector2d(FMath::Max(R1, 0.01), L * 0.5), FVector2d(0.0, L * 0.5) };
+		return Fillet > 1e-3 ? FilletOpen(Prof, Fillet, Segs) : Prof;
+	}
+
+	bool BuildPrimitive(const FPlate& P, const FString& Type, const FStyle& Style, FKitMesh& M)
+	{
+		const FQuality& Q = Kit().Quality;
 		const double S = P.Scale;
-		const int32 Segs = FMath::Clamp(int32(Num(P.Geo, TEXT("radialSegments"), 24)), 6, 64);
+		const int32 Segs = FMath::Clamp(FMath::Max(int32(Num(P.Geo, TEXT("radialSegments"), 24)), Q.RevolveMinSegments), 6, Q.RevolveMaxSegments);
 		const FQuat Axis = AxisRotation(Str(P.Geo, TEXT("axis"), TEXT("X")));
+		const FBevel Bev = BevelFor(P, Style, 1e6); // solids: no thickness cap
+		const bool bRound = !Style.bCrude && Bev.R > 0.0;
 		FKitMesh Local;
 		if (Type == TEXT("box"))
 		{
-			BoxMesh(Vec3(P.Geo->TryGetField(TEXT("size")), FVector(5)) * S, Local);
+			const FVector Size = Vec3(P.Geo->TryGetField(TEXT("size")), FVector(5)) * S;
+			if (bRound) { RoundedBoxMesh(Size, Bev.R, FMath::Max(2, Bev.Segs), Local); }
+			else { BoxMesh(Size, Local); }
 			M.Append(Local, FTransform::Identity);
 			return true;
 		}
@@ -1022,7 +1482,8 @@ namespace
 			const double R0 = (Type == TEXT("cone") ? Num(P.Geo, TEXT("radius0"), 2) : Num(P.Geo, TEXT("radius"), 2)) * S * P.RadiusScale;
 			const double R1 = (Type == TEXT("cone") ? Num(P.Geo, TEXT("radius1"), 0.1) : R0 / (S * P.RadiusScale)) * S * P.RadiusScale;
 			const double L = Num(P.Geo, TEXT("length"), 10) * S;
-			Revolve({ FVector2d(R0, -L * 0.5), FVector2d(FMath::Max(R1, 0.01), L * 0.5) }, Segs, 360, Local);
+			const double Fillet = bRound ? FMath::Min(Bev.R, 0.25 * FMath::Min(FMath::Max(R0, R1), L)) : 0.0;
+			Revolve(CapsuleProfile(R0, R1, L, FMath::Min(Fillet, Q.RevolveFillet), FMath::Max(2, Bev.Segs)), Segs, 360, Local);
 			Local.SmoothNormals();
 			M.Append(Local, FTransform(Axis));
 			return true;
@@ -1054,7 +1515,7 @@ namespace
 			for (int32 i = 0; i < Count; ++i)
 			{
 				FKitMesh Barrel;
-				Revolve({ FVector2d(R, -L * 0.5), FVector2d(R, L * 0.5) }, 10, 360, Barrel);
+				Revolve(CapsuleProfile(R, R, L, bRound ? FMath::Min(0.2, 0.3 * R) : 0.0, 2), 16, 360, Barrel);
 				Barrel.SmoothNormals();
 				const double A = 2.0 * PI * i / Count;
 				Local.Append(Barrel, FTransform(FVector(0.0, Ring * FMath::Cos(A), Ring * FMath::Sin(A))));
@@ -1070,11 +1531,11 @@ namespace
 		const FString Type = Str(P.Geo, TEXT("type"));
 		const double Thick = FMath::Max(0.1, P.Thickness * P.ThicknessScale) * P.Scale;
 		bool bOk = false;
-		if (Type == TEXT("extrudeShell")) { bOk = BuildExtrude(P, Thick, Keys.PanelLineDepth, Style.WidthScale, Style.FixedWidth, Style.bMajorOnly, M); }
-		else if (Type == TEXT("loftShell")) { bOk = BuildLoft(P, Thick, Keys.PanelLineDepth, Style.WidthScale, Style.FixedWidth, Style.bMajorOnly, M); }
-		else if (Type == TEXT("revolve")) { bOk = BuildRevolve(P, M); }
+		if (Type == TEXT("extrudeShell")) { bOk = BuildExtrude(P, Thick, Keys.PanelLineDepth, Style, M); }
+		else if (Type == TEXT("loftShell")) { bOk = BuildLoft(P, Thick, Keys.PanelLineDepth, Style, M); }
+		else if (Type == TEXT("revolve")) { bOk = BuildRevolve(P, Style, M); }
 		else if (Type == TEXT("superellipsoidShell")) { bOk = BuildSuperellipsoid(P, M); }
-		else { bOk = BuildPrimitive(P, Type, M); }
+		else { bOk = BuildPrimitive(P, Type, Style, M); }
 		if (bOk && P.bMirrored)
 		{
 			// Reflect through the plate's local XZ plane (u -> -u, theta -> -theta) and flip the winding.

@@ -32,6 +32,19 @@ namespace
 	/** Ease out with a small overshoot (back), settles on 1. */
 	float EaseOutBack(float T) { T = FMath::Clamp(T, 0.f, 1.f); const float C1 = 1.70158f, C3 = C1 + 1.f; return 1.f + C3 * FMath::Pow(T - 1.f, 3.f) + C1 * FMath::Pow(T - 1.f, 2.f); }
 	FVector Bezier(const FVector& A, const FVector& C, const FVector& B, float T) { const float U = 1.f - T; return A * (U * U) + C * (2.f * U * T) + B * (T * T); }
+	float SmoothStep01(float T) { T = FMath::Clamp(T, 0.f, 1.f); return T * T * (3.f - 2.f * T); }
+	/** Back ease with a tunable overshoot (C1 = 0 is ease-out cubic). */
+	float EaseOutBackK(float T, float C1) { T = FMath::Clamp(T, 0.f, 1.f); return 1.f + (C1 + 1.f) * FMath::Pow(T - 1.f, 3.f) + C1 * FMath::Pow(T - 1.f, 2.f); }
+	/**
+	 * Camera move curve: already moving on the cut (no dead start), lands softly with an optional settle, then holds.
+	 * Blend of ease-in-out and back-ease so the start velocity is ~2-2.5x average instead of 0.
+	 * Settle 0.5 / 0.7 / 0.9 overshoots the landing by ~0.1 / 1 / 3 % of the move, then comes back to rest.
+	 */
+	float CamEase(float T, float MoveEnd, float Settle)
+	{
+		const float U = FMath::Clamp(T / FMath::Max(0.05f, MoveEnd), 0.f, 1.f);
+		return FMath::Lerp(EaseInOut(U), EaseOutBackK(U, Settle * 3.f), 0.65f);
+	}
 
 	bool IsFaceName(const FString& N)
 	{
@@ -47,6 +60,7 @@ namespace
 	const FLinearColor GantrySteel(0.045f, 0.047f, 0.052f);
 	const FLinearColor GantryYellow(0.75f, 0.45f, 0.02f);
 	const FLinearColor WeldColor(1.f, 0.62f, 0.25f);
+	constexpr float HitStopTotal = 0.35f; // chest-clamp speed ramp length (real seconds)
 }
 
 ASuitUpCinematic::ASuitUpCinematic()
@@ -186,6 +200,11 @@ void ASuitUpCinematic::Begin(AIronManCharacter* InPlayer, int32 InSuitIndex, boo
 		PP.VignetteIntensity = 0.55f;
 		PP.bOverride_FilmGrainIntensity = true;
 		PP.FilmGrainIntensity = 0.15f;
+		// 180-degree shutter (same convention as Vison's cutscene packages): plates and whips smear like film.
+		PP.bOverride_MotionBlurAmount = true;
+		PP.MotionBlurAmount = 0.5f;
+		PP.bOverride_MotionBlurMax = true;
+		PP.MotionBlurMax = 5.f;
 		if (Style == ECinematicStyle::Stealth)
 		{
 			PP.bOverride_AutoExposureBias = true;
@@ -223,6 +242,7 @@ void ASuitUpCinematic::Begin(AIronManCharacter* InPlayer, int32 InSuitIndex, boo
 		Overlay->SetInfo(bShort ? FText::Format(LOCTEXT("SwapTitle", "{0} ONLINE"), Suit.Name) : Suit.Name,
 			Sub, FText::Format(LOCTEXT("AiLabel", "ON-BOARD AI: {0}"), AI.Label), AI.SubtitleColor, bShort);
 		Overlay->SetHudBoot(0.f, AI.Label, Suit.EmissiveColor);
+		Overlay->SetFade(bShort ? 0.f : 1.f);
 	}
 
 	// Voice: the new suit's AI introduces it (full) or takes over (swap). Voices default OFF in settings.
@@ -307,7 +327,7 @@ void ASuitUpCinematic::SpawnFlyers()
 	switch (bShort ? ETemplate::Suitcase : Tpl)
 	{
 	case ETemplate::Garage:
-		FaceStart = 0.76f; FaceEnd = 0.81f; EyesAt = 0.83f; RevealAt = 0.86f; Fly = 0.05f;
+		FaceStart = 0.76f; FaceEnd = 0.81f; EyesAt = 0.83f; RevealAt = 0.865f; Fly = 0.05f; // reveal lands on the final cut (was 0.86)
 		break;
 	case ETemplate::Air:
 		Win[GBoots][0] = 0.08f; Win[GBoots][1] = 0.30f; Win[GLegs][0] = 0.10f; Win[GLegs][1] = 0.32f;
@@ -318,13 +338,13 @@ void ASuitUpCinematic::SpawnFlyers()
 	case ETemplate::Nano:
 		bPooled = true; Pool = FVector2D(0.14f, 0.60f);
 		Win[GFace][0] = 0.58f; Win[GFace][1] = 0.72f;
-		FaceStart = FaceEnd = 0.72f; EyesAt = 0.76f; RevealAt = 0.82f; Fly = 0.06f;
+		FaceStart = FaceEnd = 0.72f; EyesAt = 0.76f; RevealAt = 0.80f; Fly = 0.06f; // reveal lands on the final cut (was 0.82)
 		break;
 	case ETemplate::Suitcase:
 	default:
 		bPooled = true; Pool = FVector2D(0.30f, 0.60f);
 		Win[GFace][0] = 0.55f; Win[GFace][1] = 0.63f;
-		FaceStart = 0.64f; FaceEnd = 0.74f; EyesAt = 0.77f; RevealAt = 0.82f; Fly = 0.07f;
+		FaceStart = 0.64f; FaceEnd = 0.74f; EyesAt = 0.77f; RevealAt = 0.81f; Fly = 0.07f; // reveal hides under the whip pan (was 0.82)
 		break;
 	}
 	if (bShort)
@@ -557,44 +577,73 @@ void ASuitUpCinematic::BuildShots()
 		FCamShot S; S.Start = Start; S.Focal = Focal; S.PosA = PA; S.PosB = PB; S.LookA = LA; S.LookB = LB; S.bWorld = bWorld; S.OrbitA = OA; S.OrbitB = OB; S.Whip = Whip;
 		Shots.Add(S);
 	};
+	// Film keys for the shot just added: lens creep, move-then-hold, settle, dutch, rack focus.
+	auto Film = [this](float FocalB, float MoveEnd, float Settle, float Roll = 0.f, float RackFrom = 0.f)
+	{
+		if (Shots.Num() == 0) { return; }
+		FCamShot& S = Shots.Last(); S.FocalB = FocalB; S.MoveEnd = MoveEnd; S.Settle = Settle; S.Roll = Roll; S.RackFrom = RackFrom;
+	};
 	const FVector Face = FaceRel;
 	if (bShort)
 	{
 		Add(0.f, 32.f, V(300, 0, 120), V(290, 0, 125), V(0, 0, 110), V(0, 0, 120), false, -35.f, -10.f);
+		Film(0.f, 1.f, 0.4f);
 		Add(FaceStart - 0.04f, 85.f, Face + V(130, 18, 2), Face + V(112, 6, 0), Face, Face);
+		Film(95.f, 0.8f, 0.f, 0.f, 18.f);
 		Add(RevealAt, 35.f, V(340, -40, 100), V(310, -20, 108), V(0, 0, 112), V(0, 0, 116));
+		Film(0.f, 0.85f, 0.6f);
 		return;
 	}
 	switch (Tpl)
 	{
 	case ETemplate::Garage:   // A1 crane wide, A4 low boots, A2 85 mm chest insert, A3 50 mm dolly, A5 85 mm faceplate, A7 35 mm push-in
 		Add(0.f, 35.f, V(430, -270, 330), V(390, -230, 230), V(0, 0, 110), V(0, 0, 100));
+		Film(32.f, 0.95f, 0.5f);                    // crane settles onto the gantry, lens breathes out a touch
 		Add(0.17f, 24.f, V(150, -95, 16), V(140, -70, 28), V(0, 0, 30), V(0, 0, 70));
+		Film(0.f, 0.85f, 0.8f, 4.f);                // low boots: slight dutch levels as the boots lock
 		Add(0.355f, 85.f, V(175, 45, 140), V(160, 25, 138), ReactorRel, ReactorRel);
+		Film(95.f, 0.9f, 0.f, 0.f, 25.f);           // chest insert: rack onto the reactor, slow creep into the clamp
 		Add(0.515f, 50.f, V(250, -230, 145), V(250, 140, 152), V(0, 0, 130), V(0, 0, 135));
+		Film(0.f, 1.f, 0.3f);                       // dolly track: steady, soft landing
 		Add(0.69f, 85.f, Face + V(150, 22, 4), Face + V(118, 6, 0), Face + V(0, 0, 6), Face);
-		Add(0.84f, 35.f, V(440, 0, 92), V(305, 0, 104), V(0, 0, 112), V(0, 0, 118));
+		Film(100.f, 0.72f, 0.f, 0.f, 30.f);         // faceplate: land, then hold on the eyes
+		Add(0.865f, 35.f, V(440, 0, 92), V(305, 0, 104), V(0, 0, 112), V(0, 0, 118)); // was 0.84: eyes now get ~0.3 s
+		Film(0.f, 0.9f, 0.7f);                      // push-in settles on the hero frame
 		break;
 	case ETemplate::Air:      // B1 world-anchored wide looking up, B2 tracking side, B3 chest clamp, B4 face, B5 thrusters catch
 		Add(0.f, 24.f, V(420, -160, -40), V(400, -140, 0), V(0, 0, 520), V(0, 0, 300), true);
+		Film(0.f, 1.f, 0.f, -3.f);                  // world-anchored wide: operator chasing the fall
 		Add(0.21f, 35.f, V(260, -280, 175), V(235, -310, 120), V(0, 0, 110), V(0, 0, 112));
+		Film(0.f, 1.f, 0.2f, -6.f);                 // tracking side: dutch eases out as the arms arrive
 		Add(0.43f, 50.f, V(205, 30, 150), V(188, 12, 142), ReactorRel, ReactorRel);
+		Film(60.f, 0.9f, 0.f, 0.f, 25.f);           // chest clamp: rack + creep into the hit-stop
 		Add(0.57f, 85.f, Face + V(145, -24, 6), Face + V(118, -6, 0), Face + V(0, 0, 4), Face);
-		Add(0.755f, 28.f, V(450, -130, 30), V(400, -90, 50), V(0, 0, 200), V(0, 0, 110), true);
+		Film(95.f, 0.7f, 0.f, 0.f, 30.f);           // face: land, hold through the eyes
+		Add(0.775f, 28.f, V(450, -130, 30), V(400, -90, 50), V(0, 0, 200), V(0, 0, 110), true); // was 0.755: eyes get ~0.28 s
+		Film(0.f, 0.85f, 0.9f);                     // camera "catches" with the thrusters
 		break;
 	case ETemplate::Nano:     // N1 reactor tap close, N2 orbit as the flow covers the body, N3 helmet forms, N4 push-in
 		Add(0.f, 85.f, ReactorRel + V(115, 4, 4), ReactorRel + V(98, 0, 2), ReactorRel, ReactorRel);
+		Film(92.f, 0.9f, 0.f, 0.f, 20.f);           // reactor tap: rack on, slow creep
 		Add(0.155f, 50.f, V(280, 0, 125), V(280, 0, 120), V(0, 0, 112), V(0, 0, 108), false, -45.f, 125.f);
+		Film(0.f, 1.f, 0.f);                        // orbit with the flow, already moving on the cut
 		Add(0.6f, 85.f, Face + V(140, 14, 2), Face + V(116, 0, 0), Face, Face);
-		Add(RevealAt - 0.04f, 35.f, V(410, -60, 90), V(295, -18, 104), V(0, 0, 112), V(0, 0, 118));
+		Film(100.f, 0.7f, 0.f, 0.f, 25.f);          // helmet forms, hold on the eyes
+		Add(RevealAt, 35.f, V(410, -60, 90), V(295, -18, 104), V(0, 0, 112), V(0, 0, 118)); // 0.80 (was RevealAt-0.04 = 0.78)
+		Film(0.f, 0.9f, 0.7f);
 		break;
 	case ETemplate::Suitcase: // S1 low tracking on the case, S2 case opens, S3 tilt up the unfolding rings, S4 faceplate, S5 whip pan
 	default:
 		Add(0.f, 35.f, CaseRel + V(140, -240, 22), CaseRel + V(120, -130, 24), CaseRel + V(0, 0, 18), CaseRel + V(0, 0, 18));
+		Film(0.f, 1.f, 0.2f);                       // low track on the case
 		Add(0.18f, 50.f, CaseRel + V(170, -120, 75), CaseRel + V(160, -100, 70), CaseRel + V(0, 0, 25), CaseRel + V(0, 0, 25));
+		Film(55.f, 0.8f, 0.f, 0.f, 15.f);           // lid pops: rack onto the latch
 		Add(0.30f, 35.f, V(310, -160, 50), V(300, -150, 175), V(0, 0, 30), V(0, 0, 150));
+		Film(0.f, 1.f, 0.f);                        // tilt up the rings
 		Add(FaceStart - 0.05f, 85.f, Face + V(140, 18, 3), Face + V(116, 4, 0), Face, Face);
-		Add(RevealAt - 0.02f, 28.f, V(380, 0, 88), V(340, 0, 100), V(0, 0, 112), V(0, 0, 116), false, -85.f, 0.f, 0.22f);
+		Film(100.f, 0.7f, 0.f, 0.f, 25.f);          // faceplate, hold on the eyes
+		Add(RevealAt, 28.f, V(380, 0, 88), V(340, 0, 100), V(0, 0, 112), V(0, 0, 116), false, -85.f, 0.f, 0.22f); // 0.81 (was 0.80); swap hides in the whip
+		Film(0.f, 1.f, 0.5f);
 		break;
 	}
 }
@@ -668,7 +717,7 @@ void ASuitUpCinematic::TickFlyers(float Alpha, float Dt)
 					if (F.Group == GTorso && !bChestHit && (Tpl == ETemplate::Garage || Tpl == ETemplate::Air) && !bShort && L.Z > 0.55f * SuitH)
 					{
 						bChestHit = true;
-						HitStopLeft = 0.35f;
+						HitStopLeft = HitStopTotal;
 						Shake(Tpl == ETemplate::Air ? 9.f : 5.f);
 						ArenaAudio::PlayAt(this, TEXT("suitup_servo_heavy"), Frame.TransformPosition(L), 1.f);
 						AArenaBlastFX::Spawn(GetWorld(), Frame.TransformPosition(ReactorRel), 45.f * SizeScale, Suit.EmissiveColor, 0.25f, false);
@@ -859,25 +908,38 @@ void ASuitUpCinematic::UpdateCamera(float Alpha, float DeltaSeconds)
 	int32 Idx = 0;
 	for (int32 i = 0; i < Shots.Num(); ++i) { if (Alpha >= Shots[i].Start) { Idx = i; } }
 	const FCamShot& S = Shots[Idx];
+	const bool bCut = Idx != LastShot;
+	if (bCut) { ShotCutAt = Elapsed; }
 	const float End = Shots.IsValidIndex(Idx + 1) ? Shots[Idx + 1].Start : 1.f;
 	float T = FMath::Clamp((Alpha - S.Start) / FMath::Max(0.01f, End - S.Start), 0.f, 1.f);
 	const FTransform Frame = FrameXf(Alpha, S.bWorld);
-	FVector PosRel = FMath::Lerp(S.PosA, S.PosB, EaseInOut(T));
+	// Move: already travelling on the cut, lands (with an optional settle) by MoveEnd, then holds the frame.
+	const float E = CamEase(T, S.MoveEnd, S.Settle);
+	FVector PosRel = FMath::Lerp(S.PosA, S.PosB, E);
 	if (S.OrbitA != S.OrbitB)
 	{
-		const float OT = S.Whip > 0.f ? EaseOutCubic(T / S.Whip) : EaseInOut(T);
+		const float OT = S.Whip > 0.f ? EaseOutCubic(T / S.Whip) : CamEase(T, S.MoveEnd, 0.f);
 		PosRel = FVector(PosRel.X, PosRel.Y, 0.f).RotateAngleAxis(FMath::Lerp(S.OrbitA, S.OrbitB, OT), FVector::UpVector) + FVector(0.f, 0.f, PosRel.Z);
 	}
-	const FVector LookRel = FMath::Lerp(S.LookA, S.LookB, EaseInOut(T));
+	// The aim leads the dolly slightly (operator pans a hair before the move lands).
+	const FVector LookRel = FMath::Lerp(S.LookA, S.LookB, EaseInOut(T / FMath::Max(0.05f, S.MoveEnd * 0.9f)));
 	FVector CamLoc = Frame.TransformPosition(PosRel);
 	FVector LookAt = (S.bWorld ? FrameXf(Alpha) : Frame).TransformPosition(LookRel);
 	if (S.bWorld && Tpl == ETemplate::Air) { LookAt = FrameXf(Alpha).TransformPosition(FVector(0.f, 0.f, 0.55f * SuitH)); } // keep the falling pilot framed
 
-	// Handheld shake (decays); Ultron glitch jumps.
+	// Handheld shake (decays); Ultron glitch jumps. Impacts kick the rotation too (reads as a camera hit, not a slide).
 	ShakeAmp = FMath::FInterpTo(ShakeAmp, 0.f, DeltaSeconds, 5.f);
 	const float Tm = Elapsed;
 	FVector Jit = FVector(FMath::Sin(Tm * 37.f), FMath::Sin(Tm * 29.f + 1.3f), FMath::Sin(Tm * 43.f + 2.1f)) * ShakeAmp;
+	FRotator RotJit(FMath::Sin(Tm * 31.f + 0.4f) * ShakeAmp * 0.06f, FMath::Sin(Tm * 27.f + 2.2f) * ShakeAmp * 0.05f, FMath::Sin(Tm * 19.f) * ShakeAmp * 0.04f);
 	if (Tpl == ETemplate::Air && !bShort && Alpha < 0.74f) { Jit += FVector(FMath::Sin(Tm * 23.f), FMath::Sin(Tm * 19.f), 0.f) * 1.5f; } // wind buffet
+	if (S.Focal >= 70.f)
+	{
+		// Long lens: a slow operated "breath" so held close-ups never look locked off.
+		Jit += FVector(FMath::Sin(Tm * 0.9f), FMath::Sin(Tm * 0.7f + 1.f), FMath::Sin(Tm * 1.1f + 2.f) * 0.5f) * 0.6f;
+		RotJit.Pitch += FMath::Sin(Tm * 1.1f + 0.5f) * 0.12f;
+		RotJit.Yaw += FMath::Sin(Tm * 0.8f + 1.7f) * 0.1f;
+	}
 	UCineCameraComponent* Cam = CineCam->GetCineCameraComponent();
 	if (Style == ECinematicStyle::Ultron)
 	{
@@ -890,10 +952,18 @@ void ASuitUpCinematic::UpdateCamera(float Alpha, float DeltaSeconds)
 		Cam->PostProcessSettings.AutoExposureBias = FMath::Lerp(-2.f, -0.5f, Alpha);
 	}
 	CamLoc += Jit;
-	CineCam->SetActorLocationAndRotation(CamLoc, (LookAt - CamLoc).Rotation());
-	Cam->SetCurrentFocalLength(S.Focal);
-	Cam->CurrentAperture = S.Focal >= 70.f ? 2.8f : 4.f;
-	Cam->FocusSettings.ManualFocusDistance = FMath::Max(30.f, float(FVector::Dist(CamLoc, LookAt)));
+	// Aim: hard snap on a cut, otherwise a light operator lag (follows the falling pilot / settles instead of locking).
+	FRotator Aim = (LookAt - CamLoc).Rotation();
+	Aim.Roll = S.Roll * (1.f - FMath::Clamp(E, 0.f, 1.f)); // dutch levels out as the move lands
+	CamRot = (bCut || DeltaSeconds <= 0.f) ? Aim : FMath::RInterpTo(CamRot, Aim, DeltaSeconds, S.Whip > 0.f ? 30.f : 14.f); // whip: operator catches up fast
+	CineCam->SetActorLocationAndRotation(CamLoc, CamRot + RotJit);
+	// Lens: slow creep on the long lenses, wider open for the close-ups.
+	const float Focal = S.FocalB > 0.f ? FMath::Lerp(S.Focal, S.FocalB, SmoothStep01(T)) : S.Focal;
+	Cam->SetCurrentFocalLength(Focal);
+	Cam->CurrentAperture = S.Focal >= 70.f ? 2.f : (S.Focal >= 50.f ? 2.8f : 4.f);
+	// Focus: starts behind the subject on the cut and pulls on (rack), then tracks the subject.
+	const float Rack = S.RackFrom > 0.f ? S.RackFrom * (1.f - EaseOutCubic((Elapsed - ShotCutAt) / 0.35f)) : 0.f;
+	Cam->FocusSettings.ManualFocusDistance = FMath::Max(30.f, float(FVector::Dist(CamLoc, LookAt)) + Rack);
 	LastShot = Idx;
 	LastCamLoc = CamLoc;
 }
@@ -905,8 +975,8 @@ void ASuitUpCinematic::Tick(float DeltaSeconds)
 	if (!Player.IsValid()) { Finish(true); return; }
 
 	Elapsed += DeltaSeconds;
-	// Hit-stop on the chest clamp (0.25x for a moment), otherwise real time.
-	const float Rate = HitStopLeft > 0.f ? 0.25f : 1.f;
+	// Hit-stop on the chest clamp: drops to 0.2x on the impact and ramps back up to real time (speed ramp, not a hard 0.25x step).
+	const float Rate = HitStopLeft > 0.f ? FMath::Lerp(0.2f, 1.f, EaseInCubic(1.f - HitStopLeft / HitStopTotal)) : 1.f;
 	HitStopLeft = FMath::Max(0.f, HitStopLeft - DeltaSeconds);
 	Clock += DeltaSeconds * Rate;
 	const float Alpha = FMath::Clamp(Clock / FMath::Max(0.1f, Duration), 0.f, 1.f);
@@ -918,11 +988,28 @@ void ASuitUpCinematic::Tick(float DeltaSeconds)
 
 	if (Overlay)
 	{
-		const float BarIn = FMath::Clamp(Elapsed / 0.4f, 0.f, 1.f);
-		const float BarOut = FMath::Clamp((Duration - Clock) / 0.35f, 0.f, 1.f);
-		const float TitleIn = FMath::Clamp((Alpha - (bShort ? 0.72f : RevealAt + 0.02f)) / 0.06f, 0.f, 1.f);
-		const float TitleOut = FMath::Clamp((Duration - Clock) / 0.3f, 0.f, 1.f);
+		// Letterbox slides in with the fade-up and out over the last half second; the title card lands after the
+		// reveal, holds, and is gone a beat before the bars so the hand-back to gameplay is clean.
+		// (Swap version keeps its c15 timings: it is too short for a held card.)
+		const float BarIn = FMath::Clamp(Elapsed / (bShort ? 0.4f : 0.6f), 0.f, 1.f);
+		const float BarOut = FMath::Clamp((Duration - Clock) / (bShort ? 0.35f : 0.5f), 0.f, 1.f);
+		float TitleIn, TitleOut;
+		if (bShort)
+		{
+			TitleIn = FMath::Clamp((Alpha - 0.72f) / 0.06f, 0.f, 1.f);
+			TitleOut = FMath::Clamp((Duration - Clock) / 0.3f, 0.f, 1.f);
+		}
+		else
+		{
+			// Card lands 0.15 s after the reveal cut (0.3 s for the Suitcase whip), 0.25 s ease in, holds ~0.35-0.45 s,
+			// 0.35 s ease out finishing 0.1 s before the end.
+			const float TitleAt = RevealAt * Duration + (Tpl == ETemplate::Suitcase ? 0.3f : 0.15f);
+			TitleIn = SmoothStep01((Clock - TitleAt) / 0.25f);
+			TitleOut = SmoothStep01((Duration - Clock - 0.1f) / 0.35f);
+		}
 		Overlay->SetState(FMath::Min(BarIn, BarOut), FMath::Min(TitleIn, TitleOut), Style == ECinematicStyle::Ultron ? 1.f : 0.f);
+		// Full version opens from black (Air cuts in faster: we're already falling). Swap version never fades.
+		Overlay->SetFade(bShort ? 0.f : 1.f - SmoothStep01(Elapsed / (Tpl == ETemplate::Air ? 0.25f : 0.45f)));
 		// HUD boot from the inside of the helmet: rises with the eyes, fades as the camera pulls out.
 		const float HudLen = bShort ? 0.14f : 0.1f;
 		const float H = Alpha < EyesAt ? 0.f : FMath::Clamp(1.f - (Alpha - EyesAt - HudLen * 0.5f) / (HudLen * 0.5f), 0.f, 1.f) * FMath::Clamp((Alpha - EyesAt) / 0.02f, 0.f, 1.f);

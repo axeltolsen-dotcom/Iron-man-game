@@ -354,6 +354,12 @@ protected:
 	bool bCamOrbit = false;
 	bool bCamCrane = false;
 
+	// film feel (Jocasta c16)
+	/** Seconds since PlayCutscene (letterbox slides in once, not per shot). */
+	float CutsceneTime = 0.f;
+	/** Speaker's facing for lead room (zero = centre the subject: groups, wides, no speaker). */
+	FVector ShotLeadDir = FVector::ZeroVector;
+
 	UPROPERTY(Transient)
 	TObjectPtr<ACineCameraActor> Cam;
 

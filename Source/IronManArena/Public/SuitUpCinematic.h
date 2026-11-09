@@ -11,6 +11,9 @@
 //  and a HUD boot overlay. The pilot avatar stands in the middle until the armour closes.
 //  Shot-based CineCamera with hard cuts, per-shot focal length and focus on the subject; letterbox,
 //  title card. Full 6.5-9 s (game start), short 2.6 s (in-game swap). Space / click skips.
+//  Film pass (contrib/jocasta/cinematics): moves land and hold, lens creep, rack focus on cuts, dutch
+//  that levels out, speed-ramped hit-stop, cuts placed so the eyes get a held beat and the real-armour
+//  swap hides under a cut, fade up from black and a slower letterbox / title card.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -91,7 +94,16 @@ private:
 		TWeakObjectPtr<UStaticMeshComponent> Column, Upper, Fore, ClawA, ClawB, Light;
 	};
 
-	struct FCamShot { float Start = 0.f; float Focal = 35.f; FVector PosA, PosB, LookA, LookB; bool bWorld = false; float OrbitA = 0.f; float OrbitB = 0.f; float Whip = 0.f; };
+	struct FCamShot
+	{
+		float Start = 0.f; float Focal = 35.f; FVector PosA, PosB, LookA, LookB; bool bWorld = false; float OrbitA = 0.f; float OrbitB = 0.f; float Whip = 0.f;
+		// Film feel (Jocasta c16): lens creep, move-then-hold, settle overshoot, dutch that levels out, rack focus on the cut.
+		float FocalB = 0.f;    // focal at the end of the shot (0 = no creep)
+		float MoveEnd = 1.f;   // fraction of the shot the move takes; the rest is a held frame
+		float Settle = 0.f;    // overshoot of the move's landing (0 = ease-out, ~1 = visible settle)
+		float Roll = 0.f;      // dutch angle at the cut, levels to 0 as the move lands
+		float RackFrom = 0.f;  // focus starts this many cm behind the subject and pulls on in ~0.35 s
+	};
 
 	void Begin(AIronManCharacter* InPlayer, int32 InSuitIndex, bool bInShort);
 	void SpawnFlyers();
@@ -177,4 +189,6 @@ private:
 	FTransform Root0;
 	int32 LastShot = -1;
 	FVector LastCamLoc = FVector::ZeroVector;
+	float ShotCutAt = 0.f;       // Elapsed (real time) of the last cut, for the rack focus
+	FRotator CamRot = FRotator::ZeroRotator; // operator-smoothed aim (snaps on cuts)
 };

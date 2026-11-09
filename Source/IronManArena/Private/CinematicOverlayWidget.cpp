@@ -74,6 +74,16 @@ void UCinematicOverlayWidget::BuildTree()
 	SkipText->SetText(LOCTEXT("Skip", "SPACE / CLICK  -  SKIP"));
 	CaptionText = MakeText(WidgetTree, Root, 20, FLinearColor::White, FVector2D(0.5f, 1.f), FVector2D(0.5f, 1.f), FVector2D(0.f, -150.f), TEXT("Regular"));
 	CaptionText->SetVisibility(ESlateVisibility::Collapsed);
+
+	// Fade layer last so it covers bars and text; full-screen, black, hidden until SetFade(> 0).
+	FadeBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	FadeBorder->SetBrushColor(FLinearColor::Black);
+	if (UCanvasPanelSlot* S = Root->AddChildToCanvas(FadeBorder))
+	{
+		S->SetAnchors(FAnchors(0.f, 0.f, 1.f, 1.f));
+		S->SetOffsets(FMargin(0.f));
+	}
+	FadeBorder->SetVisibility(ESlateVisibility::Collapsed);
 	SetState(0.f, 0.f, 0.f);
 }
 
@@ -102,12 +112,17 @@ void UCinematicOverlayWidget::SetState(float BarAlpha, float TitleAlpha, float G
 	const FVector2D Jitter = GlitchAmount > 0.f && FMath::FRand() < 0.35f * GlitchAmount
 		? FVector2D(FMath::FRandRange(-14.f, 14.f), FMath::FRandRange(-3.f, 3.f)) * GlitchAmount
 		: FVector2D::ZeroVector;
+	// Title card: lines arrive staggered (title, then mark, then AI) and leave in reverse; ease-out slide so
+	// each line decelerates into place instead of sliding at constant speed.
+	int32 Line = 0;
 	for (UTextBlock* T : { TitleText.Get(), SubtitleText.Get(), AIText.Get() })
 	{
+		const float LA = FMath::Clamp(A * 1.3f - Line * 0.15f, 0.f, 1.f);
+		++Line;
 		if (!T) { continue; }
-		T->SetRenderOpacity(A);
-		// Slide in from the left as it fades in.
-		T->SetRenderTranslation(FVector2D((1.f - A) * -40.f, 0.f) + Jitter);
+		const float Slide = 1.f - FMath::Pow(1.f - LA, 3.f);
+		T->SetRenderOpacity(LA);
+		T->SetRenderTranslation(FVector2D((1.f - Slide) * -40.f, 0.f) + Jitter);
 	}
 	if (SkipText) { SkipText->SetRenderOpacity(FMath::Min(1.f, BarAlpha) * 0.8f); }
 }
@@ -123,6 +138,22 @@ void UCinematicOverlayWidget::SetCaption(const FText& Speaker, const FText& Line
 	CaptionText->SetText(Speaker.IsEmpty() ? Line : FText::Format(LOCTEXT("Caption", "{0}: {1}"), Speaker, Line));
 	CaptionText->SetColorAndOpacity(FSlateColor(Color));
 	CaptionText->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UCinematicOverlayWidget::SetCaptionAlpha(float Alpha)
+{
+	if (!CaptionText) { return; }
+	const float A = FMath::Clamp(Alpha, 0.f, 1.f);
+	CaptionText->SetRenderOpacity(A);
+	CaptionText->SetRenderTranslation(FVector2D(0.f, (1.f - A) * 6.f)); // settles up into place
+}
+
+void UCinematicOverlayWidget::SetFade(float Alpha)
+{
+	if (!FadeBorder) { return; }
+	const float A = FMath::Clamp(Alpha, 0.f, 1.f);
+	FadeBorder->SetRenderOpacity(A);
+	FadeBorder->SetVisibility(A > 0.001f ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 }
 
 void UCinematicOverlayWidget::SetHudBoot(float Alpha, const FText& Line, const FLinearColor& Color)

@@ -1315,6 +1315,7 @@ void AStoryDirector::PlayCutscene(const TArray<FStoryShot>& InShots, const FText
 	CutTitle = Title;
 	CutSubtitle = Subtitle;
 	Step = EStoryStep::Cutscene;
+	CutsceneTime = 0.f;
 
 	if (UJarvisComponent* J = UJarvisComponent::Get(this)) { J->StopAll(); }
 	Player->SetCinematicMode(true, nullptr);
@@ -1360,8 +1361,9 @@ void AStoryDirector::PlayCutscene(const TArray<FStoryShot>& InShots, const FText
 	if (Overlay)
 	{
 		Overlay->SetInfo(Title, Subtitle, FText::GetEmpty(), StoryGold, true);
-		Overlay->SetState(1.f, 1.f, 0.f);
+		Overlay->SetState(0.f, 0.f, 0.f); // bars slide in with the 0.6 s camera blend (TickCutscene); was a 1-frame pop to full
 		Overlay->SetCaption(FText::GetEmpty(), FText::GetEmpty(), FLinearColor::White);
+		Overlay->SetCaptionAlpha(0.f);
 	}
 
 	if (ScoreAudio) { ScoreAudio->Stop(); ScoreAudio = nullptr; }
@@ -1451,7 +1453,7 @@ void AStoryDirector::BeginShot(int32 Index)
 	ShotLength = FMath::Clamp(Len, MinShotSeconds, MaxShotSeconds);
 	// The flashback breathes: every shot holds a little past its line.
 	if (bInPrologue) { ShotLength = FMath::Clamp(Len + 1.5f, 4.5f, MaxShotSeconds + 2.f); }
-	if (Overlay) { Overlay->SetCaption(Speaker, Text, Color); }
+	if (Overlay) { Overlay->SetCaption(Speaker, Text, Color); Overlay->SetCaptionAlpha(0.f); } // fades in from TickCutscene
 	UpdateCamera(0.f);
 }
 
@@ -1545,13 +1547,18 @@ void AStoryDirector::StageShot(const FStoryShot& Shot)
 		}
 	}
 
+	// Lead room: a single speaker sits on the third opposite the way they face (set below; cleared for groups / wides).
+	ShotLeadDir = FVector::ZeroVector;
+	if (SpeakingNpc) { ShotLeadDir = SpeakingNpc->GetActorForwardVector(); }
+	else if (Speaker == NAME_Player && bPawnInShot) { ShotLeadDir = Player->GetActorForwardVector(); }
+
 	// Framing from the director's note.
 	const FString& C = ShotCamera;
 	const bool bGroup = (bPawnInShot || HarleyNpc ? 1 : 0) + Others.Num() > 1;
 	CamDist = bGroup ? 520.f : 380.f;
 	CamHeight = 20.f;
 	CamFocal = 35.f;
-	CamYawOffset = ((ShotIndex % 3) - 1) * 28.f;
+	CamYawOffset = ((ShotIndex % 3) - 1) * 34.f; // >= 30 deg between consecutive shots (no jump cuts), same side of the line
 	bCamHandheld = Has(C, TEXT("handheld")) || Has(C, TEXT("shaky")) || Has(C, TEXT("shake"));
 	bCamPush = Has(C, TEXT("push")) || Has(C, TEXT("dolly")) || Has(C, TEXT("slow zoom"));
 	bCamOrbit = Has(C, TEXT("orbit")) || Has(C, TEXT("pan")) || Has(C, TEXT("circles")) || Has(C, TEXT("swivel"));
@@ -1570,13 +1577,18 @@ void AStoryDirector::StageShot(const FStoryShot& Shot)
 	if (Has(C, TEXT("low angle")) || Has(C, TEXT("low-angle")) || Has(C, TEXT("from below"))) { CamHeight = -70.f; CamDist *= 0.85f; }
 	if (Has(C, TEXT("over-the-shoulder")) || Has(C, TEXT("over the shoulder"))) { CamYawOffset = 65.f; CamDist = 230.f; CamHeight = 25.f; }
 	if (Has(C, TEXT("rack focus"))) { CamFocal = 60.f; }
+	if (bGroup || CamDist >= 800.f) { ShotLeadDir = FVector::ZeroVector; } // two-shots / wides stay centred
 }
 
 void AStoryDirector::UpdateCamera(float Alpha)
 {
 	if (!Cam) { return; }
 	const float A = FMath::Clamp(Alpha, 0.f, 1.f);
-	const float Ease = FMath::InterpEaseInOut(0.f, 1.f, A, 2.f);
+	// Film move: already travelling on the cut (no dead start), lands by ~88 % of the shot and holds a beat before
+	// the next cut. Drift-only shots use the whole shot so they never stop.
+	const bool bMove = bCamPush || bCamOrbit || bCamCrane;
+	const float U = FMath::Clamp(A / (bMove ? 0.88f : 1.f), 0.f, 1.f);
+	const float Ease = FMath::Lerp(FMath::InterpEaseInOut(0.f, 1.f, U, 2.f), 1.f - FMath::Pow(1.f - U, 3.f), 0.5f);
 	float Dist = CamDist;
 	float Height = CamHeight;
 	float Yaw = StageYaw + 90.f + CamYawOffset;
@@ -1587,16 +1599,36 @@ void AStoryDirector::UpdateCamera(float Alpha)
 
 	FVector Pos = ShotLookAt - FRotator(0.f, Yaw, 0.f).Vector() * Dist + FVector(0, 0, Height);
 	Pos.Z = FMath::Max(Pos.Z, StageOrigin.Z + 25.f);
-	FRotator Rot = (ShotLookAt - Pos).Rotation();
+	// Lead room: aim ahead of the speaker so they sit on the opposite third, with space where they look.
+	// Offset ~ one third of the half-frame width at the subject (focal authored for Super 35, 24.89 mm wide).
+	FVector Aim = ShotLookAt;
+	if (!ShotLeadDir.IsNearlyZero())
+	{
+		const FVector CamFwd = (ShotLookAt - Pos).GetSafeNormal2D();
+		const FVector CamRight = FVector::CrossProduct(FVector::UpVector, CamFwd);
+		const float Side = FMath::Clamp(float(FVector::DotProduct(ShotLeadDir.GetSafeNormal2D(), CamRight)) * 1.5f, -1.f, 1.f); // continuous: no pop mid-orbit
+		const float HalfTan = 24.89f / (2.f * FMath::Max(CamFocal, 10.f));
+		Aim += CamRight * (Side * float(FVector::Dist(Pos, ShotLookAt)) * HalfTan * 0.3f);
+	}
+	FRotator Rot = (Aim - Pos).Rotation();
+	const float K = UArenaFeelSubsystem::GetShakeIntensity(); // 0-150 % setting (accessibility)
+	const float T = ShotTime;
 	if (bCamHandheld)
 	{
-		// The cutscene's only shake (ArenaFeel is muted in cutscenes), scaled by the 0-150 % setting.
-		const float K = UArenaFeelSubsystem::GetShakeIntensity();
-		const float T = ShotTime;
-		Pos += FVector(FMath::Sin(T * 1.7f) * 4.f, FMath::Sin(T * 2.3f + 1.f) * 4.f, FMath::Sin(T * 3.1f) * 3.f) * K;
-		Rot.Pitch += FMath::Sin(T * 2.9f) * 0.8f * K;
-		Rot.Yaw += FMath::Sin(T * 1.9f + 2.f) * 0.8f * K;
-		Rot.Roll += FMath::Sin(T * 1.3f) * 0.6f * K;
+		// The cutscene's only shake (ArenaFeel is muted in cutscenes). Two incommensurate sines per axis read as an
+		// operator, not a metronome; same peak amplitude as before.
+		Pos += FVector(FMath::Sin(T * 1.7f) * 2.8f + FMath::Sin(T * 4.3f + 0.7f) * 1.2f,
+			FMath::Sin(T * 2.3f + 1.f) * 2.8f + FMath::Sin(T * 5.1f + 2.4f) * 1.2f,
+			FMath::Sin(T * 3.1f) * 2.1f + FMath::Sin(T * 6.7f + 1.1f) * 0.9f) * K;
+		Rot.Pitch += (FMath::Sin(T * 2.9f) * 0.55f + FMath::Sin(T * 7.3f + 0.3f) * 0.25f) * K;
+		Rot.Yaw += (FMath::Sin(T * 1.9f + 2.f) * 0.55f + FMath::Sin(T * 5.9f + 1.4f) * 0.25f) * K;
+		Rot.Roll += (FMath::Sin(T * 1.3f) * 0.45f + FMath::Sin(T * 3.7f + 0.9f) * 0.15f) * K;
+	}
+	else if (CamFocal >= 50.f)
+	{
+		// Close-ups on a long lens get a slow "breath" so a held frame never looks locked off.
+		Rot.Pitch += FMath::Sin(T * 0.8f + 0.4f) * 0.12f * K;
+		Rot.Yaw += FMath::Sin(T * 0.6f + 1.3f) * 0.12f * K;
 	}
 	Cam->SetActorLocationAndRotation(Pos, Rot);
 	if (UCineCameraComponent* CC = Cam->GetCineCameraComponent())
@@ -1605,7 +1637,9 @@ void AStoryDirector::UpdateCamera(float Alpha)
 		// IMAX / ALEXA LF / anamorphic filmback, so scale by the crop factor (Vison camera_realism.json
 		// cutscene_packages.*.focal_scale_vs_s35 = SensorWidth x squeeze / 24.89) to keep the same framing.
 		const float CropScale = FMath::Clamp(CC->Filmback.SensorWidth * FMath::Max(CC->LensSettings.SqueezeFactor, 1.f) / 24.89f, 0.5f, 3.5f);
-		CC->SetCurrentFocalLength(CamFocal * CropScale);
+		// Push-ins also creep the lens ~8 % (dolly + zoom reads as a deliberate move, not a slide).
+		const float Creep = bCamPush ? FMath::Lerp(1.f, 1.08f, Ease) : 1.f;
+		CC->SetCurrentFocalLength(CamFocal * CropScale * Creep);
 		if (CC->FocusSettings.FocusMethod == ECameraFocusMethod::Manual)
 		{
 			CC->FocusSettings.ManualFocusDistance = FMath::Max(50.f, FVector::Dist(Pos, ShotLookAt));
@@ -1616,12 +1650,18 @@ void AStoryDirector::UpdateCamera(float Alpha)
 void AStoryDirector::TickCutscene(float DeltaSeconds)
 {
 	ShotTime += DeltaSeconds;
+	CutsceneTime += DeltaSeconds;
 	UpdateCamera(ShotLength > 0.f ? ShotTime / ShotLength : 1.f);
 	if (Overlay)
 	{
-		// Chapter title card over the first shot only.
-		const float TitleAlpha = ShotIndex == 0 ? FMath::Clamp(FMath::Min(ShotTime / 0.4f, (3.5f - ShotTime) / 0.6f), 0.f, 1.f) : 0.f;
-		Overlay->SetState(1.f, TitleAlpha, 0.f);
+		auto Smooth = [](float X) { X = FMath::Clamp(X, 0.f, 1.f); return X * X * (3.f - 2.f * X); };
+		// Letterbox slides in once with the camera blend (0.5 s), then stays.
+		const float BarAlpha = Smooth(CutsceneTime / 0.5f);
+		// Chapter title card over the first shot only: lands after the bars (0.3 s), holds, gone by 3.5 s as before.
+		const float TitleAlpha = ShotIndex == 0 ? Smooth(FMath::Min((ShotTime - 0.3f) / 0.5f, (3.5f - ShotTime) / 0.6f)) : 0.f;
+		Overlay->SetState(BarAlpha, TitleAlpha, 0.f);
+		// Captions: in a couple of frames after the cut, out just before the next one (no hard pops between lines).
+		Overlay->SetCaptionAlpha(Smooth((ShotTime - 0.04f) / 0.14f) * Smooth((ShotLength - ShotTime) / 0.12f));
 	}
 	if (bInPrologue) { TickFlashback(DeltaSeconds); }
 	if (ShotTime >= ShotLength) { BeginShot(ShotIndex + 1); }

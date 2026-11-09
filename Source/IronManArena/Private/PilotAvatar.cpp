@@ -479,8 +479,8 @@ void APilotAvatar::BuildShapes()
 	const float HipZ = 92.f, ShoulderZ = 143.f;
 
 	const bool bSkirt = O.Pants == EOutfitPants::Skirt, bShorts = O.Pants == EOutfitPants::Shorts;
-	const bool bSleevesLong = O.Top == EOutfitTop::Hoodie || O.Top == EOutfitTop::ShirtAndTie || O.Jacket != EOutfitJacket::None;
-	const bool bTank = O.Top == EOutfitTop::TankTop && O.Jacket == EOutfitJacket::None;
+	const bool bSleevesLong = O.Top == EOutfitTop::Hoodie || O.Top == EOutfitTop::ShirtAndTie || O.Top == EOutfitTop::Coveralls || O.Jacket != EOutfitJacket::None;
+	const bool bTank = (O.Top == EOutfitTop::TankTop || O.Top == EOutfitTop::CropTop) && O.Jacket == EOutfitJacket::None;
 	const FLinearColor SleeveC = O.Jacket != EOutfitJacket::None ? JackC : TopC;
 
 	// Legs.
@@ -511,10 +511,11 @@ void APilotAvatar::BuildShapes()
 	if (O.Top == EOutfitTop::BandTee) { P(Chest, EArenaShape::Cube, FVector(11.3f, 0, 27.f), FVector(0.6f, ChestW * 0.5f, 12.f), FLinearColor(0.9f, 0.85f, 0.75f)); P(Chest, EArenaShape::Sphere, FVector(11.6f, 0, 27.f), FVector(0.6f, 8.f, 8.f), FLinearColor(0.75f, 0.05f, 0.04f)); }
 	if (O.Top == EOutfitTop::ShirtAndTie) { P(Chest, EArenaShape::Cube, FVector(11.3f, 0, 22.f), FVector(0.6f, 4.f, 28.f), FLinearColor(0.35f, 0.03f, 0.05f)); P(Chest, EArenaShape::Cube, FVector(4.f, 0, 40.f), FVector(16.f, 16.f, 4.f), TopC); }
 	if (O.Top == EOutfitTop::Hoodie) { P(Chest, EArenaShape::Sphere, FVector(-10.f, 0, 38.f), FVector(10.f, 22.f, 12.f), TopC); P(Chest, EArenaShape::Cube, FVector(10.f, 0, 9.f), FVector(1.5f, WaistW * 0.6f, 9.f), TopC * 0.85f); }
+	if (O.Top == EOutfitTop::Coveralls) { P(Chest, EArenaShape::Cube, FVector(0.f, 0, 5.f), FVector(ChestW + 2.f, WaistW + 2.f, 55.f), TopC * 0.9f); }
 	if (O.Jacket != EOutfitJacket::None)
 	{
 		const float Puff = O.Jacket == EOutfitJacket::Bomber ? 4.f : 2.f;
-		const float Bottom = O.Jacket == EOutfitJacket::SuitJacket ? -6.f : 2.f;
+		const float Bottom = O.Jacket == EOutfitJacket::SuitJacket ? -6.f : (O.Jacket == EOutfitJacket::Trench ? -18.f : 2.f);
 		const EArenaSurface JS = O.Jacket == EOutfitJacket::Leather ? EArenaSurface::SuitPaint : EArenaSurface::Plain;
 		P(Chest, EArenaShape::Cube, FVector(-1.f, -ChestW * 0.28f, (Bottom + 39.f) * 0.5f), FVector(22.f + Puff, ChestW * 0.44f + Puff, 39.f - Bottom), JackC, JS);
 		P(Chest, EArenaShape::Cube, FVector(-1.f, ChestW * 0.28f, (Bottom + 39.f) * 0.5f), FVector(22.f + Puff, ChestW * 0.44f + Puff, 39.f - Bottom), JackC, JS);
@@ -605,7 +606,19 @@ void APilotAvatar::BuildHead(USceneComponent* H, const FVector& C, bool bOnSkele
 			P(H, EArenaShape::Sphere, C + FVector(-7.f, 0, 10.f), FVector(10.f), HairC);
 		}
 		break;
-	default: break;
+		case EAvatarHair::Undercut:
+		P(H, EArenaShape::Sphere, Top + FVector(2.f, 0, 1.f), FVector(HeadSize.X * 0.7f, HeadSize.Y + 0.4f, 12.f), HairC);
+		P(H, EArenaShape::Cube, C + FVector(2.f, 0, 6.f), FVector(14.f, HeadSize.Y + 0.8f, 8.f), HairC);
+		break;
+	case EAvatarHair::Braids:
+		P(H, EArenaShape::Sphere, Top, FVector(HeadSize.X + 1.f, HeadSize.Y + 0.8f, 14.f), HairC);
+		for (const float s : { -1.f, 1.f })
+		{
+			P(H, EArenaShape::Cylinder, C + FVector(-8.f, s * 4.f, -8.f), FVector(3.5f, 3.5f, 22.f), HairC, EArenaSurface::Plain, FRotator(-25.f, s * 15.f, 0.f));
+			P(H, EArenaShape::Sphere, C + FVector(-10.f, s * 4.5f, -18.f), FVector(4.f), HairC * 0.85f);
+		}
+		break;
+default: break;
 	}
 	// Facial hair (boys only).
 	if (!bFem && !bOnSkeleton)
@@ -622,6 +635,11 @@ void APilotAvatar::BuildHead(USceneComponent* H, const FVector& C, bool bOnSkele
 		case EAvatarFacialHair::FullBeard:
 			P(H, EArenaShape::Sphere, C + FVector(2.f, 0, -6.f), FVector(HeadSize.X, HeadSize.Y + 1.f, 13.f), FH);
 			P(H, EArenaShape::Cube, C + FVector(HeadSize.X * 0.5f, 0, -3.4f), FVector(1.8f, 6.f, 1.6f), FH);
+			break;
+		case EAvatarFacialHair::Chinstrap:
+			P(H, EArenaShape::Cube, C + FVector(HeadSize.X * 0.42f, 0, -7.5f), FVector(2.2f, HeadSize.Y + 1.2f, 3.5f), FH);
+			P(H, EArenaShape::Cube, C + FVector(HeadSize.X * 0.35f, HeadSize.Y * 0.45f, -4.f), FVector(2.f, 2.f, 10.f), FH);
+			P(H, EArenaShape::Cube, C + FVector(HeadSize.X * 0.35f, -HeadSize.Y * 0.45f, -4.f), FVector(2.f, 2.f, 10.f), FH);
 			break;
 		default: break;
 		}
@@ -640,6 +658,10 @@ void APilotAvatar::BuildHead(USceneComponent* H, const FVector& C, bool bOnSkele
 		P(H, EArenaShape::Cylinder, C + FVector(-0.5f, 0, HeadSize.Z * 0.38f + 5.f), FVector(HeadSize.X + 0.5f, HeadSize.Y + 1.f, 10.f), HatC);
 		P(H, EArenaShape::Cylinder, C + FVector(-0.5f, 0, HeadSize.Z * 0.38f + 1.5f), FVector(HeadSize.X + 1.f, HeadSize.Y + 1.5f, 2.5f), FLinearColor(0.03f, 0.03f, 0.03f));
 		break;
+	case EOutfitHat::Visor:
+		P(H, EArenaShape::Cylinder, C + FVector(HeadSize.X * 0.35f, 0, HeadSize.Z * 0.25f), FVector(28.f, 22.f, 1.2f), HatC, EArenaSurface::Plain, FRotator(-8.f, 0.f, 0.f));
+		P(H, EArenaShape::Cube, C + FVector(-2.f, 0, HeadSize.Z * 0.22f), FVector(4.f, HeadSize.Y + 2.f, 3.f), HatC);
+		break;
 	default: break;
 	}
 	// Glasses.
@@ -656,7 +678,11 @@ void APilotAvatar::BuildHead(USceneComponent* H, const FVector& C, bool bOnSkele
 	case EOutfitGlasses::Shades:
 		P(H, EArenaShape::Cube, G, FVector(1.f, 13.f, 3.4f), FLinearColor(0.01f, 0.01f, 0.012f), EArenaSurface::SuitPaint);
 		break;
-	default: break;
+		case EOutfitGlasses::ClearFrames:
+		P(H, EArenaShape::Cube, C + FVector(HeadSize.X * 0.52f, -4.2f, 1.5f), FVector(1.2f, 5.5f, 4.f), FLinearColor(0.7f, 0.75f, 0.8f));
+		P(H, EArenaShape::Cube, C + FVector(HeadSize.X * 0.52f, 4.2f, 1.5f), FVector(1.2f, 5.5f, 4.f), FLinearColor(0.7f, 0.75f, 0.8f));
+		P(H, EArenaShape::Cube, C + FVector(HeadSize.X * 0.5f, 0, 1.5f), FVector(1.f, 3.f, 1.2f), FLinearColor(0.55f, 0.55f, 0.58f));
+default: break;
 	}
 }
 
