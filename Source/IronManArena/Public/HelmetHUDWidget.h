@@ -20,6 +20,7 @@
 #include "Fonts/SlateFontInfo.h"
 #include "HelmetHUDConfig.h"
 #include "HelmetHUDTypes.h"
+#include "HelmetHUDCallouts.h"
 #include "HelmetHUDWidget.generated.h"
 
 class AIronManCharacter;
@@ -388,6 +389,7 @@ private:
 		float AcquireStart = -100.f;
 		float LastInCone = -100.f;
 		bool bInCone = false;
+		bool bWasLocked = false;
 	};
 
 	struct FMIDParamCache
@@ -460,6 +462,10 @@ private:
 	bool bHasState = false;
 	bool bTreeBuiltInCode = false;
 	float HudTime = 0.f;
+
+	// FRIDAY callouts (HUD SFX + suit-AI lines) and the HUDDataSubsystem hit serial last seen.
+	FHelmetHUDCallouts Callouts;
+	int32 LastSeenHitSerial = 0;
 
 	// Accessibility
 	bool bColorBlindSafe = false;

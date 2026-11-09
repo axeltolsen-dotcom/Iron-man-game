@@ -4,6 +4,9 @@
 #include "ArenaGameMode.h"
 #include "ArenaGameUserSettings.h"
 #include "BossTitan.h"
+#include "DamageArcMath.h"
+#include "DamageDirectionWidget.h"
+#include "HUDDataSubsystem.h"
 #include "EnemyBase.h"
 #include "IronManCharacter.h"
 #include "JarvisComponent.h"
@@ -686,6 +689,7 @@ void UHelmetHUDWidget::SetAccessibility(bool bInColorBlindSafe, bool bInReducedM
 void UHelmetHUDWidget::PlayBootSequence()
 {
 	BootStartTime = Now();
+	Callouts.OnBoot(this, Now());
 }
 
 // ================================================================================================
@@ -988,6 +992,9 @@ void UHelmetHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 	if (bHasState)
 	{
 		TickHUD(Dt);
+		const AIronManCharacter* CalloutPlayer = Cast<AIronManCharacter>(GetOwningPlayerPawn());
+		const bool bLive = CalloutPlayer && !CalloutPlayer->IsInCinematic();
+		Callouts.Tick(this, CalloutPlayer, HudState, PrevHudState, Config, Now(), bLive);
 	}
 }
 
@@ -1010,6 +1017,16 @@ void UHelmetHUDWidget::TickHUD(float DeltaSeconds)
 	// A hit: an explicit impact direction, a region hit, or a health drop since last frame.
 	const bool bWasHit = !HudState.ImpactDir2D.IsNearlyZero() || HudState.LastHitRegion >= 0
 		|| (HudState.HealthFraction < PrevHudState.HealthFraction - 0.001f && !HudState.bDead);
+	if (const UHUDDataSubsystem* HitData = UHUDDataSubsystem::Get(this))
+	{
+		const int32 Serial = HitData->GetHitSerial();
+		if (Serial != LastSeenHitSerial)
+		{
+			LastSeenHitSerial = Serial;
+			const FHUDHitReport LastReport = HitData->GetLastHit();
+			Callouts.OnPlayerHit(this, LastReport.Damage / FMath::Max(LastReport.MaxHealth, 1.f), int32(LastReport.Region), Now());
+		}
+	}
 	if (bWasHit)
 	{
 		KickStart = Now();
@@ -1484,6 +1501,7 @@ void UHelmetHUDWidget::UpdateTargets(float DeltaSeconds)
 	int32 NumBrackets = 0;
 	int32 NumOffscreen = 0;
 	float BestLock = 0.f;
+	FHUDLockFrame LockFrame;
 
 	for (const FHUDTarget& Target : HudState.Targets)
 	{
@@ -1527,16 +1545,33 @@ void UHelmetHUDWidget::UpdateTargets(float DeltaSeconds)
 		{
 			Track.Progress = LockState == EHUDLockState::Locked ? 1.f : FMath::Clamp(Target.LockProgress, 0.f, 1.f);
 		}
+		if (bHostile && Track.AcquireStart >= Now() - KINDA_SMALL_NUMBER)
+		{
+			++LockFrame.AcquireStarts;
+		}
 		if (LockState == EHUDLockState::Locked)
 		{
 			if (Track.LockedAt < 0.f)
 			{
 				Track.LockedAt = Now();
 			}
+			if (bHostile)
+			{
+				++LockFrame.NumLocked;
+				if (!Track.bWasLocked)
+				{
+					++LockFrame.NewLocks;
+					LockFrame.bNewBossLock |= Target.Type == EHUDThreatType::Boss;
+				}
+				LockFrame.bBossLocked |= Target.Type == EHUDThreatType::Boss;
+			}
+			Track.bWasLocked = true;
 		}
 		else
 		{
 			Track.LockedAt = -1.f;
+			LockFrame.bLostLock |= Track.bWasLocked && bHostile;
+			Track.bWasLocked = false;
 		}
 		if (bHostile && Target.bOnScreen)
 		{
@@ -1716,6 +1751,7 @@ void UHelmetHUDWidget::UpdateTargets(float DeltaSeconds)
 	}
 
 	RaiseWarning(W_MissileLock, HudState.bIncomingMissile);
+	Callouts.OnLocks(this, LockFrame, HudState, PrevHudState, Now());
 }
 
 // ================================================================================================
@@ -1980,6 +2016,7 @@ void UHelmetHUDWidget::UpdateWarnings()
 		{
 			AnnouncedWarnings.Add(NewTop);
 			OnTopWarningChanged.Broadcast(NewTop);
+			Callouts.OnTopWarning(this, NewTop, Now());
 		}
 	}
 	for (auto It = AnnouncedWarnings.CreateIterator(); It; ++It)
@@ -2660,7 +2697,17 @@ int32 UHelmetHUDWidget::NativePaint(const FPaintArgs& Args, const FGeometry& All
 		}
 	}
 
-	return PaintLayer;
+	// FRIDAY directional damage arcs (HUDDataSubsystem), painted on top of the HUD in the visor space.
+	int32 TopLayer = PaintLayer;
+	if (const UHUDDataSubsystem* ArcData = UHUDDataSubsystem::Get(this))
+	{
+		UDamageDirectionWidget::FPaintStyle ArcStyle;
+		ArcStyle.Opacity = 0.85f * InWidgetStyle.GetColorAndOpacityTint().A * HudOpacityPref;
+		ArcStyle.bReducedMotion = bReducedMotion;
+		ArcStyle.bHealthCritical = ArcData->GetHealthFraction() <= 0.25f;
+		TopLayer = UDamageDirectionWidget::PaintArcs(ArcData->GetArcs(), ArcStyle, AllottedGeometry, OutDrawElements, PaintLayer);
+	}
+	return TopLayer;
 }
 
 // ================================================================================================
@@ -2907,8 +2954,14 @@ void UHelmetHUDWidget::FillStateFromGame(const UObject* WorldContext, const AIro
 		Out.bSubtitlesEnabled = Settings->bSubtitles;
 	}
 
-	// Not wired (no getter in the project yet): bIncomingMissile, bPullUp (derived from AGL),
-	// RegionIntegrity (falls back to health), ImpactDir2D (the widget detects health drops).
+	// Hit direction, struck zone and per-zone wear from UHUDDataSubsystem (fed by AIronManCharacter::TakeDamage).
+	if (const UHUDDataSubsystem* HitData = UHUDDataSubsystem::Get(WorldContext))
+	{
+		Out.ImpactDir2D = HitData->GetImpactDir2D();
+		Out.LastHitRegion = HitData->GetLastHitRegion();
+		Out.RegionIntegrity = HitData->GetRegionIntegrity();
+	}
+	// Not wired (no getter in the project yet): bIncomingMissile, bPullUp (derived from AGL).
 	InOutState = Out;
 }
 

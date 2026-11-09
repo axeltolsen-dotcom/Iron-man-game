@@ -6,6 +6,7 @@
 #include "CityLife.h"
 #include "Components/AudioComponent.h"
 #include "ArenaFeel.h"
+#include "HUDDataSubsystem.h"
 #include "IronManArena.h"
 #include "IronProjectile.h"
 #include "EnemyBase.h"
@@ -1947,6 +1948,11 @@ float AIronManCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	Super::TakeDamage(Applied, DamageEvent, EventInstigator, DamageCauser);
 
 	Health -= Applied;
+	// FRIDAY HUD: directional damage arc + per-zone wear (contrib/friday/realism, HUDDataSubsystem).
+	if (UHUDDataSubsystem* HUDData = UHUDDataSubsystem::Get(this))
+	{
+		HUDData->ReportPlayerHit(this, Applied, MaxHealth, DamageEvent, EventInstigator, DamageCauser);
+	}
 	InvulnerableLeft = InvulnerabilityAfterHit;
 	HitFlashLeft = 0.15f;
 	ArenaVisuals::FlashAll(Parts, FLinearColor(1.f, 0.5f, 0.3f), false);
