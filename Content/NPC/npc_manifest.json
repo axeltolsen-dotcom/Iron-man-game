@@ -1,0 +1,545 @@
+{
+  "version": 1,
+  "project": "IronManArena",
+  "purpose": "Civilian NPC random look / anim set / voice for city pedestrian system (C++ consumer).",
+  "sources": {
+    "animations": {
+      "pack": "Quaternius Universal Animation Library Standard 1 + 2",
+      "license": "CC0 1.0",
+      "author": "Quaternius",
+      "urls": [
+        "https://quaternius.itch.io/universal-animation-library",
+        "https://quaternius.itch.io/universal-animation-library-2",
+        "https://opengameart.org/content/universal-animation-library"
+      ],
+      "sourceFiles": [
+        "SourceAssets/NPC/Anims/UAL1_Standard.glb",
+        "SourceAssets/NPC/Anims/UAL1_Standard_RM.glb",
+        "SourceAssets/NPC/Anims/UAL2_Standard.glb",
+        "SourceAssets/NPC/Anims/UAL2_Standard_RM.glb",
+        "SourceAssets/NPC/Anims/Mannequin_F.glb"
+      ],
+      "importScript": "Content/Python/import_npc_anims.py",
+      "targetFolders": [
+        "/Game/NPC/Anims/UAL1",
+        "/Game/NPC/Anims/UAL2",
+        "/Game/NPC/Anims/Mannequin_F"
+      ],
+      "skeletonTarget": "/Game/Characters/Mannequins/Meshes/SK_Mannequin (retarget if needed)",
+      "gasNote": "Axel owns Epic Game Animation Sample on Fab \u2014 migrate per contrib/npc/docs/RETARGET_AND_GAS.md",
+      "importedLayout": {
+        "ual1Root": "/Game/NPC/Anims/UAL1/UAL1_Standard",
+        "ual2Root": "/Game/NPC/Anims/UAL2/UAL2_Standard",
+        "sequencesFolder": "SkeletalMeshes",
+        "naming": "UAL{N}_Standard{ClipName}",
+        "skeleton": "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_Standard_Skeleton (UAL own skeleton \u2014 retarget to SK_Mannequin for Manny meshes)",
+        "femaleMannequin": "/Game/NPC/Anims/Mannequin_F/Mannequin_F/SkeletalMeshes/Mannequin_F"
+      },
+      "importStatus": "imported_on_pc_2026-11-05"
+    },
+    "voices": {
+      "engine": "piper-tts 1.8.0",
+      "sampleRateHz": 48000,
+      "licenseDoc": "contrib/npc/docs/VOICE_LICENSES.md",
+      "importScript": "Content/Python/import_npc_voices.py",
+      "targetFolder": "/Game/NPC/Voices",
+      "voicesManifest": "SourceAssets/NPC/Voices/voices_manifest.json",
+      "importStatus": "imported_on_pc_2026-11-05",
+      "voicesManifestContent": "/Game/NPC/npc_voices_manifest.json (also Content/NPC/npc_voices_manifest.json loose)"
+    }
+  },
+  "animCategories": {
+    "idle": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardIdle_Loop",
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardIdle_Talking_Loop",
+      "/Game/NPC/Anims/UAL2/UAL2_Standard/SkeletalMeshes/UAL2_StandardIdle_FoldArms_Loop"
+    ],
+    "walk": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardWalk_Loop",
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardWalk_Formal_Loop"
+    ],
+    "jog": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardJog_Fwd_Loop"
+    ],
+    "run": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardSprint_Loop"
+    ],
+    "phone": [
+      "/Game/NPC/Anims/UAL2/UAL2_Standard/SkeletalMeshes/UAL2_StandardIdle_TalkingPhone_Loop"
+    ],
+    "wave": [
+      "/Game/NPC/Anims/UAL2/UAL2_Standard/SkeletalMeshes/UAL2_StandardYes"
+    ],
+    "sit_enter": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardSitting_Enter"
+    ],
+    "sit_idle": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardSitting_Idle_Loop",
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardSitting_Talking_Loop"
+    ],
+    "sit_exit": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardSitting_Exit"
+    ],
+    "point_look_up": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardPistol_Aim_Up"
+    ],
+    "cower": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardCrouch_Idle_Loop"
+    ],
+    "flee": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardSprint_Loop"
+    ],
+    "hit": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardHit_Chest",
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardHit_Head",
+      "/Game/NPC/Anims/UAL2/UAL2_Standard/SkeletalMeshes/UAL2_StandardHit_Knockback"
+    ],
+    "death": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardDeath01"
+    ],
+    "interact": [
+      "/Game/NPC/Anims/UAL1/UAL1_Standard/SkeletalMeshes/UAL1_StandardInteract"
+    ]
+  },
+  "animGaps": [
+    "No dedicated wave \u2014 using UAL2 Yes until GAS/Pro UAL wave is migrated.",
+    "No dedicated look-up/point-at-hero \u2014 using Pistol_Aim_Up as temporary pose.",
+    "No dedicated panic-run \u2014 Sprint_Loop + panic VO.",
+    "IK Retarget to SK_Mannequin may be required once; see contrib/npc/docs/RETARGET_AND_GAS.md."
+  ],
+  "animSets": {
+    "ual_standard": {
+      "description": "Default pedestrian set from Quaternius UAL1+UAL2",
+      "categories": [
+        "idle",
+        "walk",
+        "jog",
+        "run",
+        "phone",
+        "wave",
+        "sit_enter",
+        "sit_idle",
+        "sit_exit",
+        "point_look_up",
+        "cower",
+        "flee",
+        "hit",
+        "death",
+        "interact"
+      ]
+    },
+    "gas": {
+      "description": "Filled after Axel migrates Game Animation Sample",
+      "categories": {},
+      "status": "pending_axel_migrate"
+    }
+  },
+  "voiceSets": [
+    {
+      "id": "ped_bryce",
+      "gender": "male",
+      "accent": "en_US",
+      "license": "public domain",
+      "note": "warm US male",
+      "assetRoot": "/Game/NPC/Voices/ped_bryce",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_bryce/idle_01",
+          "/Game/NPC/Voices/ped_bryce/idle_02",
+          "/Game/NPC/Voices/ped_bryce/idle_03",
+          "/Game/NPC/Voices/ped_bryce/idle_04",
+          "/Game/NPC/Voices/ped_bryce/idle_05",
+          "/Game/NPC/Voices/ped_bryce/idle_06",
+          "/Game/NPC/Voices/ped_bryce/idle_07",
+          "/Game/NPC/Voices/ped_bryce/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_bryce/see_ironman_01",
+          "/Game/NPC/Voices/ped_bryce/see_ironman_02",
+          "/Game/NPC/Voices/ped_bryce/see_ironman_03",
+          "/Game/NPC/Voices/ped_bryce/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_bryce/panic_01",
+          "/Game/NPC/Voices/ped_bryce/panic_02",
+          "/Game/NPC/Voices/ped_bryce/panic_03",
+          "/Game/NPC/Voices/ped_bryce/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_bryce/hit_01",
+          "/Game/NPC/Voices/ped_bryce/hit_02",
+          "/Game/NPC/Voices/ped_bryce/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_bryce/car_explode_01",
+          "/Game/NPC/Voices/ped_bryce/car_explode_02",
+          "/Game/NPC/Voices/ped_bryce/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_bryce/thanks_01",
+          "/Game/NPC/Voices/ped_bryce/thanks_02",
+          "/Game/NPC/Voices/ped_bryce/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "ped_john",
+      "gender": "male",
+      "accent": "en_US",
+      "license": "public domain",
+      "note": "deeper US male",
+      "assetRoot": "/Game/NPC/Voices/ped_john",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_john/idle_01",
+          "/Game/NPC/Voices/ped_john/idle_02",
+          "/Game/NPC/Voices/ped_john/idle_03",
+          "/Game/NPC/Voices/ped_john/idle_04",
+          "/Game/NPC/Voices/ped_john/idle_05",
+          "/Game/NPC/Voices/ped_john/idle_06",
+          "/Game/NPC/Voices/ped_john/idle_07",
+          "/Game/NPC/Voices/ped_john/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_john/see_ironman_01",
+          "/Game/NPC/Voices/ped_john/see_ironman_02",
+          "/Game/NPC/Voices/ped_john/see_ironman_03",
+          "/Game/NPC/Voices/ped_john/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_john/panic_01",
+          "/Game/NPC/Voices/ped_john/panic_02",
+          "/Game/NPC/Voices/ped_john/panic_03",
+          "/Game/NPC/Voices/ped_john/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_john/hit_01",
+          "/Game/NPC/Voices/ped_john/hit_02",
+          "/Game/NPC/Voices/ped_john/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_john/car_explode_01",
+          "/Game/NPC/Voices/ped_john/car_explode_02",
+          "/Game/NPC/Voices/ped_john/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_john/thanks_01",
+          "/Game/NPC/Voices/ped_john/thanks_02",
+          "/Game/NPC/Voices/ped_john/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "ped_kristin",
+      "gender": "female",
+      "accent": "en_US",
+      "license": "public domain",
+      "note": "US female",
+      "assetRoot": "/Game/NPC/Voices/ped_kristin",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_kristin/idle_01",
+          "/Game/NPC/Voices/ped_kristin/idle_02",
+          "/Game/NPC/Voices/ped_kristin/idle_03",
+          "/Game/NPC/Voices/ped_kristin/idle_04",
+          "/Game/NPC/Voices/ped_kristin/idle_05",
+          "/Game/NPC/Voices/ped_kristin/idle_06",
+          "/Game/NPC/Voices/ped_kristin/idle_07",
+          "/Game/NPC/Voices/ped_kristin/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_kristin/see_ironman_01",
+          "/Game/NPC/Voices/ped_kristin/see_ironman_02",
+          "/Game/NPC/Voices/ped_kristin/see_ironman_03",
+          "/Game/NPC/Voices/ped_kristin/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_kristin/panic_01",
+          "/Game/NPC/Voices/ped_kristin/panic_02",
+          "/Game/NPC/Voices/ped_kristin/panic_03",
+          "/Game/NPC/Voices/ped_kristin/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_kristin/hit_01",
+          "/Game/NPC/Voices/ped_kristin/hit_02",
+          "/Game/NPC/Voices/ped_kristin/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_kristin/car_explode_01",
+          "/Game/NPC/Voices/ped_kristin/car_explode_02",
+          "/Game/NPC/Voices/ped_kristin/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_kristin/thanks_01",
+          "/Game/NPC/Voices/ped_kristin/thanks_02",
+          "/Game/NPC/Voices/ped_kristin/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "ped_cori",
+      "gender": "female",
+      "accent": "en_GB",
+      "license": "public domain",
+      "note": "UK female",
+      "assetRoot": "/Game/NPC/Voices/ped_cori",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_cori/idle_01",
+          "/Game/NPC/Voices/ped_cori/idle_02",
+          "/Game/NPC/Voices/ped_cori/idle_03",
+          "/Game/NPC/Voices/ped_cori/idle_04",
+          "/Game/NPC/Voices/ped_cori/idle_05",
+          "/Game/NPC/Voices/ped_cori/idle_06",
+          "/Game/NPC/Voices/ped_cori/idle_07",
+          "/Game/NPC/Voices/ped_cori/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_cori/see_ironman_01",
+          "/Game/NPC/Voices/ped_cori/see_ironman_02",
+          "/Game/NPC/Voices/ped_cori/see_ironman_03",
+          "/Game/NPC/Voices/ped_cori/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_cori/panic_01",
+          "/Game/NPC/Voices/ped_cori/panic_02",
+          "/Game/NPC/Voices/ped_cori/panic_03",
+          "/Game/NPC/Voices/ped_cori/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_cori/hit_01",
+          "/Game/NPC/Voices/ped_cori/hit_02",
+          "/Game/NPC/Voices/ped_cori/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_cori/car_explode_01",
+          "/Game/NPC/Voices/ped_cori/car_explode_02",
+          "/Game/NPC/Voices/ped_cori/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_cori/thanks_01",
+          "/Game/NPC/Voices/ped_cori/thanks_02",
+          "/Game/NPC/Voices/ped_cori/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "ped_joe",
+      "gender": "male",
+      "accent": "en_US",
+      "license": "CC0",
+      "note": "lighter US male",
+      "assetRoot": "/Game/NPC/Voices/ped_joe",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_joe/idle_01",
+          "/Game/NPC/Voices/ped_joe/idle_02",
+          "/Game/NPC/Voices/ped_joe/idle_03",
+          "/Game/NPC/Voices/ped_joe/idle_04",
+          "/Game/NPC/Voices/ped_joe/idle_05",
+          "/Game/NPC/Voices/ped_joe/idle_06",
+          "/Game/NPC/Voices/ped_joe/idle_07",
+          "/Game/NPC/Voices/ped_joe/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_joe/see_ironman_01",
+          "/Game/NPC/Voices/ped_joe/see_ironman_02",
+          "/Game/NPC/Voices/ped_joe/see_ironman_03",
+          "/Game/NPC/Voices/ped_joe/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_joe/panic_01",
+          "/Game/NPC/Voices/ped_joe/panic_02",
+          "/Game/NPC/Voices/ped_joe/panic_03",
+          "/Game/NPC/Voices/ped_joe/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_joe/hit_01",
+          "/Game/NPC/Voices/ped_joe/hit_02",
+          "/Game/NPC/Voices/ped_joe/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_joe/car_explode_01",
+          "/Game/NPC/Voices/ped_joe/car_explode_02",
+          "/Game/NPC/Voices/ped_joe/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_joe/thanks_01",
+          "/Game/NPC/Voices/ped_joe/thanks_02",
+          "/Game/NPC/Voices/ped_joe/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "ped_northern",
+      "gender": "male",
+      "accent": "en_GB_north",
+      "license": "CC-BY-SA 4.0",
+      "note": "Northern English male",
+      "assetRoot": "/Game/NPC/Voices/ped_northern",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_northern/idle_01",
+          "/Game/NPC/Voices/ped_northern/idle_02",
+          "/Game/NPC/Voices/ped_northern/idle_03",
+          "/Game/NPC/Voices/ped_northern/idle_04",
+          "/Game/NPC/Voices/ped_northern/idle_05",
+          "/Game/NPC/Voices/ped_northern/idle_06",
+          "/Game/NPC/Voices/ped_northern/idle_07",
+          "/Game/NPC/Voices/ped_northern/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_northern/see_ironman_01",
+          "/Game/NPC/Voices/ped_northern/see_ironman_02",
+          "/Game/NPC/Voices/ped_northern/see_ironman_03",
+          "/Game/NPC/Voices/ped_northern/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_northern/panic_01",
+          "/Game/NPC/Voices/ped_northern/panic_02",
+          "/Game/NPC/Voices/ped_northern/panic_03",
+          "/Game/NPC/Voices/ped_northern/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_northern/hit_01",
+          "/Game/NPC/Voices/ped_northern/hit_02",
+          "/Game/NPC/Voices/ped_northern/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_northern/car_explode_01",
+          "/Game/NPC/Voices/ped_northern/car_explode_02",
+          "/Game/NPC/Voices/ped_northern/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_northern/thanks_01",
+          "/Game/NPC/Voices/ped_northern/thanks_02",
+          "/Game/NPC/Voices/ped_northern/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "ped_arctic_f",
+      "gender": "female",
+      "accent": "en_US",
+      "license": "CMU Arctic (attribute FestVox)",
+      "note": "arctic slt",
+      "assetRoot": "/Game/NPC/Voices/ped_arctic_f",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_arctic_f/idle_01",
+          "/Game/NPC/Voices/ped_arctic_f/idle_02",
+          "/Game/NPC/Voices/ped_arctic_f/idle_03",
+          "/Game/NPC/Voices/ped_arctic_f/idle_04",
+          "/Game/NPC/Voices/ped_arctic_f/idle_05",
+          "/Game/NPC/Voices/ped_arctic_f/idle_06",
+          "/Game/NPC/Voices/ped_arctic_f/idle_07",
+          "/Game/NPC/Voices/ped_arctic_f/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_arctic_f/see_ironman_01",
+          "/Game/NPC/Voices/ped_arctic_f/see_ironman_02",
+          "/Game/NPC/Voices/ped_arctic_f/see_ironman_03",
+          "/Game/NPC/Voices/ped_arctic_f/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_arctic_f/panic_01",
+          "/Game/NPC/Voices/ped_arctic_f/panic_02",
+          "/Game/NPC/Voices/ped_arctic_f/panic_03",
+          "/Game/NPC/Voices/ped_arctic_f/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_arctic_f/hit_01",
+          "/Game/NPC/Voices/ped_arctic_f/hit_02",
+          "/Game/NPC/Voices/ped_arctic_f/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_arctic_f/car_explode_01",
+          "/Game/NPC/Voices/ped_arctic_f/car_explode_02",
+          "/Game/NPC/Voices/ped_arctic_f/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_arctic_f/thanks_01",
+          "/Game/NPC/Voices/ped_arctic_f/thanks_02",
+          "/Game/NPC/Voices/ped_arctic_f/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "ped_arctic_m",
+      "gender": "male",
+      "accent": "en_US",
+      "license": "CMU Arctic (attribute FestVox)",
+      "note": "arctic bdl",
+      "assetRoot": "/Game/NPC/Voices/ped_arctic_m",
+      "categories": {
+        "idle": [
+          "/Game/NPC/Voices/ped_arctic_m/idle_01",
+          "/Game/NPC/Voices/ped_arctic_m/idle_02",
+          "/Game/NPC/Voices/ped_arctic_m/idle_03",
+          "/Game/NPC/Voices/ped_arctic_m/idle_04",
+          "/Game/NPC/Voices/ped_arctic_m/idle_05",
+          "/Game/NPC/Voices/ped_arctic_m/idle_06",
+          "/Game/NPC/Voices/ped_arctic_m/idle_07",
+          "/Game/NPC/Voices/ped_arctic_m/idle_08"
+        ],
+        "see_ironman": [
+          "/Game/NPC/Voices/ped_arctic_m/see_ironman_01",
+          "/Game/NPC/Voices/ped_arctic_m/see_ironman_02",
+          "/Game/NPC/Voices/ped_arctic_m/see_ironman_03",
+          "/Game/NPC/Voices/ped_arctic_m/see_ironman_04"
+        ],
+        "panic": [
+          "/Game/NPC/Voices/ped_arctic_m/panic_01",
+          "/Game/NPC/Voices/ped_arctic_m/panic_02",
+          "/Game/NPC/Voices/ped_arctic_m/panic_03",
+          "/Game/NPC/Voices/ped_arctic_m/panic_04"
+        ],
+        "hit": [
+          "/Game/NPC/Voices/ped_arctic_m/hit_01",
+          "/Game/NPC/Voices/ped_arctic_m/hit_02",
+          "/Game/NPC/Voices/ped_arctic_m/hit_03"
+        ],
+        "car_explode": [
+          "/Game/NPC/Voices/ped_arctic_m/car_explode_01",
+          "/Game/NPC/Voices/ped_arctic_m/car_explode_02",
+          "/Game/NPC/Voices/ped_arctic_m/car_explode_03"
+        ],
+        "thanks": [
+          "/Game/NPC/Voices/ped_arctic_m/thanks_01",
+          "/Game/NPC/Voices/ped_arctic_m/thanks_02",
+          "/Game/NPC/Voices/ped_arctic_m/thanks_03"
+        ]
+      },
+      "lineCount": 25
+    },
+    {
+      "id": "police_pa",
+      "gender": "male",
+      "accent": "en_US_pa",
+      "license": "public domain",
+      "note": "police drone PA",
+      "assetRoot": "/Game/NPC/Voices/police_pa",
+      "categories": {
+        "police": [
+          "/Game/NPC/Voices/police_pa/police_01",
+          "/Game/NPC/Voices/police_pa/police_02",
+          "/Game/NPC/Voices/police_pa/police_03"
+        ]
+      },
+      "lineCount": 3
+    }
+  ],
+  "selectionHints": {
+    "maxAliveCivilians": 12,
+    "pickVoice": "random from voiceSets where gender matches mesh variant when possible",
+    "pickAnims": "random clip from animCategories[behavior], playRate 0.9..1.1, random start time on idle",
+    "policeWanted": "use voice id police_pa for drone PA"
+  }
+}

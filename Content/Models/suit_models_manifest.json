@@ -1,0 +1,409 @@
+{
+  "version": 1,
+  "created": "2026-11-05T20:20:00-07:00",
+  "engine_dest_root": "/Game/Models/Suits",
+  "source_root": "SourceAssets/Suits",
+  "recolor_default": {
+    "candy_red": "#B11226",
+    "gold": "#C5A028"
+  },
+  "license_file": "contrib/models/LICENSES.md",
+  "sources": [
+    {
+      "name": "Quaternius",
+      "license": "CC0",
+      "url": "https://quaternius.com/",
+      "credit": "Quaternius"
+    },
+    {
+      "name": "Poly Pizza (Quaternius uploads)",
+      "license": "CC0 / Public Domain",
+      "url": "https://poly.pizza/",
+      "credit": "Quaternius via Poly Pizza"
+    },
+    {
+      "name": "OpenGameArt Animated Mech Pack",
+      "license": "CC0",
+      "url": "https://opengameart.org/content/animated-mech-pack",
+      "author": "quaternius"
+    },
+    {
+      "name": "OpenGameArt Shock Bot",
+      "license": "CC0",
+      "url": "https://opengameart.org/content/shock-bot",
+      "author": "Teh_Bucket"
+    },
+    {
+      "name": "OpenGameArt Mech Character Model",
+      "license": "CC0 / Public Domain",
+      "url": "https://opengameart.org/content/mech-character-model",
+      "author": "Colorado Stark"
+    }
+  ],
+  "soft_paths": {
+    "Suit_Classic": {
+      "folder": "Classic",
+      "soft_path": "/Game/Models/Suits/Classic",
+      "primary": "ShockBot.fbx",
+      "alts": [
+        "RobotEnemy_Flying.glb",
+        "RobotEnemy_FlyingGun.glb",
+        "AnimatedRobot.glb"
+      ],
+      "recolor": {
+        "primary": "#B11226",
+        "secondary": "#C5A028"
+      },
+      "silhouette": "classic_flying_armor",
+      "notes": "Shock Bot = humanoid power armor; Flying variants for flight pose kitbash",
+      "imported_primary": "/Game/Models/Suits/Classic/ShockBot/ShockBot"
+    },
+    "Suit_Nanotech": {
+      "folder": "Nanotech",
+      "soft_path": "/Game/Models/Suits/Nanotech",
+      "primary": "RobotEnemy.glb",
+      "alts": [
+        "ArmorMetal.glb",
+        "ArmabeeEvolved.glb"
+      ],
+      "recolor": {
+        "primary": "#B11226",
+        "secondary": "#C5A028",
+        "accent": "#7EC8E3"
+      },
+      "silhouette": "slim_nanotech",
+      "notes": "Slim robot + metal armor pieces; Armabee for organic/nanotech surface read",
+      "imported_primary": "/Game/Models/Suits/Nanotech/RobotEnemy/RobotEnemy"
+    },
+    "Suit_SpiderLegs": {
+      "folder": "SpiderLegs",
+      "soft_path": "/Game/Models/Suits/SpiderLegs",
+      "primary": "RobotEnemy_LegsGun.glb",
+      "alts": [
+        "Tentacle.glb",
+        "Spider.glb"
+      ],
+      "recolor": {
+        "primary": "#B11226",
+        "secondary": "#C5A028"
+      },
+      "silhouette": "extra_limbs_spider",
+      "notes": "Legs-gun robot + tentacle/spider props as Iron Spider limb stand-ins",
+      "imported_primary": "/Game/Models/Suits/SpiderLegs/RobotEnemy_LegsGun/RobotEnemy_LegsGun"
+    },
+    "Suit_Heavy": {
+      "folder": "Heavy",
+      "soft_path": "/Game/Models/Suits/Heavy",
+      "primary": "ColoradoMech.fbx",
+      "alts": [
+        "George.fbx",
+        "RobotEnemy_Large.glb",
+        "Mech_LowPoly.glb"
+      ],
+      "recolor": {
+        "primary": "#B11226",
+        "secondary": "#C5A028",
+        "trim": "#2A2A2A"
+      },
+      "silhouette": "hulkbuster_wrecking",
+      "notes": "Colorado Stark Mech (15k tris, rigged) + Quaternius George bulky mech",
+      "imported_primary": "/Game/Models/Suits/Heavy/ColoradoMech/ColoradoMech"
+    },
+    "Suit_Gunner": {
+      "folder": "Gunner",
+      "soft_path": "/Game/Models/Suits/Gunner",
+      "primary": "RobotEnemy_LargeGun.glb",
+      "alts": [
+        "Stan.fbx",
+        "Mike.fbx"
+      ],
+      "recolor": {
+        "primary": "#2F353B",
+        "secondary": "#C5A028",
+        "accent": "#B11226"
+      },
+      "silhouette": "war_machine_gunner",
+      "notes": "Armed large robot + Stan/Mike mechs with weapon hardpoints",
+      "imported_primary": "/Game/Models/Suits/Gunner/RobotEnemy_LargeGun/RobotEnemy_LargeGun"
+    },
+    "Suit_Rescue": {
+      "folder": "Rescue",
+      "soft_path": "/Game/Models/Suits/Rescue",
+      "primary": "CharacterHazmat.glb",
+      "alts": [
+        "ArmorGolden.glb",
+        "Leela.fbx"
+      ],
+      "recolor": {
+        "primary": "#C5A028",
+        "secondary": "#E8E8E8",
+        "accent": "#7EC8E3"
+      },
+      "silhouette": "rescue_gold_silver",
+      "notes": "Lighter hazmat character + golden armor kit + Leela slim mech",
+      "imported_primary": "/Game/Models/Suits/Rescue/CharacterHazmat/Hazmat_Main"
+    }
+  },
+  "files": [
+    {
+      "path": "Classic/AnimatedRobot.glb",
+      "bytes": 401024,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/RobotEnemy_Flying.glb",
+      "bytes": 298324,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/RobotEnemy_FlyingGun.glb",
+      "bytes": 324204,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/ShockBot.fbx",
+      "bytes": 515628,
+      "role": "Suit_Classic",
+      "is_primary": true
+    },
+    {
+      "path": "Classic/Textures/cool gun albedo weathered.png",
+      "bytes": 1406848,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/cool gun albedo.png",
+      "bytes": 88566,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/cool gun emit.png",
+      "bytes": 158388,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/cool gun merged.png",
+      "bytes": 199824,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/cool gun weathered normal.png",
+      "bytes": 1886596,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/shockbot albedo.png",
+      "bytes": 5959292,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/shockbot emit.png",
+      "bytes": 33128,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/shockbot metallic.png",
+      "bytes": 8750793,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Classic/Textures/shockbot normals.png",
+      "bytes": 7509134,
+      "role": "Suit_Classic",
+      "is_primary": false
+    },
+    {
+      "path": "Nanotech/ArmabeeEvolved.glb",
+      "bytes": 183812,
+      "role": "Suit_Nanotech",
+      "is_primary": false
+    },
+    {
+      "path": "Nanotech/ArmorMetal.glb",
+      "bytes": 39920,
+      "role": "Suit_Nanotech",
+      "is_primary": false
+    },
+    {
+      "path": "Nanotech/RobotEnemy.glb",
+      "bytes": 563656,
+      "role": "Suit_Nanotech",
+      "is_primary": true
+    },
+    {
+      "path": "SpiderLegs/RobotEnemy_LegsGun.glb",
+      "bytes": 324096,
+      "role": "Suit_SpiderLegs",
+      "is_primary": true
+    },
+    {
+      "path": "SpiderLegs/Spider.glb",
+      "bytes": 449008,
+      "role": "Suit_SpiderLegs",
+      "is_primary": false
+    },
+    {
+      "path": "SpiderLegs/Tentacle.glb",
+      "bytes": 304312,
+      "role": "Suit_SpiderLegs",
+      "is_primary": false
+    },
+    {
+      "path": "Heavy/ColoradoMech.fbx",
+      "bytes": 3789664,
+      "role": "Suit_Heavy",
+      "is_primary": true
+    },
+    {
+      "path": "Heavy/George.fbx",
+      "bytes": 9957644,
+      "role": "Suit_Heavy",
+      "is_primary": false
+    },
+    {
+      "path": "Heavy/George_Texture.png",
+      "bytes": 2295756,
+      "role": "Suit_Heavy",
+      "is_primary": false
+    },
+    {
+      "path": "Heavy/Mech_D.tga",
+      "bytes": 12582956,
+      "role": "Suit_Heavy",
+      "is_primary": false
+    },
+    {
+      "path": "Heavy/Mech_LowPoly.glb",
+      "bytes": 500952,
+      "role": "Suit_Heavy",
+      "is_primary": false
+    },
+    {
+      "path": "Heavy/Mech_N.tga",
+      "bytes": 12582956,
+      "role": "Suit_Heavy",
+      "is_primary": false
+    },
+    {
+      "path": "Heavy/Mech_S.tga",
+      "bytes": 12582956,
+      "role": "Suit_Heavy",
+      "is_primary": false
+    },
+    {
+      "path": "Heavy/RobotEnemy_Large.glb",
+      "bytes": 430964,
+      "role": "Suit_Heavy",
+      "is_primary": false
+    },
+    {
+      "path": "Gunner/Mike.fbx",
+      "bytes": 8231596,
+      "role": "Suit_Gunner",
+      "is_primary": false
+    },
+    {
+      "path": "Gunner/Mike_Texture.png",
+      "bytes": 2065288,
+      "role": "Suit_Gunner",
+      "is_primary": false
+    },
+    {
+      "path": "Gunner/RobotEnemy_LargeGun.glb",
+      "bytes": 711592,
+      "role": "Suit_Gunner",
+      "is_primary": true
+    },
+    {
+      "path": "Gunner/Stan.fbx",
+      "bytes": 8233740,
+      "role": "Suit_Gunner",
+      "is_primary": false
+    },
+    {
+      "path": "Gunner/Stan_Texture.png",
+      "bytes": 1560762,
+      "role": "Suit_Gunner",
+      "is_primary": false
+    },
+    {
+      "path": "Rescue/ArmorGolden.glb",
+      "bytes": 58064,
+      "role": "Suit_Rescue",
+      "is_primary": false
+    },
+    {
+      "path": "Rescue/CharacterHazmat.glb",
+      "bytes": 1401712,
+      "role": "Suit_Rescue",
+      "is_primary": true
+    },
+    {
+      "path": "Rescue/Leela.fbx",
+      "bytes": 3490060,
+      "role": "Suit_Rescue",
+      "is_primary": false
+    },
+    {
+      "path": "Rescue/Leela_Texture.png",
+      "bytes": 1929427,
+      "role": "Suit_Rescue",
+      "is_primary": false
+    }
+  ],
+  "fab_add_to_project": [
+    {
+      "title": "Game Animation Sample",
+      "note": "UE-Only free locomotion; Axel Add to Project in Epic/Fab",
+      "search": "https://www.fab.com/listings/search?query=Game%20Animation%20Sample"
+    },
+    {
+      "title": "City Sample Crowds",
+      "url": "https://www.fab.com/listings/903037e9-e1ac-4f41-96e8-1683c6fa7ad4",
+      "note": "MetaHuman pedestrians (not suits); already recommended"
+    },
+    {
+      "title": "MetaHuman Creator / Character samples",
+      "note": "Axel may already own Character Creator Kevin; use for face under armor, not Iron Man IP meshes",
+      "search": "https://www.fab.com/listings/search?query=MetaHuman"
+    },
+    {
+      "title": "Sci-Fi Characters / Cyborg (check price & license)",
+      "url": "https://www.fab.com/listings/6ca1a5c2-2ded-424a-8a54-82c05c6a5b9c",
+      "note": "One-click only if free/owned; do not rip Marvel suits"
+    },
+    {
+      "title": "Cyberpunk Cyborg",
+      "url": "https://www.fab.com/listings/d896ebe7-6c8c-4a83-b461-37cc10c0e623",
+      "note": "MetaHuman-compatible armor look; verify free/owned before Add to Project"
+    }
+  ],
+  "gaps": [
+    "No true film-accurate Mark III / Mark 85 mesh (legal Marvel IP not available as free download).",
+    "Spider 'legs' are kitbash props (tentacle/spider/legs-gun robot), not a single Iron Spider body.",
+    "Shock Bot / Colorado Mech / Quaternius are low/mid poly \u2014 not GTA6 or MCU film quality.",
+    "Nanotech suit is a slim robot stand-in; liquid-metal morph still needs VFX, not mesh alone.",
+    "Fab high-quality armor requires Axel to Add to Project himself (no Fab login from agents)."
+  ],
+  "import_dest_root": "/Game/Models/Suits",
+  "pc_status": "imported_ue58_headless_2026-11-05",
+  "imported_mesh_counts": {
+    "Suit_Classic": 4,
+    "Suit_Nanotech": 3,
+    "Suit_SpiderLegs": 3,
+    "Suit_Heavy": 4,
+    "Suit_Gunner": 3,
+    "Suit_Rescue": 3
+  }
+}

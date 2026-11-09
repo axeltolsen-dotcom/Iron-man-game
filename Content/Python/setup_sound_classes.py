@@ -5,6 +5,8 @@ Create the game's Sound Class hierarchy and route every voice line through SC_Vo
         SC_SFX     (also the project's default sound class, see Config/DefaultEngine.ini [/Script/Engine.AudioSettings])
         SC_Voice   (every SoundWave under /Game/Audio and /Game/StoryAudio)
         SC_Music
+        SC_UI
+        SC_Ambience
 
 UArenaGameUserSettings drives the SFX / Voice / Music sliders through a sound mix with per-class overrides
 (Master stays on the audio device). The C++ also sets SC_Voice as SoundClassOverride on voice components,
@@ -18,10 +20,10 @@ import unreal
 
 CLASS_DIR = "/Game/Audio/Classes"
 MASTER = "SC_Master"
-CHILDREN = ["SC_SFX", "SC_Voice", "SC_Music"]
+CHILDREN = ["SC_SFX", "SC_Voice", "SC_Music", "SC_UI", "SC_Ambience"]
 # Baseline class volumes (the settings sliders scale relative to these; C++ VoiceClassBaseVolume
 # in ArenaGameUserSettings.cpp must match SC_Voice).
-BASE_VOLUME = {"SC_Voice": 0.7}
+BASE_VOLUME = {"SC_Voice": 0.7, "SC_UI": 0.85, "SC_Ambience": 0.55, "SC_Music": 0.6}
 VOICE_ROOTS = ["/Game/Audio", "/Game/StoryAudio"]
 
 eal = unreal.EditorAssetLibrary

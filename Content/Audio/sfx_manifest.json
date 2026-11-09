@@ -1,0 +1,1189 @@
+{
+  "schema": "ironman.sfx_manifest.v1",
+  "project": "IronManArena",
+  "content_root": "/Game/Audio/SFX",
+  "source_root": "SourceAudio/SFX",
+  "sound_classes": [
+    "SC_Master",
+    "SC_SFX",
+    "SC_Music",
+    "SC_UI",
+    "SC_Voice",
+    "SC_Ambience"
+  ],
+  "sound_mix": "/Game/Audio/Classes/SM_MasterMix",
+  "counts_by_category": {
+    "Repulsor": 6,
+    "Unibeam": 4,
+    "Missile": 3,
+    "Hits": 5,
+    "Explosions": 7,
+    "Thrusters": 8,
+    "SuitUp": 5,
+    "Footsteps": 14,
+    "Melee": 11,
+    "UI": 10,
+    "HUD": 9,
+    "City": 5,
+    "Vehicles": 6,
+    "Crowd": 10,
+    "Glass": 5,
+    "Casino": 11,
+    "Music": 2,
+    "Weapons": 2,
+    "Pickups": 2
+  },
+  "total": 125,
+  "events": {
+    "repulsor_fire": {
+      "asset": "/Game/Audio/SFX/Repulsor/repulsor_fire",
+      "category": "Repulsor",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "laserSmall_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "repulsor_fire_var1": {
+      "asset": "/Game/Audio/SFX/Repulsor/repulsor_fire_var1",
+      "category": "Repulsor",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "laserSmall_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "repulsor_fire_var2": {
+      "asset": "/Game/Audio/SFX/Repulsor/repulsor_fire_var2",
+      "category": "Repulsor",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "laserSmall_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "repulsor_charge": {
+      "asset": "/Game/Audio/SFX/Repulsor/repulsor_charge",
+      "category": "Repulsor",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "forceField_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "repulsor_impact": {
+      "asset": "/Game/Audio/SFX/Repulsor/repulsor_impact",
+      "category": "Repulsor",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "impactMetal_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "repulsor_impact_var1": {
+      "asset": "/Game/Audio/SFX/Repulsor/repulsor_impact_var1",
+      "category": "Repulsor",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "impactMetal_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "unibeam_charge": {
+      "asset": "/Game/Audio/SFX/Unibeam/unibeam_charge",
+      "category": "Unibeam",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "forceField_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "unibeam_fire": {
+      "asset": "/Game/Audio/SFX/Unibeam/unibeam_fire",
+      "category": "Unibeam",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "laserLarge_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "unibeam_fire_loop": {
+      "asset": "/Game/Audio/SFX/Unibeam/unibeam_fire_loop",
+      "category": "Unibeam",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "laserLarge_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Unibeam/Cues/SC_unibeam_fire_loop"
+    },
+    "unibeam_impact": {
+      "asset": "/Game/Audio/SFX/Unibeam/unibeam_impact",
+      "category": "Unibeam",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "lowFrequency_explosion_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "missile_launch": {
+      "asset": "/Game/Audio/SFX/Missile/missile_launch",
+      "category": "Missile",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "thrusterFire_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "missile_flyby": {
+      "asset": "/Game/Audio/SFX/Missile/missile_flyby",
+      "category": "Missile",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "thrusterFire_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "missile_explosion": {
+      "asset": "/Game/Audio/SFX/Missile/missile_explosion",
+      "category": "Missile",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "explosionCrunch_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "hit_metal_01": {
+      "asset": "/Game/Audio/SFX/Hits/hit_metal_01",
+      "category": "Hits",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "impactMetal_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "hit_metal_02": {
+      "asset": "/Game/Audio/SFX/Hits/hit_metal_02",
+      "category": "Hits",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "impactMetal_003.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "hit_metal_03": {
+      "asset": "/Game/Audio/SFX/Hits/hit_metal_03",
+      "category": "Hits",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "impactMetal_004.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "hit_laser_01": {
+      "asset": "/Game/Audio/SFX/Hits/hit_laser_01",
+      "category": "Hits",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "laserRetro_003.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "bullet_impact_metal": {
+      "asset": "/Game/Audio/SFX/Hits/bullet_impact_metal",
+      "category": "Hits",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_metal_falling_01.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "explosion_car": {
+      "asset": "/Game/Audio/SFX/Explosions/explosion_car",
+      "category": "Explosions",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "explosionCrunch_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "explosion_large": {
+      "asset": "/Game/Audio/SFX/Explosions/explosion_large",
+      "category": "Explosions",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "lowFrequency_explosion_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "explosion_near": {
+      "asset": "/Game/Audio/SFX/Explosions/explosion_near",
+      "category": "Explosions",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "explosionCrunch_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "explosion_mid": {
+      "asset": "/Game/Audio/SFX/Explosions/explosion_mid",
+      "category": "Explosions",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "explosionCrunch_003.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "explosion_far": {
+      "asset": "/Game/Audio/SFX/Explosions/explosion_far",
+      "category": "Explosions",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "explosionCrunch_004.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "explosion_space_01": {
+      "asset": "/Game/Audio/SFX/Explosions/explosion_space_01",
+      "category": "Explosions",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "explosion2.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "explosion_space_02": {
+      "asset": "/Game/Audio/SFX/Explosions/explosion_space_02",
+      "category": "Explosions",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "explosion3.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "thruster_loop": {
+      "asset": "/Game/Audio/SFX/Thrusters/thruster_loop",
+      "category": "Thrusters",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "thrusterFire_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Thrusters/Cues/SC_thruster_loop"
+    },
+    "thruster_idle": {
+      "asset": "/Game/Audio/SFX/Thrusters/thruster_idle",
+      "category": "Thrusters",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "spaceEngineLow_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Thrusters/Cues/SC_thruster_idle"
+    },
+    "thruster_boost": {
+      "asset": "/Game/Audio/SFX/Thrusters/thruster_boost",
+      "category": "Thrusters",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "thrusterFire_003.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "thruster_flight_cruise": {
+      "asset": "/Game/Audio/SFX/Thrusters/thruster_flight_cruise",
+      "category": "Thrusters",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "spaceEngine_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Thrusters/Cues/SC_thruster_flight_cruise"
+    },
+    "thruster_flight_fast": {
+      "asset": "/Game/Audio/SFX/Thrusters/thruster_flight_fast",
+      "category": "Thrusters",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "spaceEngineLarge_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Thrusters/Cues/SC_thruster_flight_fast"
+    },
+    "thruster_takeoff": {
+      "asset": "/Game/Audio/SFX/Thrusters/thruster_takeoff",
+      "category": "Thrusters",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "spaceEngineSmall_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "thruster_landing": {
+      "asset": "/Game/Audio/SFX/Thrusters/thruster_landing",
+      "category": "Thrusters",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "spaceEngineLow_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "reactor_overheat_vent": {
+      "asset": "/Game/Audio/SFX/Thrusters/reactor_overheat_vent",
+      "category": "Thrusters",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "engineCircular_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "suitup_servo": {
+      "asset": "/Game/Audio/SFX/SuitUp/suitup_servo",
+      "category": "SuitUp",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "doorOpen_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "suitup_plate_lock": {
+      "asset": "/Game/Audio/SFX/SuitUp/suitup_plate_lock",
+      "category": "SuitUp",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "doorClose_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "suitup_helmet_close": {
+      "asset": "/Game/Audio/SFX/SuitUp/suitup_helmet_close",
+      "category": "SuitUp",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "doorClose_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "suitup_servo_heavy": {
+      "asset": "/Game/Audio/SFX/SuitUp/suitup_servo_heavy",
+      "category": "SuitUp",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "doorOpen_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "hb_deploy": {
+      "asset": "/Game/Audio/SFX/SuitUp/hb_deploy",
+      "category": "SuitUp",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "doorOpen_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "footstep_concrete_01": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_concrete_01",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Fantozzi-StoneL1.ogg",
+      "license_id": "fantozzi-cc0",
+      "cue": null
+    },
+    "footstep_concrete_02": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_concrete_02",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Fantozzi-StoneL1.ogg",
+      "license_id": "fantozzi-cc0",
+      "cue": null
+    },
+    "footstep_concrete_03": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_concrete_03",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Fantozzi-StoneL2.ogg",
+      "license_id": "fantozzi-cc0",
+      "cue": null
+    },
+    "footstep_concrete_04": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_concrete_04",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Fantozzi-StoneL2.ogg",
+      "license_id": "fantozzi-cc0",
+      "cue": null
+    },
+    "footstep_concrete_05": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_concrete_05",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Fantozzi-StoneL3.ogg",
+      "license_id": "fantozzi-cc0",
+      "cue": null
+    },
+    "footstep_concrete_06": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_concrete_06",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Fantozzi-StoneL3.ogg",
+      "license_id": "fantozzi-cc0",
+      "cue": null
+    },
+    "footstep_metal_01": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_metal_01",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "metal_steps_01.wav",
+      "license_id": "metal-steps-cc0",
+      "cue": null
+    },
+    "footstep_metal_02": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_metal_02",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "metal_steps_02.wav",
+      "license_id": "metal-steps-cc0",
+      "cue": null
+    },
+    "footstep_metal_03": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_metal_03",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "metal_steps_03.wav",
+      "license_id": "metal-steps-cc0",
+      "cue": null
+    },
+    "footstep_metal_04": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_metal_04",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "metal_steps_04.wav",
+      "license_id": "metal-steps-cc0",
+      "cue": null
+    },
+    "footstep_metal_05": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_metal_05",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "metal_steps_05.wav",
+      "license_id": "metal-steps-cc0",
+      "cue": null
+    },
+    "footstep_metal_06": {
+      "asset": "/Game/Audio/SFX/Footsteps/footstep_metal_06",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "metal_steps_06.wav",
+      "license_id": "metal-steps-cc0",
+      "cue": null
+    },
+    "suit_footstep_concrete": {
+      "asset": "/Game/Audio/SFX/Footsteps/suit_footstep_concrete",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Fantozzi-StoneL1.ogg",
+      "license_id": "fantozzi-cc0",
+      "cue": null
+    },
+    "hb_footstep_concrete": {
+      "asset": "/Game/Audio/SFX/Footsteps/hb_footstep_concrete",
+      "category": "Footsteps",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "metal_steps_01.wav",
+      "license_id": "metal-steps-cc0",
+      "cue": null
+    },
+    "punch_01": {
+      "asset": "/Game/Audio/SFX/Melee/punch_01",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_01.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "punch_02": {
+      "asset": "/Game/Audio/SFX/Melee/punch_02",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_02.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "punch_03": {
+      "asset": "/Game/Audio/SFX/Melee/punch_03",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_03.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "punch_04": {
+      "asset": "/Game/Audio/SFX/Melee/punch_04",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_04.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "punch_05": {
+      "asset": "/Game/Audio/SFX/Melee/punch_05",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_05.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "punch_06": {
+      "asset": "/Game/Audio/SFX/Melee/punch_06",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_06.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "punch_07": {
+      "asset": "/Game/Audio/SFX/Melee/punch_07",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_07.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "punch_08": {
+      "asset": "/Game/Audio/SFX/Melee/punch_08",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_08.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "melee_swish_01": {
+      "asset": "/Game/Audio/SFX/Melee/melee_swish_01",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "swish_2.wav",
+      "license_id": "battle-cc0",
+      "cue": null
+    },
+    "melee_swish_02": {
+      "asset": "/Game/Audio/SFX/Melee/melee_swish_02",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "swish_4.wav",
+      "license_id": "battle-cc0",
+      "cue": null
+    },
+    "melee_hit_heavy": {
+      "asset": "/Game/Audio/SFX/Melee/melee_hit_heavy",
+      "category": "Melee",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_hit_10.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "ui_hover": {
+      "asset": "/Game/Audio/SFX/UI/ui_hover",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "rollover1.wav",
+      "license_id": "kenney-ui-cc0",
+      "cue": null
+    },
+    "ui_hover_var1": {
+      "asset": "/Game/Audio/SFX/UI/ui_hover_var1",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "rollover2.wav",
+      "license_id": "kenney-ui-cc0",
+      "cue": null
+    },
+    "ui_click": {
+      "asset": "/Game/Audio/SFX/UI/ui_click",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "click1.wav",
+      "license_id": "kenney-ui-cc0",
+      "cue": null
+    },
+    "ui_click_var1": {
+      "asset": "/Game/Audio/SFX/UI/ui_click_var1",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "click2.wav",
+      "license_id": "kenney-ui-cc0",
+      "cue": null
+    },
+    "ui_confirm": {
+      "asset": "/Game/Audio/SFX/UI/ui_confirm",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "confirmation_001.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "ui_back": {
+      "asset": "/Game/Audio/SFX/UI/ui_back",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "back_001.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "ui_error": {
+      "asset": "/Game/Audio/SFX/UI/ui_error",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "error_001.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "ui_select": {
+      "asset": "/Game/Audio/SFX/UI/ui_select",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "select_002.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "ui_open": {
+      "asset": "/Game/Audio/SFX/UI/ui_open",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "open_001.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "ui_close": {
+      "asset": "/Game/Audio/SFX/UI/ui_close",
+      "category": "UI",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "close_001.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_beep_select": {
+      "asset": "/Game/Audio/SFX/HUD/hud_beep_select",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "tick_001.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_beep_confirm": {
+      "asset": "/Game/Audio/SFX/HUD/hud_beep_confirm",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "confirmation_002.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_target_lock": {
+      "asset": "/Game/Audio/SFX/HUD/hud_target_lock",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "bong_001.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_warning_low_energy": {
+      "asset": "/Game/Audio/SFX/HUD/hud_warning_low_energy",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "error_003.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_warning_low_health": {
+      "asset": "/Game/Audio/SFX/HUD/hud_warning_low_health",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "error_004.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_alarm_overheat": {
+      "asset": "/Game/Audio/SFX/HUD/hud_alarm_overheat",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "error_005.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_warning_beep": {
+      "asset": "/Game/Audio/SFX/HUD/hud_warning_beep",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "computerNoise_002.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "hud_low_power": {
+      "asset": "/Game/Audio/SFX/HUD/hud_low_power",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "error_006.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "hud_overheat": {
+      "asset": "/Game/Audio/SFX/HUD/hud_overheat",
+      "category": "HUD",
+      "looping": false,
+      "sound_class": "SC_UI",
+      "source_file": "glitch_002.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "police_siren": {
+      "asset": "/Game/Audio/SFX/City/police_siren",
+      "category": "City",
+      "looping": true,
+      "sound_class": "SC_Ambience",
+      "source_file": "siren.mp3",
+      "license_id": "siren-cc0",
+      "cue": "/Game/Audio/SFX/City/Cues/SC_police_siren"
+    },
+    "police_siren_facility": {
+      "asset": "/Game/Audio/SFX/City/police_siren_facility",
+      "category": "City",
+      "looping": true,
+      "sound_class": "SC_Ambience",
+      "source_file": "facility_siren.wav",
+      "license_id": "facility-siren-ccby",
+      "cue": "/Game/Audio/SFX/City/Cues/SC_police_siren_facility"
+    },
+    "car_engine_loop": {
+      "asset": "/Game/Audio/SFX/Vehicles/car_engine_loop",
+      "category": "Vehicles",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "Car_Engine_Loop.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Vehicles/Cues/SC_car_engine_loop"
+    },
+    "car_engine_loop_2": {
+      "asset": "/Game/Audio/SFX/Vehicles/car_engine_loop_2",
+      "category": "Vehicles",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "Car_Engine_Loop_2.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Vehicles/Cues/SC_car_engine_loop_2"
+    },
+    "car_horn": {
+      "asset": "/Game/Audio/SFX/Vehicles/car_horn",
+      "category": "Vehicles",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Car_Horn.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "car_accel": {
+      "asset": "/Game/Audio/SFX/Vehicles/car_accel",
+      "category": "Vehicles",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Car_Acceleration.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "car_engine_start": {
+      "asset": "/Game/Audio/SFX/Vehicles/car_engine_start",
+      "category": "Vehicles",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "Car_Engine_Start_Up.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "crowd_scream_male_01": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_male_01",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "aargh0.ogg",
+      "license_id": "aargh-ccby",
+      "cue": null
+    },
+    "crowd_scream_male_02": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_male_02",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "aargh1.ogg",
+      "license_id": "aargh-ccby",
+      "cue": null
+    },
+    "crowd_scream_male_03": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_male_03",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "aargh2.ogg",
+      "license_id": "aargh-ccby",
+      "cue": null
+    },
+    "crowd_scream_male_04": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_male_04",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "aargh3.ogg",
+      "license_id": "aargh-ccby",
+      "cue": null
+    },
+    "crowd_scream_male_05": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_male_05",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "aargh4.ogg",
+      "license_id": "aargh-ccby",
+      "cue": null
+    },
+    "crowd_scream_male_06": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_male_06",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "aargh5.ogg",
+      "license_id": "aargh-ccby",
+      "cue": null
+    },
+    "crowd_scream_female_01": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_female_01",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "1.ogg",
+      "license_id": "female-screams-ccby",
+      "cue": null
+    },
+    "crowd_scream_female_02": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_female_02",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "2.ogg",
+      "license_id": "female-screams-ccby",
+      "cue": null
+    },
+    "crowd_scream_female_03": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_female_03",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "3.ogg",
+      "license_id": "female-screams-ccby",
+      "cue": null
+    },
+    "crowd_scream_female_04": {
+      "asset": "/Game/Audio/SFX/Crowd/crowd_scream_female_04",
+      "category": "Crowd",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "4.ogg",
+      "license_id": "female-screams-ccby",
+      "cue": null
+    },
+    "glass_break": {
+      "asset": "/Game/Audio/SFX/Glass/glass_break",
+      "category": "Glass",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "glass_breaking.wav",
+      "license_id": "glass-cc0",
+      "cue": null
+    },
+    "glass_break_01": {
+      "asset": "/Game/Audio/SFX/Glass/glass_break_01",
+      "category": "Glass",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_glass_breaking_01.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "glass_break_02": {
+      "asset": "/Game/Audio/SFX/Glass/glass_break_02",
+      "category": "Glass",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_glass_breaking_02.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "glass_break_03": {
+      "asset": "/Game/Audio/SFX/Glass/glass_break_03",
+      "category": "Glass",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_glass_breaking_03.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "impact_metal_glass": {
+      "asset": "/Game/Audio/SFX/Glass/impact_metal_glass",
+      "category": "Glass",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "bfh1_glass_hit_01.ogg",
+      "license_id": "breaking-cc0",
+      "cue": null
+    },
+    "casino_chip_lay": {
+      "asset": "/Game/Audio/SFX/Casino/casino_chip_lay",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_Ambience",
+      "source_file": "chip-lay-1.ogg",
+      "license_id": "kenney-casino-cc0",
+      "cue": null
+    },
+    "casino_chips_stack": {
+      "asset": "/Game/Audio/SFX/Casino/casino_chips_stack",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_Ambience",
+      "source_file": "chips-stack-1.ogg",
+      "license_id": "kenney-casino-cc0",
+      "cue": null
+    },
+    "casino_chips_handle": {
+      "asset": "/Game/Audio/SFX/Casino/casino_chips_handle",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_Ambience",
+      "source_file": "chips-handle-1.ogg",
+      "license_id": "kenney-casino-cc0",
+      "cue": null
+    },
+    "casino_dice_throw": {
+      "asset": "/Game/Audio/SFX/Casino/casino_dice_throw",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_Ambience",
+      "source_file": "dice-throw-1.ogg",
+      "license_id": "kenney-casino-cc0",
+      "cue": null
+    },
+    "casino_card_shuffle": {
+      "asset": "/Game/Audio/SFX/Casino/casino_card_shuffle",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_Ambience",
+      "source_file": "card-shuffle.ogg",
+      "license_id": "kenney-casino-cc0",
+      "cue": null
+    },
+    "slot_win": {
+      "asset": "/Game/Audio/SFX/Casino/slot_win",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "chips-collide-1.ogg",
+      "license_id": "kenney-casino-cc0",
+      "cue": null
+    },
+    "cash_register": {
+      "asset": "/Game/Audio/SFX/Casino/cash_register",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "sell:buy_item.wav",
+      "license_id": "inventory-cc0",
+      "cue": null
+    },
+    "coin_01": {
+      "asset": "/Game/Audio/SFX/Casino/coin_01",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "1_Coins.ogg",
+      "license_id": "coins-cc0",
+      "cue": null
+    },
+    "coin_02": {
+      "asset": "/Game/Audio/SFX/Casino/coin_02",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "2_Coins.ogg",
+      "license_id": "coins-cc0",
+      "cue": null
+    },
+    "coin_03": {
+      "asset": "/Game/Audio/SFX/Casino/coin_03",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "3_Coins.ogg",
+      "license_id": "coins-cc0",
+      "cue": null
+    },
+    "coin_04": {
+      "asset": "/Game/Audio/SFX/Casino/coin_04",
+      "category": "Casino",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "4_Coins.ogg",
+      "license_id": "coins-cc0",
+      "cue": null
+    },
+    "menu_music_loop": {
+      "asset": "/Game/Audio/SFX/Music/menu_music_loop",
+      "category": "Music",
+      "looping": true,
+      "sound_class": "SC_Music",
+      "source_file": "menu_chill.wav",
+      "license_id": "menu-chill-cc0",
+      "cue": "/Game/Audio/SFX/Music/Cues/SC_menu_music_loop"
+    },
+    "menu_music_alt": {
+      "asset": "/Game/Audio/SFX/Music/menu_music_alt",
+      "category": "Music",
+      "looping": true,
+      "sound_class": "SC_Music",
+      "source_file": "Loop-Menu.wav",
+      "license_id": "menu-loop-cc0",
+      "cue": "/Game/Audio/SFX/Music/Cues/SC_menu_music_alt"
+    },
+    "wm_minigun_fire_loop": {
+      "asset": "/Game/Audio/SFX/Weapons/wm_minigun_fire_loop",
+      "category": "Weapons",
+      "looping": true,
+      "sound_class": "SC_SFX",
+      "source_file": "laserRetro_001.ogg",
+      "license_id": "kenney-cc0",
+      "cue": "/Game/Audio/SFX/Weapons/Cues/SC_wm_minigun_fire_loop"
+    },
+    "wm_missile_launch": {
+      "asset": "/Game/Audio/SFX/Weapons/wm_missile_launch",
+      "category": "Weapons",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "thrusterFire_004.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null
+    },
+    "pickup_energy": {
+      "asset": "/Game/Audio/SFX/Pickups/pickup_energy",
+      "category": "Pickups",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "pluck_002.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "pickup_health": {
+      "asset": "/Game/Audio/SFX/Pickups/pickup_health",
+      "category": "Pickups",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "select_003.ogg",
+      "license_id": "kenney-iface-cc0",
+      "cue": null
+    },
+    "city_ambience_loop": {
+      "asset": "/Game/Audio/SFX/City/city_ambience_loop",
+      "category": "City",
+      "looping": true,
+      "sound_class": "SC_Ambience",
+      "source_file": "city_ambience_loop.wav",
+      "license_id": "procedural-cc0",
+      "cue": "/Game/Audio/SFX/City/Cues/SC_city_ambience_loop"
+    },
+    "amb_city": {
+      "asset": "/Game/Audio/SFX/City/amb_city",
+      "category": "City",
+      "looping": true,
+      "sound_class": "SC_Ambience",
+      "source_file": "city_ambience_loop.wav",
+      "license_id": "procedural-cc0",
+      "cue": "/Game/Audio/SFX/City/Cues/SC_amb_city"
+    },
+    "city_birds": {
+      "asset": "/Game/Audio/SFX/City/city_birds",
+      "category": "City",
+      "looping": false,
+      "sound_class": "SC_Ambience",
+      "source_file": "bird_chirp.wav",
+      "license_id": "procedural-cc0",
+      "cue": null
+    },
+    "tire_screech": {
+      "asset": "/Game/Audio/SFX/Vehicles/tire_screech",
+      "category": "Vehicles",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "tire_screech.wav",
+      "license_id": "procedural-cc0",
+      "cue": null
+    },
+    "unibeam": {
+      "asset": "/Game/Audio/SFX/Unibeam/unibeam_fire",
+      "category": "Unibeam",
+      "looping": false,
+      "sound_class": "SC_SFX",
+      "source_file": "laserLarge_000.ogg",
+      "license_id": "kenney-cc0",
+      "cue": null,
+      "alias_of": "unibeam_fire"
+    }
+  },
+  "gaps": [
+    "distant_sirens_layered_in_ambience (procedural rumble only; separate police_siren provided)",
+    "photoreal tire screech (procedural stand-in)",
+    "dedicated slot-machine reel SFX (chips_collide used as slot_win)",
+    "true crowd bed loop (individual scream one-shots only)",
+    "wm_minigun_spinup/spindown/shell_casings (no dedicated CC0; fire_loop only)",
+    "amb_rain / amb_wind_altitude / amb_workshop_hum (not sourced this pass)"
+  ],
+  "pc_import": {
+    "machine": "624cdf5a-050a-47b4-96d3-77c77f7a2593",
+    "project": "D:/IronManGame/IronManArena",
+    "status": "imported",
+    "uassets_under_Content_Audio_SFX": 139,
+    "note": "SoundWaves imported via UnrealEditor-Cmd import_sfx_audio.py; looping flags + SC_* classes + SM_MasterMix created. C++ wiring deferred."
+  }
+}
