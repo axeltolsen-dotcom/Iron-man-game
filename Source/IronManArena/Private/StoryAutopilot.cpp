@@ -29,6 +29,7 @@
 namespace
 {
 	const TCHAR* AutopilotSlot = TEXT("StoryAutopilot");
+	int32 StoryAutopilotLiveCount = 0;
 
 	const TCHAR* StageName(EReactorStage S)
 	{
@@ -50,6 +51,17 @@ AStoryAutopilot::AStoryAutopilot()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bTickEvenWhenPaused = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
+}
+
+bool AStoryAutopilot::IsAnyRunning()
+{
+	return StoryAutopilotLiveCount > 0;
+}
+
+void AStoryAutopilot::BeginPlay()
+{
+	Super::BeginPlay();
+	if (!bCountedLive) { bCountedLive = true; ++StoryAutopilotLiveCount; }
 }
 
 AStoryAutopilot* AStoryAutopilot::Launch(UWorld* World, int32 InFirst, int32 InLast, bool bInFullStory, bool bInQuit)
@@ -388,6 +400,7 @@ void AStoryAutopilot::Restore()
 void AStoryAutopilot::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Restore();
+	if (bCountedLive) { bCountedLive = false; StoryAutopilotLiveCount = FMath::Max(0, StoryAutopilotLiveCount - 1); }
 	Super::EndPlay(EndPlayReason);
 }
 

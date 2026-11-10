@@ -44,6 +44,10 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** True while any autopilot (story or side mission) is alive in a world; UI such as the first-launch
+	 *  creator uses it to stay out of the way of headless runs. */
+	static bool IsAnyRunning();
+
 	bool IsFinished() const { return bFinished; }
 	bool Passed() const { return bFinished && Errors.Num() == 0; }
 	const TArray<FString>& GetErrors() const { return Errors; }
@@ -66,6 +70,7 @@ public:
 	FString TestHeroName = TEXT("Iron Lad");
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	void Begin();
@@ -89,6 +94,7 @@ protected:
 	bool bStarted = false;
 	bool bFinished = false;
 	bool bRestored = false;
+	bool bCountedLive = false;
 	float StartDelay = 0.5f;
 	float RunClock = 0.f;
 	float ChapterClock = 0.f;

@@ -53,6 +53,8 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "CoreGlobals.h"
+#include "StoryAutopilot.h"
 
 #define LOCTEXT_NAMESPACE "CareerUI"
 
@@ -1786,12 +1788,14 @@ void UCareerInput::Greet()
 	if (UCareerSubsystem* CM = UCareerSubsystem::Get(this)) { CM->Toast(FText::Format(LOCTEXT("WelcomeToast", "Welcome, {0}"), FText::FromString(C->GetPilotName())), UiTeal); }
 }
 
-// -ArenaSmoke runs headless with a fresh Saved/: the first-launch creator would pause the world and the
-// smoke never starts a wave. Skip the creator there only (the player still gets it on a real first launch).
-static bool IsHeadlessArenaSmoke()
+// Headless runs start with a fresh Saved/: the first-launch creator would pause the world, so the arena
+// smoke never starts a wave and the story autopilot times out at step 1. Skip the creator for
+// -ArenaSmoke, -StoryAutoplay, automation tests (GIsAutomationTesting) and while an AStoryAutopilot is
+// playing. A real first launch still opens it.
+static bool ShouldSkipFirstLaunchCreator()
 {
-	static const bool bSmoke = FParse::Param(FCommandLine::Get(), TEXT("ArenaSmoke"));
-	return bSmoke;
+	static const bool bHeadlessCmd = FParse::Param(FCommandLine::Get(), TEXT("ArenaSmoke")) || FParse::Param(FCommandLine::Get(), TEXT("StoryAutoplay"));
+	return bHeadlessCmd || GIsAutomationTesting || AStoryAutopilot::IsAnyRunning();
 }
 
 void UCareerInput::OnFreePlayStarted()
@@ -1800,7 +1804,7 @@ void UCareerInput::OnFreePlayStarted()
 	if (!C) { return; }
 	C->ApplySuitLock(Player(this));
 	C->ReapplyLook();
-	if (C->NeedsCharacterSetup() && !IsHeadlessArenaSmoke())
+	if (C->NeedsCharacterSetup() && !ShouldSkipFirstLaunchCreator())
 	{
 		bFirstLaunchShown = true;
 		UE_LOG(LogTemp, Log, TEXT("Career: free play started without a character - opening the creator"));
@@ -2057,12 +2061,19 @@ void UCareerInput::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	APlayerController* P = PC();
 	if (!P || !P->IsLocalController()) { return; }
+	// A creator opened before a headless run began (e.g. on the title screen before the automation queue
+	// started) would keep the world paused: close it once the skip applies.
+	if (GetOpenScreen() == ECareerScreen::FirstLaunch && ShouldSkipFirstLaunchCreator())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Career: headless run (smoke / story autopilot / automation) - closing the first-launch creator"));
+		CloseScreen();
+	}
 	// First launch: the character creator opens straight over the title screen (before any mode is picked).
 	if (!bFirstLaunchShown && !IsScreenOpen())
 	{
 		const AArenaPlayerController* TPC = Cast<AArenaPlayerController>(P);
 		const UCareerSubsystem* CS = UCareerSubsystem::Get(this);
-		if (TPC && TPC->IsMenuOpen() && TPC->GetLastMenuMode() == EMenuMode::Title && CS && CS->NeedsCharacterSetup() && !IsHeadlessArenaSmoke())
+		if (TPC && TPC->IsMenuOpen() && TPC->GetLastMenuMode() == EMenuMode::Title && CS && CS->NeedsCharacterSetup() && !ShouldSkipFirstLaunchCreator())
 		{
 			bFirstLaunchShown = true;
 			UE_LOG(LogTemp, Log, TEXT("Career: no character yet - opening the first-launch creator on the title screen"));
