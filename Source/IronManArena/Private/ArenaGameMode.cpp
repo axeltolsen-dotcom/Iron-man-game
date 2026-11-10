@@ -2,6 +2,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "CityLayout.h"
 #include "ArenaSmokeTest.h"
+#include "WorkshopEasterEggs.h"
 #include "StoryLibrary.h"
 #include "StoryAutopilot.h"
 #include "Misc/CommandLine.h"
@@ -272,6 +273,8 @@ void AArenaGameMode::StartNewGame(int32 SuitIndex)
 	if (!Player) { return; }
 	SetupCityPlay(); // before ResetForNewGame so the player starts on the plaza
 	Player->ResetForNewGame();
+	// Dum-E's workshop easter eggs: once per world, near the start (never in smoke / story / automation runs).
+	AWorkshopEasterEggs::SpawnForFreePlay(GetWorld(), Player);
 	Player->SetAllowedSuits(TArray<FName>()); // every suit
 	if (UReactorComponent* R = Player->GetReactor()) { R->ClearStage(); R->SetCoreDark(false); }
 	if (UJarvisComponent* J = UJarvisComponent::Get(this)) { J->SetCommsSpeaker(NAME_None); }
@@ -319,6 +322,7 @@ void AArenaGameMode::StartStory(int32 ChapterIndex, bool bPlayPrologue)
 
 	Director->StopStory();
 	PlayMode = EArenaPlayMode::Story;
+	AWorkshopEasterEggs::RemoveAll(GetWorld());
 	ResetRunState();
 	Player->ResetForNewGame();
 	Director->StartStory(ChapterIndex, bPlayPrologue, false);
@@ -331,6 +335,7 @@ bool AArenaGameMode::StartSideMission(FName MissionId, bool bIgnoreAvailability)
 	if (!Player || !Director) { return false; }
 	Director->StopStory();
 	PlayMode = EArenaPlayMode::Story;
+	AWorkshopEasterEggs::RemoveAll(GetWorld());
 	ResetRunState();
 	Player->ResetForNewGame();
 	if (!Director->StartSideMission(MissionId, false, bIgnoreAvailability))

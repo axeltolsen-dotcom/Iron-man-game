@@ -203,7 +203,7 @@ protected:
 	bool bFirstLaunchShown = false;
 	bool bGreeted = false;
 	float SavedWalkSpeed = 600.f;
-	int32 InteractKind = 0; // 0 none 1 vehicle 2 poi 3 house
+	int32 InteractKind = 0; // 0 none 1 vehicle 2 poi 3 house 4 workshop easter egg
 	FName InteractId;
 	int32 InteractParam = -1;
 	/** Edge-detects the game entering Playing (arena / free roam / story) to run OnFreePlayStarted once per run. */

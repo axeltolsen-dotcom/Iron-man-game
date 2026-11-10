@@ -22,6 +22,7 @@
 #include "NpcManifest.h"
 #include "PilotAvatar.h"
 #include "SuitTypes.h"
+#include "WorkshopEasterEggs.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/StaticMeshComponent.h"
@@ -1460,6 +1461,27 @@ int32 UCareerHUD::NativePaint(const FPaintArgs& Args, const FGeometry& G, const 
 	// Title / pause menus own the screen: no credits, crosshair or super ring behind them.
 	if (const AArenaPlayerController* MenuPC = Cast<AArenaPlayerController>(PCtl)) { if (MenuPC->IsMenuOpen()) { return LayerId; } }
 	const FVector2D Size = G.GetLocalSize();
+	// Dum-E's extinguisher foam (workshop easter egg #1): white flecks frosting the visor edges, fading out.
+	if (const float Frost = AWorkshopEasterEggs::GetFoamFrost(this); Frost > 0.01f)
+	{
+		const FSlateBrush* FrostBrush = FCoreStyle::Get().GetBrush("WhiteBrush");
+		FRandomStream FrostRng(7311);
+		for (int32 k = 0; k < 90; ++k)
+		{
+			const int32 Edge = k % 4;
+			const float Depth = FMath::Square(FrostRng.FRand()) * 0.16f; // fraction of the screen, packed at the edge
+			const float Along = FrostRng.FRand();
+			const float Sz = FrostRng.FRandRange(6.f, 38.f);
+			FVector2D Pos;
+			if (Edge == 0) { Pos = FVector2D(Along * Size.X, Depth * Size.Y); }
+			else if (Edge == 1) { Pos = FVector2D(Along * Size.X, Size.Y * (1.f - Depth) - Sz); }
+			else if (Edge == 2) { Pos = FVector2D(Depth * Size.X, Along * Size.Y); }
+			else { Pos = FVector2D(Size.X * (1.f - Depth) - Sz, Along * Size.Y); }
+			const float A = Frost * FrostRng.FRandRange(0.3f, 0.7f) * (1.f - Depth / 0.16f * 0.6f);
+			FSlateDrawElement::MakeBox(Out, LayerId + 1, G.ToPaintGeometry(FVector2D(Sz, Sz), FSlateLayoutTransform(Pos)), FrostBrush,
+				ESlateDrawEffect::None, FLinearColor(0.93f, 0.96f, 1.f, A));
+		}
+	}
 	const TSharedRef<FSlateFontMeasure> Measure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	auto Text = [&](const FString& S, const FVector2D& Pos, int32 FontSize, const FLinearColor& Col, bool bRightAlign)
 	{
@@ -1990,6 +2012,15 @@ void UCareerInput::TickInteract()
 			}
 		}
 	}
+	if (InteractKind == 0)
+	{
+		// Dum-E's workshop nook (free play only): pinboard, tool tray, covered car.
+		if (AWorkshopEasterEggs* Nook = AWorkshopEasterEggs::Find(this))
+		{
+			int32 EggTarget = INDEX_NONE;
+			if (Nook->GetInteractPrompt(Char, Prompt, EggTarget)) { InteractKind = 4; InteractParam = EggTarget; }
+		}
+	}
 	if (HUD) { HUD->Prompt = Prompt; }
 	APlayerController* P = PC();
 	if (!P || InteractKind == 0 || !P->WasInputKeyJustPressed(EKeys::E)) { return; }
@@ -2013,6 +2044,10 @@ void UCareerInput::TickInteract()
 	else if (InteractKind == 3)
 	{
 		if (C->OwnsHouse(InteractId)) { C->SetHomeHouse(InteractId); } else { C->BuyHouse(InteractId); }
+	}
+	else if (InteractKind == 4)
+	{
+		if (AWorkshopEasterEggs* Nook = AWorkshopEasterEggs::Find(this)) { Nook->Interact(Char, InteractParam); }
 	}
 }
 
