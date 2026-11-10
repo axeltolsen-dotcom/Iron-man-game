@@ -25,11 +25,11 @@ public class IronManArena : ModuleRules
 			"CinematicCamera", // ACineCameraActor for the suit-up cinematics
 			"Json",            // FJsonObject: Content/Story/story.json + morgan.json
 			"JsonUtilities",   // FJsonObjectConverter: contrib lighting presets -> component properties
-			"RenderCore"       // IsRayTracingAllowed() for the ray tracing toggle
+			"RenderCore",      // IsRayTracingAllowed() for the ray tracing toggle
+			"Niagara"          // UBossVFXComponent (Ultron boss pack). Soft refs only: no Niagara content is required
 		});
 
-		// Niagara is intentionally NOT used: all effects are built from engine basic
-		// shapes + point lights so the project runs with zero external assets.
-		// If you add Niagara effects later, add "Niagara" here and enable the plugin.
+		// Base effects are still built from engine basic shapes + point lights so the project runs with
+		// zero external assets. Niagara systems under /Game/FX/ are optional upgrades (missing = fallback).
 	}
 }

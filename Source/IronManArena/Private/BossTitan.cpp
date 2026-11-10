@@ -6,6 +6,7 @@
 #include "IronProjectile.h"
 #include "ArenaGameMode.h"
 #include "ArenaBlastFX.h"
+#include "BossVFXComponent.h"
 #include "DroneEnemy.h"
 #include "JarvisComponent.h"
 
@@ -71,6 +72,8 @@ ABossTitan::ABossTitan()
 	CoreLight->SetIntensity(20000.f);
 	CoreLight->SetAttenuationRadius(1200.f);
 	CoreLight->SetCastShadows(false);
+
+	BossVFX = CreateDefaultSubobject<UBossVFXComponent>(TEXT("BossVFX"));
 }
 
 void ABossTitan::BeginPlay()
@@ -103,6 +106,13 @@ float ABossTitan::ModifyIncomingDamage(float Amount)
 {
 	if (InvulnerableLeft > 0.f)
 	{
+		if (BossVFX)
+		{
+			// No hit point reaches ModifyIncomingDamage: spark on the bubble facing the player.
+			const APawn* ShooterPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+			const FVector Toward = ShooterPawn ? (ShooterPawn->GetActorLocation() - GetActorLocation()).GetSafeNormal() : GetActorForwardVector();
+			BossVFX->PlayShieldHit(GetActorLocation() + Toward * 300.f, Toward);
+		}
 		return 0.f; // shield sparks only
 	}
 	if (State == EBossState::Venting) { Amount *= VentDamageMultiplier; }
@@ -129,7 +139,8 @@ void ABossTitan::EnterPhase(int32 NewPhase)
 		Feel->HitStop(0.12f, 0.1f);
 		Feel->PlayShake(TEXT("hit_heavy"));
 	}
-	AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 600.f, FLinearColor(0.85f, 0.6f, 1.f), 0.6f);
+	if (!BossVFX || !BossVFX->HasPhaseFX()) { AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 600.f, FLinearColor(0.85f, 0.6f, 1.f), 0.6f); }
+	if (BossVFX) { BossVFX->PlayPhaseBreak(NewPhase); }
 	DropPickup(EPickupType::Health, FVector(0, 0, -150));
 	UJarvisComponent::Notify(this, NewPhase >= 3 ? EAIEvent::BossPhase3 : EAIEvent::BossPhase2);
 	// Story comms: the guy in the chair cracks the armour open on phase 2.
@@ -157,6 +168,11 @@ void ABossTitan::EnterPhase(int32 NewPhase)
 void ABossTitan::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 {
 	InvulnerableLeft = FMath::Max(0.f, InvulnerableLeft - DeltaSeconds);
+	if (BossVFX && State != LastVFXState)
+	{
+		LastVFXState = State;
+		BossVFX->SetCombatState(static_cast<uint8>(State), Phase);
+	}
 	ContactTimer = FMath::Max(0.f, ContactTimer - DeltaSeconds);
 
 	// Shield bubble visible while invulnerable (pulsing).
@@ -329,8 +345,16 @@ void ABossTitan::FireVolley(AIronManCharacter* Player)
 			FireShot(O, R.Vector() * BoltSpeed, BoltDamage, 20.f, FLinearColor(0.8f, 0.4f, 1.f));
 		}
 	}
-	AArenaBlastFX::Spawn(GetWorld(), CannonL->GetComponentLocation(), 60.f, FLinearColor(0.8f, 0.4f, 1.f), 0.12f);
-	AArenaBlastFX::Spawn(GetWorld(), CannonR->GetComponentLocation(), 60.f, FLinearColor(0.8f, 0.4f, 1.f), 0.12f);
+	if (BossVFX && BossVFX->HasMuzzleFX())
+	{
+		BossVFX->PlayVolleyMuzzle(CannonL);
+		BossVFX->PlayVolleyMuzzle(CannonR);
+	}
+	else
+	{
+		AArenaBlastFX::Spawn(GetWorld(), CannonL->GetComponentLocation(), 60.f, FLinearColor(0.8f, 0.4f, 1.f), 0.12f);
+		AArenaBlastFX::Spawn(GetWorld(), CannonR->GetComponentLocation(), 60.f, FLinearColor(0.8f, 0.4f, 1.f), 0.12f);
+	}
 }
 
 void ABossTitan::FireMissiles(AIronManCharacter* Player)
@@ -362,10 +386,14 @@ void ABossTitan::OpenVent(float Seconds)
 	StateTimer = 0.f;
 	++VentWindowsOpened;
 	// Steam puffs off the shoulders.
-	for (const float Side : { -1.f, 1.f })
+	if (!BossVFX || !BossVFX->HasVentFX())
 	{
-		AArenaBlastFX::Spawn(GetWorld(), GetActorLocation() + GetActorRightVector() * Side * 170.f + FVector(0, 0, 200.f), 90.f, FLinearColor(0.9f, 0.9f, 0.95f), 0.5f);
+		for (const float Side : { -1.f, 1.f })
+		{
+			AArenaBlastFX::Spawn(GetWorld(), GetActorLocation() + GetActorRightVector() * Side * 170.f + FVector(0, 0, 200.f), 90.f, FLinearColor(0.9f, 0.9f, 0.95f), 0.5f);
+		}
 	}
+	if (BossVFX) { BossVFX->PlayVent(Seconds); }
 	if (!bVentHintShown)
 	{
 		bVentHintShown = true;
@@ -390,10 +418,14 @@ void ABossTitan::OnKilled()
 	{
 		DropPickup(EPickupType::Gem, FVector(Rand(-300.f, 300.f), Rand(-300.f, 300.f), Rand(-100.f, 100.f)));
 	}
-	// Chain of secondary explosions for drama.
-	for (int32 i = 0; i < 5; ++i)
+	// Chain of secondary explosions for drama (Niagara death cascade when the content exists).
+	if (BossVFX && BossVFX->HasDeathFX()) { BossVFX->PlayDeathCascade(0.f); }
+	else
 	{
-		AArenaBlastFX::Spawn(GetWorld(), GetActorLocation() + FVector(Rand(-280.f, 280.f), Rand(-280.f, 280.f), Rand(-200.f, 200.f)),
-			Rand(250.f, 400.f), FLinearColor(1.f, 0.7f, 0.3f), Rand(0.4f, 0.9f));
+		for (int32 i = 0; i < 5; ++i)
+		{
+			AArenaBlastFX::Spawn(GetWorld(), GetActorLocation() + FVector(Rand(-280.f, 280.f), Rand(-280.f, 280.f), Rand(-200.f, 200.f)),
+				Rand(250.f, 400.f), FLinearColor(1.f, 0.7f, 0.3f), Rand(0.4f, 0.9f));
+		}
 	}
 }

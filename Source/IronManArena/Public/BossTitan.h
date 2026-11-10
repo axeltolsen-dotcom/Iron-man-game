@@ -13,6 +13,7 @@
 #include "BossTitan.generated.h"
 
 class UPointLightComponent;
+class UBossVFXComponent;
 
 UENUM(BlueprintType)
 enum class EBossState : uint8
@@ -179,6 +180,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UPointLightComponent> CoreLight;
 
+	/** Niagara layer (no-op until /Game/FX/Boss content exists; BlastFX stays the fallback). */
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UBossVFXComponent> BossVFX;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> ShieldMID;
 
@@ -200,4 +205,6 @@ protected:
 	float VentLeft = 0.f;
 	int32 VentWindowsOpened = 0;
 	bool bVentHintShown = false;
+	/** Last state pushed to BossVFX (state changes happen in several places; TickEnemy forwards them). */
+	EBossState LastVFXState = EBossState::Entering;
 };
