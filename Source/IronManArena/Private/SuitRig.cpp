@@ -198,12 +198,25 @@ namespace
 
 	enum class EGlowKind : uint8 { Eyes, Reactor, Repulsor, Other };
 
+	// B13: CamelCase token match ("Tri" in TriReactor / CollarTri, not WingTrim / Strip; "Arc" not Search).
+	bool HasGlowToken(const FString& N, const TCHAR* Tok)
+	{
+		const int32 Len = FCString::Strlen(Tok);
+		for (int32 At = N.Find(Tok, ESearchCase::CaseSensitive); At != INDEX_NONE;
+			At = N.Find(Tok, ESearchCase::CaseSensitive, ESearchDir::FromStart, At + 1))
+		{
+			const int32 After = At + Len;
+			if (After >= N.Len() || !FChar::IsLower(N[After])) { return true; }
+		}
+		return false;
+	}
+
 	EGlowKind ClassifyGlow(const FArenaPaintedPart& P)
 	{
 		const FString N = P.Component ? P.Component->GetName() : FString();
 		if (N.Contains(TEXT("Eye")) || N.Contains(TEXT("Visor"))) { return EGlowKind::Eyes; }
 		if (N.Contains(TEXT("Palm")) || N.Contains(TEXT("Muzzle")) || N.Contains(TEXT("Repulsor")) || N.Contains(TEXT("Unibeam"))) { return EGlowKind::Repulsor; }
-		if (N.Contains(TEXT("Reactor")) || N.Contains(TEXT("Core")) || N.Contains(TEXT("Arc")) || N.Contains(TEXT("Tri"))) { return EGlowKind::Reactor; }
+		if (N.Contains(TEXT("Reactor")) || HasGlowToken(N, TEXT("Core")) || HasGlowToken(N, TEXT("Arc")) || HasGlowToken(N, TEXT("Tri"))) { return EGlowKind::Reactor; }
 		return EGlowKind::Other;
 	}
 }

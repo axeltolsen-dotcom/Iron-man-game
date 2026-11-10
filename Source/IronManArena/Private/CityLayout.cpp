@@ -358,15 +358,13 @@ void ACityLayout::BuildGround()
 		G->SetMaterial(0, Mid(TEXT("ground"), ArenaVisuals::GetSurfaceMaterial(EArenaSurface::Asphalt), FLinearColor(0.55f, 0.55f, 0.56f)));
 		G->SetCastShadow(false);
 	}
-	if (UProceduralMeshComponent* S = MakeProc(TEXT("Water"), false))
+	// B15: the sea needs real collision (it used to be built without, so everything fell through it).
+	if (UProceduralMeshComponent* S = MakeProc(TEXT("Water"), true))
 	{
-		S->CreateMeshSection(0, Sea.V, Sea.I, Sea.N, Sea.UV, TArray<FColor>(), TArray<FProcMeshTangent>(), false);
+		S->CreateMeshSection(0, Sea.V, Sea.I, Sea.N, Sea.UV, TArray<FColor>(), TArray<FProcMeshTangent>(), true);
 		// No water shader in the project: a dark, rain-wet surface reads as calm harbor water under Lumen.
 		S->SetMaterial(0, Mid(TEXT("water"), ArenaVisuals::GetSurfaceMaterial(EArenaSurface::AsphaltRain), FLinearColor(0.06f, 0.11f, 0.14f)));
 		S->SetCastShadow(false);
-		S->SetCollisionProfileName(TEXT("BlockAll"));
-		S->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		S->ContainsPhysicsTriMeshData(true);
 	}
 	if (UProceduralMeshComponent* W = MakeProc(TEXT("Seawall"), true))
 	{

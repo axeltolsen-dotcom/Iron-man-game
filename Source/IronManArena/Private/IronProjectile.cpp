@@ -297,6 +297,22 @@ void AIronProjectile::Explode(AActor* DirectHitActor)
 			if (!A || Damaged.Contains(A) || A == GetOwner()) { continue; }
 			const bool bValid = bHostile ? A->IsA<AIronManCharacter>() : A->IsA<AEnemyBase>();
 			if (!bValid) { continue; }
+			// B09: no splash through walls. Static geometry between the blast and the pawn (centre or
+			// ~60 cm above it) blocks the damage; a direct hit always counts.
+			if (A != DirectHitActor)
+			{
+				FCollisionQueryParams LosParams(SCENE_QUERY_STAT(IronSplashLOS), false, this);
+				LosParams.AddIgnoredActor(A);
+				if (AActor* MyOwner = GetOwner()) { LosParams.AddIgnoredActor(MyOwner); }
+				const FCollisionObjectQueryParams StaticObj(ECC_WorldStatic);
+				const FVector From = Here - GetActorForwardVector() * 15.f;
+				const FVector Centre = A->GetActorLocation();
+				if (World->LineTraceTestByObjectType(From, Centre, StaticObj, LosParams)
+					&& World->LineTraceTestByObjectType(From, Centre + FVector(0.f, 0.f, 60.f), StaticObj, LosParams))
+				{
+					continue;
+				}
+			}
 			Damaged.Add(A);
 			UGameplayStatics::ApplyDamage(A, Damage, InstigatorController, this, UDamageType::StaticClass());
 		}

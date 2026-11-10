@@ -1451,8 +1451,9 @@ void AIronManCharacter::FireRepulsor()
 	default: break;
 	}
 	// Heat scales with time spent firing, so fast and slow weapons heat equally per second.
-	Reactor->AddHeat(Reactor->HeatPerFiringSecond * Interval);
+	// B10: halve the interval for overdrive first, so overdrive doesn't double heat per second.
 	if (OverdriveLeft > 0.f) { Interval *= 0.5f; }
+	Reactor->AddHeat(Reactor->HeatPerFiringSecond * Interval);
 	FireCooldown += Interval; // B03: preserve remainder instead of resetting
 	Damage *= SuitDamageMul * (CloakLeft > 0.f ? 1.5f : 1.f);
 	const FLinearColor Color = PrimaryWeaponColor(S.PrimaryWeapon, S.EmissiveColor);

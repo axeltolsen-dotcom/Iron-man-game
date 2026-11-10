@@ -1658,7 +1658,21 @@ namespace
 	{
 		TArray<TWeakObjectPtr<UStaticMeshComponent>> Plates;
 		TArray<TWeakObjectPtr<UStaticMeshComponent>> Hidden;
+		FString Signature; // B04: suit id + resolved variant keys + skeleton; same signature = same plates
 	};
+
+	// B13: CamelCase token match, same rule as SuitRig::ClassifyGlow ("Tri" not WingTrim / Strip).
+	bool HasKitGlowToken(const FString& N, const TCHAR* Tok)
+	{
+		const int32 Len = FCString::Strlen(Tok);
+		for (int32 At = N.Find(Tok, ESearchCase::CaseSensitive); At != INDEX_NONE;
+			At = N.Find(Tok, ESearchCase::CaseSensitive, ESearchDir::FromStart, At + 1))
+		{
+			const int32 After = At + Len;
+			if (After >= N.Len() || !FChar::IsLower(N[After])) { return true; }
+		}
+		return false;
+	}
 
 	TMap<TWeakObjectPtr<USceneComponent>, FKitState>& States()
 	{
@@ -1721,10 +1735,49 @@ namespace SuitArmorKit
 	int32 Build(AActor* Owner, const FSuitDef& Suit, FSuitRig& Rig, TArray<FArenaPaintedPart>& Parts, USkeletalMeshComponent* SkelMesh)
 	{
 		if (!Owner || !Rig.Root) { return 0; }
-		Clear(Rig, Parts);
 		FSuitKeys Keys;
 		FStyle Style;
 		const TArray<FPlate> Plates = Resolve(Suit, Keys, Style);
+		const USkeletalMesh* SkelAsset = SkelMesh ? SkelMesh->GetSkeletalMeshAsset() : nullptr;
+		const FString Signature = FString::Join(TArray<FString>{ Suit.Id.ToString(), Keys.Helmet, Keys.Reactor, Keys.Shoulders,
+			Keys.Backpack, Keys.Wings, Keys.Plating, Keys.Style, FString::FromInt(Plates.Num()),
+			SkelAsset ? SkelAsset->GetPathName() : FString(TEXT("nominal")) }, TEXT("|"));
+
+		// B04: same suit + same variant keys -> keep the existing plates (no ~135-component churn on
+		// BeginPlay + ApplyRewards, ResetForNewGame + suit-up, career refresh). Only the paint is refreshed,
+		// by the caller's SuitRig::ApplyColors.
+		if (FKitState* Existing = States().Find(Rig.Root.Get()))
+		{
+			bool bIntact = Existing->Signature == Signature && Existing->Plates.Num() > 0;
+			int32 Live = 0;
+			for (const TWeakObjectPtr<UStaticMeshComponent>& W : Existing->Plates)
+			{
+				const UStaticMeshComponent* C = W.Get();
+				if (!C || !C->IsRegistered()) { bIntact = false; break; }
+				const bool bInParts = Parts.ContainsByPredicate([C](const FArenaPaintedPart& P) { return P.Component == C; });
+				if (!bInParts) { bIntact = false; break; }
+				++Live;
+			}
+			if (bIntact)
+			{
+				for (FArenaPaintedPart& P : Parts)
+				{
+					// Emissive kit plates take the (possibly career-tinted) suit glow, as a fresh build would.
+					if (P.Role == ESuitPaintRole::Emissive && P.Component && Existing->Plates.Contains(P.Component.Get()))
+					{
+						P.Color = Suit.EmissiveColor;
+					}
+				}
+				for (const TWeakObjectPtr<UStaticMeshComponent>& W : Existing->Hidden)
+				{
+					if (UStaticMeshComponent* C = W.Get()) { C->SetHiddenInGame(true); }
+				}
+				UE_LOG(LogArmorKit, Verbose, TEXT("Armour kit: %s unchanged, reusing %d plates."), *Suit.Id.ToString(), Live);
+				return Live;
+			}
+		}
+
+		Clear(Rig, Parts);
 		if (Plates.Num() == 0) { return 0; }
 
 		// Real Manny joints when a skeleton is given: component-space ref pose from FReferenceSkeleton.
@@ -1847,8 +1900,8 @@ namespace SuitArmorKit
 			{
 				// Match SuitRig::ClassifyGlow Reactor tokens so story/kit arc glows stay visible.
 				const FString CompName = C->GetName();
-				if (CompName.Contains(TEXT("Reactor")) || CompName.Contains(TEXT("Core"))
-					|| CompName.Contains(TEXT("Arc")) || CompName.Contains(TEXT("Tri")))
+				if (CompName.Contains(TEXT("Reactor")) || HasKitGlowToken(CompName, TEXT("Core"))
+					|| HasKitGlowToken(CompName, TEXT("Arc")) || HasKitGlowToken(CompName, TEXT("Tri")))
 				{
 					continue;
 				}
@@ -1858,6 +1911,7 @@ namespace SuitArmorKit
 			State.Hidden.Add(C);
 		}
 		Parts.Append(NewParts);
+		State.Signature = Signature;
 		States().Add(Rig.Root.Get(), State);
 		UE_LOG(LogArmorKit, Log, TEXT("Armour kit: %s -> %d plates (%s style, panel depth %.2f cm, %s joints)%s."), *SuitKey, NewParts.Num(),
 			*Keys.Style, Keys.PanelLineDepth, bSkeleton ? TEXT("skeleton") : TEXT("nominal rig"),
