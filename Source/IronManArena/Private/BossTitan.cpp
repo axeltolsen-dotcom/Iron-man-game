@@ -267,8 +267,7 @@ void ABossTitan::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 		const FVector Target(PlayerLoc.X + FMath::Cos(Rad) * Dist, PlayerLoc.Y + FMath::Sin(Rad) * Dist,
 			FloorZ + HoverHeight + (bRage ? 150.f : 0.f) + FMath::Sin(Age * 1.3f) * 120.f);
 
-		Velocity += ((Target - Loc) * 1.3f - Velocity * 1.5f) * DeltaSeconds;
-		MoveBy(Velocity * DeltaSeconds);
+		MoveBy(IntegrateSpringSteer(Velocity, Loc, Target, 1.3f, 1.5f, DeltaSeconds)); // B17: fps-independent
 		FaceToward(PlayerLoc, DeltaSeconds, 90.f);
 
 		// Arm-cannon volleys.

@@ -108,8 +108,15 @@ protected:
 	/** Smoothly yaw toward a world location. */
 	void FaceToward(const FVector& Target, float DeltaSeconds, float DegreesPerSecond);
 
-	/** Floor height under a location (trace against WorldStatic). */
-	bool FindFloorZ(const FVector& Location, float& OutZ) const;
+	/** Floor height under a location (trace against WorldStatic, starting StartAbove uu above it). */
+	bool FindFloorZ(const FVector& Location, float& OutZ, float StartAbove = 500.f) const;
+
+	/**
+	 * B17: spring-damper steering toward Target, semi-implicit Euler sub-stepped at <= 1/60 s so the
+	 * overshoot doesn't depend on frame rate. Updates InOutVelocity, returns the displacement to MoveBy.
+	 */
+	static FVector IntegrateSpringSteer(FVector& InOutVelocity, const FVector& From, const FVector& Target,
+		float Stiffness, float DampingRate, float DeltaSeconds);
 
 	AArenaGameMode* GetArenaGameMode() const;
 

@@ -384,7 +384,11 @@ void AIronManCharacter::ApplySuit(int32 Index)
 	}
 	SuitRig::ApplyColors(S, Parts);
 	SuitRig::ApplyColors(S, FPParts);
-	if (CloakLeft > 0.f) { ArenaVisuals::FlashAll(Parts, CloakColor, false); }
+	if (CloakLeft > 0.f)
+	{
+		ArenaVisuals::FlashAll(Parts, CloakColor, false);
+		ArenaVisuals::FlashAll(FPParts, CloakColor, false); // B14: first-person gauntlets cloak too
+	}
 
 	// Stats (keep the current fill fraction across a swap).
 	const float HFrac = MaxHealth > 0.f ? FMath::Clamp(Health / MaxHealth, 0.f, 1.f) : 1.f;
@@ -438,6 +442,8 @@ void AIronManCharacter::SetCinematicMode(bool bEnable, ASuitUpCinematic* Cinemat
 {
 	bInCinematic = bEnable;
 	ActiveCinematic = Cinematic;
+	// B20: the reactor (energy/heat/vent timers) pauses during cinematics, so a suit-up can't finish a vent for free.
+	if (Reactor) { Reactor->SetComponentTickEnabled(!bEnable); }
 	if (!bEnable) { bCinematicHideBody = false; }
 	if (bEnable)
 	{
@@ -1305,6 +1311,7 @@ void AIronManCharacter::TickEffects(float DeltaSeconds)
 		{
 			CloakLeft = 0.f;
 			ArenaVisuals::FlashAll(Parts, FLinearColor::White, true);
+			ArenaVisuals::FlashAll(FPParts, FLinearColor::White, true); // B14
 			Banner(LOCTEXT("Decloak", "CLOAK DISENGAGED"), FText::GetEmpty(), 1.f);
 		}
 	}
@@ -1621,6 +1628,7 @@ void AIronManCharacter::UseSpecial()
 	case ESuitSpecialWeapon::Cloak:
 		CloakLeft = 4.f;
 		ArenaVisuals::FlashAll(Parts, CloakColor, false);
+		ArenaVisuals::FlashAll(FPParts, CloakColor, false); // B14: tint the first-person gauntlets as well
 		Banner(LOCTEXT("Cloak", "CLOAK ENGAGED"), LOCTEXT("CloakSub", "ENEMIES LOSE TRACK  -  SHOTS +50%"), 1.f);
 		break;
 	case ESuitSpecialWeapon::LaserWhip:

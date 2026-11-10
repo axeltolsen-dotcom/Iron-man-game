@@ -145,11 +145,28 @@ void AEnemyBase::FaceToward(const FVector& Target, float DeltaSeconds, float Deg
 	SetActorRotation(FMath::RInterpConstantTo(GetActorRotation(), Want, DeltaSeconds, DegreesPerSecond));
 }
 
-bool AEnemyBase::FindFloorZ(const FVector& Location, float& OutZ) const
+FVector AEnemyBase::IntegrateSpringSteer(FVector& InOutVelocity, const FVector& From, const FVector& Target,
+	float Stiffness, float DampingRate, float DeltaSeconds)
+{
+	if (DeltaSeconds <= 0.f) { return FVector::ZeroVector; }
+	// Clamp huge hitches (e.g. after a level stream) so one frame can't fling the enemy.
+	const float Total = FMath::Min(DeltaSeconds, 0.25f);
+	const int32 Steps = FMath::Clamp(FMath::CeilToInt(Total * 60.f), 1, 16);
+	const float H = Total / Steps;
+	FVector Pos = From;
+	for (int32 i = 0; i < Steps; ++i)
+	{
+		InOutVelocity += ((Target - Pos) * Stiffness - InOutVelocity * DampingRate) * H;
+		Pos += InOutVelocity * H;
+	}
+	return Pos - From;
+}
+
+bool AEnemyBase::FindFloorZ(const FVector& Location, float& OutZ, float StartAbove) const
 {
 	FHitResult Hit;
 	FCollisionQueryParams Q(SCENE_QUERY_STAT(EnemyFloor), false, this);
-	if (GetWorld()->LineTraceSingleByObjectType(Hit, Location + FVector(0, 0, 500), Location - FVector(0, 0, 20000),
+	if (GetWorld()->LineTraceSingleByObjectType(Hit, Location + FVector(0, 0, StartAbove), Location - FVector(0, 0, 20000),
 		FCollisionObjectQueryParams(ECC_WorldStatic), Q))
 	{
 		OutZ = Hit.ImpactPoint.Z;

@@ -230,7 +230,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "IronMan|Reactor")
 	float OverheatFlightDrainMultiplier = 2.f;
 
-	/** Settings menu hooks (FOV in degrees; the third-person camera uses FOV - 5). */
+	/** Settings menu hooks (FOV in degrees; the third-person camera uses FOV - 10). */
 	UFUNCTION(BlueprintCallable, Category = "IronMan|Camera")
 	void SetCameraFOV(float NewFOV);
 

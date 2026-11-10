@@ -189,7 +189,7 @@ namespace
 				Def.Reactor = ReadGlow(*Em, TEXT("reactor"));
 				Def.Repulsors = ReadGlow(*Em, TEXT("repulsors"));
 			}
-			Def.PanelLineDepth = ReadNum(S, TEXT("panelLineDepth"), 0.f);
+			Def.PanelLineDepth = FMath::Max(0.f, ReadNum(S, TEXT("panelLineDepth"), 0.12f)); // M_SuitMaster default
 			Table.Add(FName(*Pair.Key), Def);
 		}
 		UE_LOG(LogIronManArena, Log, TEXT("Suit materials: %d suits from %s"), Table.Num(), *Path);
@@ -219,6 +219,28 @@ namespace
 		if (N.Contains(TEXT("Reactor")) || HasGlowToken(N, TEXT("Core")) || HasGlowToken(N, TEXT("Arc")) || HasGlowToken(N, TEXT("Tri"))) { return EGlowKind::Reactor; }
 		return EGlowKind::Other;
 	}
+
+	// B12: set a scalar only if the parent material has it; log each missing (material, parameter)
+	// pair once so a renamed parameter or the M_CarPaint fallback shows up in the log.
+	void SetSuitMatScalar(UMaterialInstanceDynamic* MID, FName ParamName, float Value)
+	{
+		if (!MID) { return; }
+		UMaterialInterface* Base = MID->Parent;
+		float Existing = 0.f;
+		if (Base && Base->GetScalarParameterValue(FHashedMaterialParameterInfo(ParamName), Existing))
+		{
+			MID->SetScalarParameterValue(ParamName, Value);
+			return;
+		}
+		static TSet<FString> Logged;
+		const FString Key = (Base ? Base->GetPathName() : FString(TEXT("<none>"))) + TEXT(":") + ParamName.ToString();
+		if (!Logged.Contains(Key))
+		{
+			Logged.Add(Key);
+			UE_LOG(LogIronManArena, Log, TEXT("Suit material: %s has no scalar '%s' (skipped)"),
+				Base ? *Base->GetName() : TEXT("<none>"), *ParamName.ToString());
+		}
+	}
 }
 
 namespace SuitRig
@@ -231,16 +253,19 @@ namespace SuitRig
 {
 	void Build(AActor* Owner, USceneComponent* Root, FSuitRig& Rig, TArray<FArenaPaintedPart>& OutParts)
 	{
+		// Shoulder pivot half-width (Manny upperarm y=18). Shoulder pads / spikes / cannon / Hulkbuster pads derive from it.
+		constexpr float ArmPivotY = 18.f;
 		check(Owner && Root);
 		FPartMaker Part{ Owner, OutParts };
 		Rig.Root = Root;
 
 		// --- Torso ---
 		Part(Root, TEXT("Pelvis"), EArenaShape::Cube, FVector(0, 0, 100), FVector(0.26f, 0.36f, 0.14f), R::Secondary);
-		Part(Root, TEXT("Torso"), EArenaShape::Cube, FVector(0, 0, 132), FVector(0.28f, 0.42f, 0.42f), R::Primary);
+		// B11: torso narrowed from +-21 to +-16.5 so the arms (pivots at +-ArmPivotY) no longer cut into it.
+		Part(Root, TEXT("Torso"), EArenaShape::Cube, FVector(0, 0, 132), FVector(0.28f, 0.33f, 0.42f), R::Primary);
 		Part(Root, TEXT("Abs"), EArenaShape::Cube, FVector(14, 0, 117), FVector(0.04f, 0.26f, 0.16f), R::Accent);
-		Part(Root, TEXT("ChestPlateL"), EArenaShape::Cube, FVector(14, -11, 143), FVector(0.03f, 0.16f, 0.14f), R::Primary, 1.3f);
-		Part(Root, TEXT("ChestPlateR"), EArenaShape::Cube, FVector(14, 11, 143), FVector(0.03f, 0.16f, 0.14f), R::Primary, 1.3f);
+		Part(Root, TEXT("ChestPlateL"), EArenaShape::Cube, FVector(14, -8.5f, 143), FVector(0.03f, 0.14f, 0.14f), R::Primary, 1.3f);
+		Part(Root, TEXT("ChestPlateR"), EArenaShape::Cube, FVector(14, 8.5f, 143), FVector(0.03f, 0.14f, 0.14f), R::Primary, 1.3f);
 		Rig.ArcReactor = Part(Root, TEXT("ArcReactor"), EArenaShape::Cylinder, FVector(16, 0, 140), FVector(0.12f, 0.12f, 0.03f),
 			R::Emissive, 1.f, 25.f, FRotator(-90.f, 0.f, 0.f));
 		// Triangle reactor: a cone seen from the front is a triangle; point down like the Mark VI.
@@ -307,9 +332,9 @@ namespace SuitRig
 
 		// --- Arms: pivots at the shoulders, arm hangs along -Z. Pitching the pivot +90 points it forward.
 		Rig.ShoulderL = MakeRoot(Owner, Root, TEXT("ShoulderL"));
-		Rig.ShoulderL->SetRelativeLocation(FVector(0, -18, 150)) /* U armor_kit: upperarm_l y=-18 */;
+		Rig.ShoulderL->SetRelativeLocation(FVector(0, -ArmPivotY, 150)) /* U armor_kit: upperarm_l y=-18 */;
 		Rig.ShoulderR = MakeRoot(Owner, Root, TEXT("ShoulderR"));
-		Rig.ShoulderR->SetRelativeLocation(FVector(0, 18, 150));
+		Rig.ShoulderR->SetRelativeLocation(FVector(0, ArmPivotY, 150));
 		for (int32 Side = 0; Side < 2; ++Side)
 		{
 			USceneComponent* S = Side == 0 ? Rig.ShoulderL.Get() : Rig.ShoulderR.Get();
@@ -358,26 +383,28 @@ namespace SuitRig
 		}
 
 		// --- Shoulder attachments (index = ESuitShoulders; None has no parts) ---
+		// B11: offsets were authored for the old +-28 pivot (pads +3, spikes +4/-2, cannon -6, Hulkbuster
+		// pads +8); they now follow ArmPivotY so they sit on the shoulder caps instead of ~10 cm outboard.
 		Rig.ShoulderSets.SetNum(4);
 		{
 			USceneComponent* S = MakeRoot(Owner, Root, TEXT("ShoulderPads"));
-			Part(S, TEXT("PadL"), EArenaShape::Cube, FVector(0, -31, 161), FVector(0.26f, 0.2f, 0.07f), R::Secondary, 1.f, 0.f, FRotator(0, 0, -15));
-			Part(S, TEXT("PadR"), EArenaShape::Cube, FVector(0, 31, 161), FVector(0.26f, 0.2f, 0.07f), R::Secondary, 1.f, 0.f, FRotator(0, 0, 15));
+			Part(S, TEXT("PadL"), EArenaShape::Cube, FVector(0, -(ArmPivotY + 3.f), 161), FVector(0.26f, 0.2f, 0.07f), R::Secondary, 1.f, 0.f, FRotator(0, 0, -15));
+			Part(S, TEXT("PadR"), EArenaShape::Cube, FVector(0, ArmPivotY + 3.f, 161), FVector(0.26f, 0.2f, 0.07f), R::Secondary, 1.f, 0.f, FRotator(0, 0, 15));
 			Rig.ShoulderSets[(int32)ESuitShoulders::Pads] = S;
 		}
 		{
 			USceneComponent* S = MakeRoot(Owner, Root, TEXT("ShoulderCannon"));
-			Part(S, TEXT("CannonMount"), EArenaShape::Cube, FVector(-4, 22, 169), FVector(0.16f, 0.12f, 0.1f), R::Primary, 0.7f);
-			Part(S, TEXT("CannonBarrel"), EArenaShape::Cylinder, FVector(10, 22, 177), FVector(0.08f, 0.08f, 0.42f), R::Secondary, 0.6f, 0.f, FRotator(-90, 0, 0));
-			Part(S, TEXT("CannonMuzzle"), EArenaShape::Cylinder, FVector(31, 22, 177), FVector(0.05f, 0.05f, 0.02f), R::Emissive, 1.f, 10.f, FRotator(-90, 0, 0));
+			Part(S, TEXT("CannonMount"), EArenaShape::Cube, FVector(-4, ArmPivotY - 2.f, 169), FVector(0.16f, 0.12f, 0.1f), R::Primary, 0.7f);
+			Part(S, TEXT("CannonBarrel"), EArenaShape::Cylinder, FVector(10, ArmPivotY - 2.f, 177), FVector(0.08f, 0.08f, 0.42f), R::Secondary, 0.6f, 0.f, FRotator(-90, 0, 0));
+			Part(S, TEXT("CannonMuzzle"), EArenaShape::Cylinder, FVector(31, ArmPivotY - 2.f, 177), FVector(0.05f, 0.05f, 0.02f), R::Emissive, 1.f, 10.f, FRotator(-90, 0, 0));
 			Rig.ShoulderSets[(int32)ESuitShoulders::Cannon] = S;
 		}
 		{
 			USceneComponent* S = MakeRoot(Owner, Root, TEXT("ShoulderSpikes"));
-			Part(S, TEXT("SpikeL1"), EArenaShape::Cone, FVector(0, -32, 165), FVector(0.1f, 0.1f, 0.24f), R::Primary, 1.15f, 0.f, FRotator(0, 0, -40));
-			Part(S, TEXT("SpikeR1"), EArenaShape::Cone, FVector(0, 32, 165), FVector(0.1f, 0.1f, 0.24f), R::Primary, 1.15f, 0.f, FRotator(0, 0, 40));
-			Part(S, TEXT("SpikeL2"), EArenaShape::Cone, FVector(-7, -26, 166), FVector(0.07f, 0.07f, 0.17f), R::Secondary, 1.f, 0.f, FRotator(-15, 0, -20));
-			Part(S, TEXT("SpikeR2"), EArenaShape::Cone, FVector(-7, 26, 166), FVector(0.07f, 0.07f, 0.17f), R::Secondary, 1.f, 0.f, FRotator(-15, 0, 20));
+			Part(S, TEXT("SpikeL1"), EArenaShape::Cone, FVector(0, -(ArmPivotY + 4.f), 165), FVector(0.1f, 0.1f, 0.24f), R::Primary, 1.15f, 0.f, FRotator(0, 0, -40));
+			Part(S, TEXT("SpikeR1"), EArenaShape::Cone, FVector(0, ArmPivotY + 4.f, 165), FVector(0.1f, 0.1f, 0.24f), R::Primary, 1.15f, 0.f, FRotator(0, 0, 40));
+			Part(S, TEXT("SpikeL2"), EArenaShape::Cone, FVector(-7, -(ArmPivotY - 2.f), 166), FVector(0.07f, 0.07f, 0.17f), R::Secondary, 1.f, 0.f, FRotator(-15, 0, -20));
+			Part(S, TEXT("SpikeR2"), EArenaShape::Cone, FVector(-7, ArmPivotY - 2.f, 166), FVector(0.07f, 0.07f, 0.17f), R::Secondary, 1.f, 0.f, FRotator(-15, 0, 20));
 			Rig.ShoulderSets[(int32)ESuitShoulders::Spiked] = S;
 		}
 
@@ -438,8 +465,8 @@ namespace SuitRig
 		// --- Hulkbuster extra armour (hidden until Q) ---
 		Rig.HulkbusterPlates = MakeRoot(Owner, Root, TEXT("HulkbusterPlates"));
 		Part(Rig.HulkbusterPlates, TEXT("BusterChest"), EArenaShape::Cube, FVector(4, 0, 135), FVector(0.36f, 0.56f, 0.4f), R::Primary, 0.9f);
-		Part(Rig.HulkbusterPlates, TEXT("BusterPadL"), EArenaShape::Cube, FVector(0, -36, 158), FVector(0.3f, 0.26f, 0.18f), R::Secondary);
-		Part(Rig.HulkbusterPlates, TEXT("BusterPadR"), EArenaShape::Cube, FVector(0, 36, 158), FVector(0.3f, 0.26f, 0.18f), R::Secondary);
+		Part(Rig.HulkbusterPlates, TEXT("BusterPadL"), EArenaShape::Cube, FVector(0, -(ArmPivotY + 8.f), 158), FVector(0.3f, 0.26f, 0.18f), R::Secondary);
+		Part(Rig.HulkbusterPlates, TEXT("BusterPadR"), EArenaShape::Cube, FVector(0, ArmPivotY + 8.f, 158), FVector(0.3f, 0.26f, 0.18f), R::Secondary);
 		Part(Rig.HulkbusterPlates, TEXT("BusterReactor"), EArenaShape::Cylinder, FVector(23, 0, 140), FVector(0.16f, 0.16f, 0.03f), R::Emissive, 1.f, 25.f, FRotator(-90.f, 0.f, 0.f));
 	}
 
@@ -578,19 +605,21 @@ namespace SuitRig
 				P.Color.A = 1.f;
 				if (P.MID)
 				{
-					P.MID->SetScalarParameterValue(TEXT("Metallic"), M.Metallic);
-					P.MID->SetScalarParameterValue(TEXT("Roughness"), FMath::Min(1.f, M.Roughness + DirtRough));
-					P.MID->SetScalarParameterValue(TEXT("ClearCoat"), M.ClearCoat);
-					P.MID->SetScalarParameterValue(TEXT("ClearCoatRoughness"), M.ClearCoatRoughness);
-					P.MID->SetScalarParameterValue(TEXT("FlakeAmount"), M.Flake);
-					P.MID->SetScalarParameterValue(TEXT("FlakeScale"), M.FlakeScale);
-					P.MID->SetScalarParameterValue(TEXT("Specular"), M.Specular);       // M_SuitMaster only (ignored elsewhere)
-					P.MID->SetScalarParameterValue(TEXT("Anisotropy"), M.Anisotropy);
-					P.MID->SetScalarParameterValue(TEXT("AnisotropyAngle"), M.AnisotropyAngle);
-					P.MID->SetScalarParameterValue(TEXT("EdgeWear"), Def->EdgeWear);
-					P.MID->SetScalarParameterValue(TEXT("Scorch"), Def->Scorch);
-					P.MID->SetScalarParameterValue(TEXT("Dirt"), Def->Dirt);
-					// PanelNormalStrength: M_CarPaint has no such parameter (U fix #1); panel lines are geometry now.
+					SetSuitMatScalar(P.MID, TEXT("Metallic"), M.Metallic);
+					SetSuitMatScalar(P.MID, TEXT("Roughness"), FMath::Min(1.f, M.Roughness + DirtRough));
+					SetSuitMatScalar(P.MID, TEXT("ClearCoat"), M.ClearCoat);
+					SetSuitMatScalar(P.MID, TEXT("ClearCoatRoughness"), M.ClearCoatRoughness);
+					SetSuitMatScalar(P.MID, TEXT("FlakeAmount"), M.Flake);
+					SetSuitMatScalar(P.MID, TEXT("FlakeScale"), M.FlakeScale);
+					// Specular / Anisotropy / AnisotropyAngle / Dirt / PanelDepth: M_SuitMaster only (M_CarPaint logs once).
+					SetSuitMatScalar(P.MID, TEXT("Specular"), M.Specular);
+					SetSuitMatScalar(P.MID, TEXT("Anisotropy"), M.Anisotropy);
+					SetSuitMatScalar(P.MID, TEXT("AnisotropyAngle"), M.AnisotropyAngle);
+					SetSuitMatScalar(P.MID, TEXT("EdgeWear"), Def->EdgeWear);
+					SetSuitMatScalar(P.MID, TEXT("Scorch"), Def->Scorch);
+					SetSuitMatScalar(P.MID, TEXT("Dirt"), Def->Dirt);
+					// B12: panelLineDepth (cm) from suit_materials.json -> M_SuitMaster PanelDepth (was parsed, never sent).
+					SetSuitMatScalar(P.MID, TEXT("PanelDepth"), Def->PanelLineDepth);
 					P.MID->SetVectorParameterValue(TEXT("WearColor"), Def->WearColor);
 				}
 				RepaintPart(P);

@@ -84,9 +84,11 @@ void ATankBot::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 	FaceToward(PlayerLoc, DeltaSeconds, 45.f); // hull turns slowly
 	FVector Delta = Dir * Want * DeltaSeconds;
 
-	// Stick to the floor.
+	// Stick to the floor. B16: probe from step height (60 uu above the treads), not 5 m up, so cars,
+	// low roofs and the seawall aren't taken as the floor; the swept MoveBy then slides along them.
 	float FloorZ = 0.f;
-	if (FindFloorZ(Loc + Delta, FloorZ))
+	const FVector Treads(Loc.X + Delta.X, Loc.Y + Delta.Y, Loc.Z - RideHeight);
+	if (FindFloorZ(Treads, FloorZ, 60.f))
 	{
 		Delta.Z = (FloorZ + RideHeight) - Loc.Z;
 	}

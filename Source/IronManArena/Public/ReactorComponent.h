@@ -37,7 +37,7 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	/** Adds heat (scaled by the mounted-unit multiplier). Ignored while venting. */
+	/** Adds heat (scaled by the mounted-unit multiplier). While venting it is queued and lands when the vent ends (B20). */
 	UFUNCTION(BlueprintCallable, Category = "Reactor")
 	void AddHeat(float Amount);
 
@@ -259,4 +259,6 @@ private:
 	float VentTimeLeft = 0.f;
 	float VentCooldownLeft = 0.f;
 	float TimeSinceHeat = 0.f;
+	/** B20: heat added during a vent (already scaled), applied when the vent finishes. */
+	float HeatQueuedDuringVent = 0.f;
 };

@@ -637,7 +637,7 @@
  },
  "rigFallback": {
   "note": "When no SKM_Manny is present, attach to SuitRig scene components: head/neck/spine/pelvis -> Body root with component positions from skeleton.nominalPoseCm; *_l arm bones -> ShoulderL, *_r -> ShoulderR, leg -> HipL/HipR, using limb frames (identical to rig pivot axes for hanging limbs).",
-  "pivotMismatch": "SuitRig ShoulderL/R at (0,-/+28,150) and HipL/R at (0,-/+13,95) are wider than Manny (upperarm (-1,-/+18,145), thigh (0,-/+9.5,94)). Recommend moving rig pivots to Manny positions or offsetting fallback plates by the difference.",
+  "pivotMismatch": "Resolved: SuitRig ShoulderL/R are at (0,-/+18,150) and HipL/R at (0,-/+9.5,95), matching Manny (upperarm (-1,-/+18,145), thigh (0,-/+9.5,94)). SuitRig shoulder pads/spikes/cannon/Hulkbuster pads derive from the 18 cm pivot (playtest B11).",
   "fallbackOnlyTag": "fallbackOnly plates (undersuit tubes) are only spawned in rig-fallback mode."
  },
  "segments": [

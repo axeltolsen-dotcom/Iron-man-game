@@ -84,8 +84,7 @@ void ADroneEnemy::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 	if (FindFloorZ(Target, FloorZ)) { Target.Z = FMath::Max(Target.Z, FloorZ + MinAltitude); }
 
 	const FVector Loc = GetActorLocation();
-	Velocity += ((Target - Loc) * Spring - Velocity * Damping) * DeltaSeconds;
-	MoveBy(Velocity * DeltaSeconds);
+	MoveBy(IntegrateSpringSteer(Velocity, Loc, Target, Spring, Damping, DeltaSeconds)); // B17: fps-independent
 
 	// Bank a little into the movement and face the player.
 	FaceToward(PlayerLoc, DeltaSeconds, 240.f);

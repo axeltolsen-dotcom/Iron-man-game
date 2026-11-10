@@ -9,6 +9,8 @@
 #include "Dom/JsonObject.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/World.h"
+#include "Misc/CoreDelegates.h"
 #include "GameFramework/Actor.h"
 #include "MeshDescription.h"
 #include "Misc/FileHelper.h"
@@ -1235,7 +1237,9 @@ namespace
 			const FVector2d A = C + EdgeN * Rc, B = CN + EdgeN * Rc;
 			for (int32 e = 0; e < EdgeSegs; ++e) { Out.Add(A + (B - A) * (double(e) / EdgeSegs)); }
 		}
-		Out.Add(Out[0]);
+		// Close the loop. Copy first: TArray::Add(Out[0]) asserts (element from the container being modified).
+		const FVector2d FirstPoint = Out[0];
+		Out.Add(FirstPoint);
 		return Out;
 	}
 
@@ -1601,10 +1605,39 @@ namespace
 	}
 
 	/** Session cache: suit|plate -> mesh (rooted; a suit's plates are ~100-150 small meshes). */
-	TMap<FString, UStaticMesh*>& MeshCache()
+	TMap<FString, UStaticMesh*>& MeshCacheStorage()
 	{
 		static TMap<FString, UStaticMesh*> Cache;
 		return Cache;
+	}
+
+	/** B22: un-root and forget every cached plate mesh (live plates keep theirs via their components). */
+	void ReleaseArmorMeshCache()
+	{
+		TMap<FString, UStaticMesh*>& Cache = MeshCacheStorage();
+		for (TPair<FString, UStaticMesh*>& Pair : Cache)
+		{
+			if (Pair.Value && Pair.Value->IsRooted()) { Pair.Value->RemoveFromRoot(); }
+		}
+		if (Cache.Num() > 0) { UE_LOG(LogArmorKit, Log, TEXT("Armour kit: released %d cached plate meshes"), Cache.Num()); }
+		Cache.Empty();
+	}
+
+	TMap<FString, UStaticMesh*>& MeshCache()
+	{
+		static bool bHooked = false;
+		if (!bHooked)
+		{
+			bHooked = true;
+			// Shipped games keep the cache for the session (suit swaps reuse it); PIE releases it when the
+			// play world is torn down, so the editor doesn't keep every PIE session's meshes rooted.
+			FWorldDelegates::OnPostWorldCleanup.AddLambda([](UWorld* World, bool /*bSessionEnded*/, bool /*bCleanupResources*/)
+			{
+				if (World && World->WorldType == EWorldType::PIE) { ReleaseArmorMeshCache(); }
+			});
+			FCoreDelegates::OnPreExit.AddLambda([]() { ReleaseArmorMeshCache(); });
+		}
+		return MeshCacheStorage();
 	}
 
 	// ------------------------------------------------------------------ frames / attachment

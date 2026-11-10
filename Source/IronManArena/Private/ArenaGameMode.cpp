@@ -701,7 +701,16 @@ FVector AArenaGameMode::PickSpawnLocation(float MinDist, float MaxDist, float He
 	const float PlayRadius = bCityPlay ? CityPlayRadius : ArenaRadius;
 	const FVector Around = Player ? Player->GetActorLocation() : PlayCenter;
 
+	// Floor snap ignores chapter sets (roofs, towers, ruins must not lift beacons / enemies onto their tops).
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(ArenaSpawnProbe), false);
+	for (TActorIterator<AChapterSet> It(GetWorld()); It; ++It) { Params.AddIgnoredActor(*It); }
+	// B19: ...but the final spot must not be inside any static geometry, chapter-set props included.
+	FCollisionQueryParams ClearParams(SCENE_QUERY_STAT(ArenaSpawnClear), false);
+	const float ClearRadius = FMath::Clamp(HeightAboveFloor - 20.f, 40.f, 120.f);
+	const FCollisionShape ClearShape = FCollisionShape::MakeSphere(ClearRadius);
+
 	FVector Best = PlayCenter;
+	int32 BestSpotRank = -1; // spot rank, not the game score
 	for (int32 Try = 0; Try < 12; ++Try)
 	{
 		const float Angle = FMath::FRandRange(0.f, 2.f * PI);
@@ -711,26 +720,32 @@ FVector AArenaGameMode::PickSpawnLocation(float MinDist, float MaxDist, float He
 		const bool bInside = Flat.Size() <= PlayRadius;
 		if (!bInside)
 		{
-			// Pull back inside the arena; accept it on the last try.
+			// Pull back inside the arena; accepted only if nothing better turns up.
 			Flat = Flat.GetSafeNormal() * PlayRadius;
 			P.X = PlayCenter.X + Flat.X;
 			P.Y = PlayCenter.Y + Flat.Y;
 		}
-		Best = P;
-		if (bInside) { break; }
-	}
 
-	// Snap to the actual floor if there is one.
-	FHitResult Hit;
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(ArenaSpawnProbe), false);
-	// Chapter sets (roofs, towers, ruins) must not lift beacons / enemies onto their tops.
-	for (TActorIterator<AChapterSet> It(GetWorld()); It; ++It) { Params.AddIgnoredActor(*It); }
-	if (GetWorld()->LineTraceSingleByObjectType(Hit, Best + FVector(0.f, 0.f, 6000.f), Best - FVector(0.f, 0.f, 6000.f),
-		FCollisionObjectQueryParams(ECC_WorldStatic), Params))
-	{
-		Best.Z = Hit.ImpactPoint.Z;
+		// Snap to the actual floor if there is one.
+		FHitResult Hit;
+		if (GetWorld()->LineTraceSingleByObjectType(Hit, P + FVector(0.f, 0.f, 6000.f), P - FVector(0.f, 0.f, 6000.f),
+			FCollisionObjectQueryParams(ECC_WorldStatic), Params))
+		{
+			P.Z = Hit.ImpactPoint.Z;
+		}
+		P.Z += HeightAboveFloor;
+
+		const bool bClear = !GetWorld()->OverlapAnyTestByObjectType(P, FQuat::Identity,
+			FCollisionObjectQueryParams(ECC_WorldStatic), ClearShape, ClearParams);
+		// Prefer clear + inside, then clear, then inside (old behaviour), then anything.
+		const int32 SpotRank = (bClear ? 2 : 0) + (bInside ? 1 : 0);
+		if (SpotRank > BestSpotRank) { Best = P; BestSpotRank = SpotRank; }
+		if (SpotRank == 3) { break; }
 	}
-	Best.Z += HeightAboveFloor;
+	if (BestSpotRank < 2)
+	{
+		UE_LOG(LogIronManArena, Verbose, TEXT("Spawn probe: no clear spot in 12 tries, using %s"), *Best.ToString());
+	}
 	return Best;
 }
 

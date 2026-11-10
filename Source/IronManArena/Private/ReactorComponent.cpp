@@ -29,8 +29,15 @@ void UReactorComponent::SetPermanentUpgrades(bool bCapacitorBank, bool bHeatSink
 
 void UReactorComponent::AddHeat(float Amount)
 {
-	if (Amount <= 0.f || IsVenting()) { return; }
-	Heat = FMath::Min(GetMaxHeat(), Heat + Amount * (bMountedUnit ? MountedHeatMultiplier : 1.f) * StageHeatMultiplier);
+	if (Amount <= 0.f) { return; }
+	const float Scaled = Amount * (bMountedUnit ? MountedHeatMultiplier : 1.f) * StageHeatMultiplier;
+	if (IsVenting())
+	{
+		// B20: a vent is not a free pass - queue the heat and apply it when the vent ends.
+		HeatQueuedDuringVent += Scaled;
+		return;
+	}
+	Heat = FMath::Min(GetMaxHeat(), Heat + Scaled);
 	TimeSinceHeat = 0.f;
 	if (Heat >= GetMaxHeat()) { SetOverheated(true); }
 }
@@ -49,6 +56,7 @@ void UReactorComponent::ResetReactor()
 	VentTimeLeft = 0.f;
 	VentCooldownLeft = 0.f;
 	TimeSinceHeat = 0.f;
+	HeatQueuedDuringVent = 0.f;
 	SetOverheated(false);
 }
 
@@ -101,6 +109,13 @@ void UReactorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	{
 		VentTimeLeft -= DeltaTime;
 		Heat = FMath::Max(0.f, Heat - VentCoolingPerSecond * CoolingMultiplier() * DeltaTime);
+		if (VentTimeLeft <= 0.f && HeatQueuedDuringVent > 0.f)
+		{
+			Heat = FMath::Min(GetMaxHeat(), Heat + HeatQueuedDuringVent); // already scaled in AddHeat
+			HeatQueuedDuringVent = 0.f;
+			TimeSinceHeat = 0.f;
+			if (Heat >= GetMaxHeat()) { SetOverheated(true); }
+		}
 	}
 	else if (TimeSinceHeat >= CoolingDelay || bOverheated)
 	{
