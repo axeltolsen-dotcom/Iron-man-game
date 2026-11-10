@@ -1,4 +1,5 @@
 #include "ArenaGameMode.h"
+#include "GameFramework/WorldSettings.h"
 #include "CityLayout.h"
 #include "ArenaSmokeTest.h"
 #include "StoryLibrary.h"
@@ -544,6 +545,8 @@ void AArenaGameMode::StartWave(int32 NewWave)
 
 	SpawnTimer = 0.6f;
 	bWaveActive = true;
+	EnemyWatch.Reset();
+	WatchdogTimer = 0.f;
 	bTankAnnouncedThisWave = false;
 	bSwarmAnnouncedThisWave = false;
 	UJarvisComponent::Notify(this, bWaveHasBoss ? EAIEvent::BossIncoming : EAIEvent::WaveStart);
@@ -568,6 +571,8 @@ void AArenaGameMode::TickWaves(float DeltaSeconds)
 		if (BreakTimer <= 0.f) { StartWave(Wave + 1); }
 		return;
 	}
+
+	TickStuckWatchdog(DeltaSeconds);
 
 	// Spawning.
 	if (SpawnQueue.Num() > 0)
@@ -612,6 +617,80 @@ void AArenaGameMode::TickWaves(float DeltaSeconds)
 		ShowBanner(FText::Format(LOCTEXT("Clear", "WAVE {0} CLEARED"), FText::AsNumber(Wave)),
 			FText::Format(LOCTEXT("ClearSub", "+{0} bonus"), FText::AsNumber(Bonus)), 2.5f);
 		BreakTimer = BreakTime;
+	}
+}
+
+void AArenaGameMode::TickStuckWatchdog(float DeltaSeconds)
+{
+	WatchdogTimer -= DeltaSeconds;
+	if (WatchdogTimer > 0.f) { return; }
+	const float Step = 1.f;
+	WatchdogTimer = Step;
+
+	UWorld* World = GetWorld();
+	if (!World) { return; }
+	const AIronManCharacter* Player = GetPlayer();
+	const FVector PlayCenter = bCityPlay ? CityPlayCenter : ArenaCenter;
+	const float PlayRadius = bCityPlay ? CityPlayRadius : ArenaRadius;
+	const float KillZ = World->GetWorldSettings() ? World->GetWorldSettings()->KillZ : -HALF_WORLD_MAX;
+	const float StuckAfter = 20.f;      // seconds without moving or being hurt
+	const float FarFromPlayer = 2500.f; // a still enemy right next to the player is just fighting
+
+	TSet<TWeakObjectPtr<AEnemyBase>> Seen;
+	for (TActorIterator<AEnemyBase> It(World); It; ++It)
+	{
+		AEnemyBase* E = *It;
+		if (!E || E->IsDead() || !IsValid(E)) { continue; }
+		Seen.Add(E);
+		const FVector Loc = E->GetActorLocation();
+		FEnemyWatch* W = EnemyWatch.Find(E);
+		if (!W)
+		{
+			FEnemyWatch Fresh;
+			Fresh.LastLocation = Loc;
+			Fresh.LastHealth = E->GetHealth();
+			EnemyWatch.Add(E, Fresh);
+			continue;
+		}
+
+		const bool bBoss = E->GetKind() == EEnemyKind::Boss;
+		const bool bOutOfBounds = Loc.Z < KillZ + 500.f || Loc.Z < ArenaFloorZ - 3000.f
+			|| (PlayRadius > 0.f && FVector::Dist2D(Loc, PlayCenter) > PlayRadius * 1.5f + 2000.f);
+		const bool bMoved = FVector::DistSquared(Loc, W->LastLocation) > FMath::Square(60.f);
+		const bool bHurt = E->GetHealth() < W->LastHealth - KINDA_SMALL_NUMBER;
+		const bool bNearPlayer = Player && FVector::Dist(Loc, Player->GetActorLocation()) < FarFromPlayer;
+		W->IdleSeconds = (bMoved || bHurt || bNearPlayer || bBoss) ? 0.f : W->IdleSeconds + Step;
+		W->LastLocation = Loc;
+		W->LastHealth = E->GetHealth();
+
+		if (!bOutOfBounds && W->IdleSeconds < StuckAfter) { continue; }
+
+		if (W->Relocations < 2)
+		{
+			const bool bDrone = E->GetKind() == EEnemyKind::Drone;
+			const FVector To = bBoss ? PickSpawnLocation(2000.f, 2400.f, 2100.f)
+				: PickSpawnLocation(SpawnDistance.X, SpawnDistance.Y,
+					bDrone ? FMath::FRandRange(DroneSpawnHeight.X, DroneSpawnHeight.Y) : 160.f);
+			E->SetActorLocation(To, false, nullptr, ETeleportType::TeleportPhysics);
+			++W->Relocations;
+			W->IdleSeconds = 0.f;
+			W->LastLocation = To;
+			UE_LOG(LogTemp, Log, TEXT("Wave watchdog: relocated %s (%s, try %d)"), *E->GetName(),
+				bOutOfBounds ? TEXT("out of bounds") : TEXT("stuck"), W->Relocations);
+		}
+		else
+		{
+			// Still stuck after two relocations: remove it so the wave can end (no score, no drops).
+			UE_LOG(LogTemp, Log, TEXT("Wave watchdog: culled %s"), *E->GetName());
+			EnemyWatch.Remove(E);
+			Seen.Remove(E);
+			E->Destroy();
+		}
+	}
+
+	for (auto WIt = EnemyWatch.CreateIterator(); WIt; ++WIt)
+	{
+		if (!WIt.Key().IsValid() || !Seen.Contains(WIt.Key())) { WIt.RemoveCurrent(); }
 	}
 }
 

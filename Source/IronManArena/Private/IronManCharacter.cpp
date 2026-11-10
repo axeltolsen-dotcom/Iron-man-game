@@ -1888,6 +1888,43 @@ void AIronManCharacter::ActivateHulkbuster()
 		return;
 	}
 
+	// B07: make sure the bigger capsule fits here (low roofs, corridors, walls) before spending the charge.
+	const float BusterHalf = BaseCapsuleHalfHeight * HulkbusterScale;
+	const float BusterRadius = BaseCapsuleRadius * HulkbusterScale;
+	const float BusterLift = BusterHalf - BaseCapsuleHalfHeight;
+	FVector BusterSpot = GetActorLocation() + FVector(0.f, 0.f, BusterLift);
+	{
+		UWorld* BusterWorld = GetWorld();
+		FCollisionQueryParams BusterParams(SCENE_QUERY_STAT(HulkbusterClearance), false, this);
+		const FCollisionShape BusterShape = FCollisionShape::MakeCapsule(BusterRadius, BusterHalf);
+		const ECollisionChannel BusterChannel = GetCapsuleComponent()->GetCollisionObjectType();
+		bool bFits = BusterWorld && !BusterWorld->OverlapBlockingTestByChannel(BusterSpot, FQuat::Identity, BusterChannel, BusterShape, BusterParams);
+		if (!bFits && BusterWorld)
+		{
+			// Try nudging the lift lower / sideways a little before giving up.
+			static const FVector Nudges[] = {
+				FVector(0.f, 0.f, -0.5f), FVector(1.f, 0.f, 0.f), FVector(-1.f, 0.f, 0.f),
+				FVector(0.f, 1.f, 0.f), FVector(0.f, -1.f, 0.f) };
+			for (const FVector& N : Nudges)
+			{
+				const FVector Try = BusterSpot + N * FVector(BusterRadius - BaseCapsuleRadius, BusterRadius - BaseCapsuleRadius, BusterLift);
+				if (!BusterWorld->OverlapBlockingTestByChannel(Try, FQuat::Identity, BusterChannel, BusterShape, BusterParams))
+				{
+					// Only accept it if the small capsule can actually get there (no going through a thin wall).
+					FHitResult PathHit;
+					const bool bPathBlocked = BusterWorld->SweepSingleByChannel(PathHit, GetActorLocation(), Try - FVector(0.f, 0.f, BusterLift),
+						FQuat::Identity, BusterChannel, GetCapsuleComponent()->GetCollisionShape(), BusterParams);
+					if (!bPathBlocked) { BusterSpot = Try; bFits = true; break; }
+				}
+			}
+		}
+		if (!bFits)
+		{
+			Banner(LOCTEXT("BusterNoClearance", "NO CLEARANCE"), LOCTEXT("BusterNoClearanceSub", "MOVE TO OPEN GROUND - CHARGE KEPT"), 1.5f);
+			return;
+		}
+	}
+
 	--HulkbusterCharges;
 	HulkbusterTimeLeft = HulkbusterDuration;
 	Health = FMath::Min(MaxHealth, Health + HulkbusterActivationHeal);
@@ -1895,9 +1932,8 @@ void AIronManCharacter::ActivateHulkbuster()
 	bBeamWhip = false;
 
 	// Grow the capsule; lift first so the bigger capsule doesn't start inside the floor.
-	const float NewHalf = BaseCapsuleHalfHeight * HulkbusterScale;
-	AddActorWorldOffset(FVector(0.f, 0.f, NewHalf - BaseCapsuleHalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
-	GetCapsuleComponent()->SetCapsuleSize(BaseCapsuleRadius * HulkbusterScale, NewHalf);
+	SetActorLocation(BusterSpot, false, nullptr, ETeleportType::TeleportPhysics);
+	GetCapsuleComponent()->SetCapsuleSize(BusterRadius, BusterHalf);
 	UpdateSuitRootTransform();
 	RefreshSuitVisibility();
 

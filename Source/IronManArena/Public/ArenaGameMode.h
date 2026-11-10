@@ -270,6 +270,18 @@ protected:
 	bool bWaveHasBoss = false;
 	bool bWaveActive = false;
 
+	/** B06 stuck watchdog: enemies that neither move nor take damage get relocated, then culled (no reward). */
+	struct FEnemyWatch
+	{
+		FVector LastLocation = FVector::ZeroVector;
+		float LastHealth = 0.f;
+		float IdleSeconds = 0.f;
+		int32 Relocations = 0;
+	};
+	TMap<TWeakObjectPtr<AEnemyBase>, FEnemyWatch> EnemyWatch;
+	float WatchdogTimer = 0.f;
+	void TickStuckWatchdog(float DeltaSeconds);
+
 	FText BannerTitle;
 	FText BannerSubtitle;
 	float BannerTimeLeft = 0.f;
