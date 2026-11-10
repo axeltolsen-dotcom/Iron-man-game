@@ -1900,7 +1900,9 @@ void AIronManCharacter::ActivateHulkbuster()
 	// B07: make sure the bigger capsule fits here (low roofs, corridors, walls) before spending the charge.
 	const float BusterHalf = BaseCapsuleHalfHeight * HulkbusterScale;
 	const float BusterRadius = BaseCapsuleRadius * HulkbusterScale;
-	const float BusterLift = BusterHalf - BaseCapsuleHalfHeight;
+	// +4 cm so a pilot standing (or skimming) on the ground doesn't count the floor itself as a blocker:
+	// the grown capsule's bottom would otherwise sit exactly on the surface (story ch6/ch9 at the city plaza).
+	const float BusterLift = BusterHalf - BaseCapsuleHalfHeight + 4.f;
 	FVector BusterSpot = GetActorLocation() + FVector(0.f, 0.f, BusterLift);
 	{
 		UWorld* BusterWorld = GetWorld();
@@ -1929,6 +1931,20 @@ void AIronManCharacter::ActivateHulkbuster()
 		}
 		if (!bFits)
 		{
+			if (BusterWorld)
+			{
+				// Say what is in the way (playtest / autopilot logs).
+				TArray<FOverlapResult> BusterBlockers;
+				BusterWorld->OverlapMultiByChannel(BusterBlockers, BusterSpot, FQuat::Identity, BusterChannel, BusterShape, BusterParams);
+				FString BlockerNames;
+				for (int32 BlockerIdx = 0; BlockerIdx < BusterBlockers.Num() && BlockerIdx < 4; ++BlockerIdx)
+				{
+					const UPrimitiveComponent* BlockerComp = BusterBlockers[BlockerIdx].GetComponent();
+					BlockerNames += FString::Printf(TEXT("%s%s.%s"), BlockerIdx ? TEXT(", ") : TEXT(""),
+						BlockerComp && BlockerComp->GetOwner() ? *BlockerComp->GetOwner()->GetName() : TEXT("?"), BlockerComp ? *BlockerComp->GetName() : TEXT("?"));
+				}
+				UE_LOG(LogIronManArena, Log, TEXT("Hulkbuster: no clearance at %s (flying %d): %s"), *BusterSpot.ToCompactString(), IsFlying() ? 1 : 0, *BlockerNames);
+			}
 			Banner(LOCTEXT("BusterNoClearance", "NO CLEARANCE"), LOCTEXT("BusterNoClearanceSub", "MOVE TO OPEN GROUND - CHARGE KEPT"), 1.5f);
 			return;
 		}

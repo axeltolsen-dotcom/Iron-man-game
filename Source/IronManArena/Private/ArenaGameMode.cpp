@@ -164,6 +164,15 @@ void AArenaGameMode::BuildArenaIfNeeded()
 	{
 		return;
 	}
+	// L_IronManArena already places an ArenaEnvironment (floor, sun component, city). Its floor collision is off
+	// while the city is shown and its sun is a component, so the probes above miss it; spawning a second
+	// environment doubled the whole city (CityLayout_1), and story chapter sets only hide the first one, so the
+	// live duplicate overlapped the ruins / battlefield sets (Hulkbuster NO CLEARANCE in story ch6 / ch9).
+	if (TActorIterator<AArenaEnvironment> ExistingEnv(World); ExistingEnv)
+	{
+		UE_LOG(LogIronManArena, Log, TEXT("Arena: level already has %s - not building a runtime arena"), *ExistingEnv->GetName());
+		return;
+	}
 
 	FActorSpawnParameters SP;
 	SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
