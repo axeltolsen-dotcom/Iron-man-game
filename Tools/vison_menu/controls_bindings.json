@@ -1,0 +1,247 @@
+{
+  "metadata": {
+    "name": "Iron Man Arena - controls reference (read from code, nothing invented)",
+    "version": "2.0.0",
+    "date": "2026-11-10",
+    "engine": "Unreal Engine 5.8",
+    "source_commit": "98f0004 (origin/master, includes 8623124 'Settings: KEY BINDINGS reference') re-read 2026-11-10 from a fresh read-only clone; PR #1 (claude/todo-list, 5f2c656) does not touch input or settings code",
+    "how_read": "IMC_IronMan + 20 UInputAction objects (IA_Move, IA_Look, IA_Ascend, IA_Descend, IA_ToggleFlight, IA_Fire, IA_Special, IA_Hulkbuster, IA_Pause, IA_ToggleView, IA_SuitWheel, IA_WheelPage, IA_Boost, IA_Vent, IA_Ally, IA_QuickSlot1..5) are created at runtime with NewObject in AIronManCharacter::CreateDefaultInputIfNeeded (IronManCharacter.cpp L639-739) and bound in SetupPlayerInputComponent (L741-793). Everything else is polled: SuitSuperComponent::TickInput (RMB/LMB/LT/R3/H/B/R), AIronManCharacter::TickAimFeel (Left Alt), UCareerInput::TickInteract/TickVehicle/TickKeys (E, U, K, N, M, O, vehicle keys), widget NativeOnKeyDown (UCareerScreen, UMainMenuWidget, USettingsWidget, UStoryMenuWidget, USuitSelectWidget), AArenaPlayerController (F11 / Alt+Enter). There are no .uasset input actions / mapping contexts and Config/DefaultInput.ini has no action or axis mappings (only mouse capture + F11/Alt+Enter flags).",
+    "rebindable": "Only the four UCareerInput::Key() names read [IronManArena.Keys] from GameUserSettings.ini then DefaultGame.ini: SuitExit, Faceplate, WebSwing, WebZip. Everything else is hard-coded (IMC built in C++).",
+    "validated_by": "Tools/vison_menu/gen_controls_table.py --check (every kbm_keys / pad_keys name must appear as EKeys::<Name> in the cited source file)",
+    "generated_cpp": "ControlsReference.inl (gen_controls_table.py) -> Source/IronManArena/Private/Generated/ControlsReference.inl"
+  },
+  "groups": [
+    {
+      "id": "flight",
+      "title": "MOVEMENT & FLIGHT",
+      "rows": [
+        {"action": "Move / strafe", "kbm": "W A S D", "pad": "Left stick", "kbm_keys": ["W", "A", "S", "D"], "pad_keys": ["Gamepad_Left2D"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Move"},
+        {"action": "Look / aim", "kbm": "Mouse", "pad": "Right stick", "kbm_keys": ["Mouse2D"], "pad_keys": ["Gamepad_Right2D"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Look"},
+        {"action": "Toggle flight", "kbm": "F", "pad": "Y", "kbm_keys": ["F"], "pad_keys": ["Gamepad_FaceButton_Top"], "source": "Private/IronManCharacter.cpp", "ia": "IA_ToggleFlight"},
+        {"action": "Fly up / jump (on ground)", "kbm": "Space", "pad": "A", "kbm_keys": ["SpaceBar"], "pad_keys": ["Gamepad_FaceButton_Bottom"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Ascend"},
+        {"action": "Fly down", "kbm": "Left Ctrl / C", "pad": "B", "kbm_keys": ["LeftControl", "C"], "pad_keys": ["Gamepad_FaceButton_Right"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Descend"},
+        {"action": "Boost (hold)", "kbm": "Left Shift", "pad": "Left stick click", "kbm_keys": ["LeftShift"], "pad_keys": ["Gamepad_LeftThumbstick"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Boost"},
+        {"action": "First / third person", "kbm": "V", "pad": "Right stick click", "kbm_keys": ["V"], "pad_keys": ["Gamepad_RightThumbstick"], "source": "Private/IronManCharacter.cpp", "ia": "IA_ToggleView"}
+     ]
+    },
+    {
+      "id": "combat",
+      "title": "COMBAT",
+      "rows": [
+        {"action": "Repulsors (hold to keep firing)", "kbm": "Left mouse", "pad": "RT", "kbm_keys": ["LeftMouseButton"], "pad_keys": ["Gamepad_RightTrigger"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Fire"},
+        {"action": "Focus aim (hold)", "kbm": "Left Alt", "pad": "-", "kbm_keys": ["LeftAlt"], "pad_keys": [], "source": "Private/IronManCharacter.cpp", "note": "TickAimFeel; no gamepad key. Slow hover while shooting gives half focus automatically."},
+        {"action": "Charged shot", "kbm": "Hold Left mouse while focused (Alt)", "pad": "-", "kbm_keys": ["LeftMouseButton", "LeftAlt"], "pad_keys": [], "source": "Private/IronManCharacter.cpp", "note": "Repulsor / red blast / laser suits; full charge after 0.7 s at focus > 85 %."},
+        {"action": "Suit special (tap)", "kbm": "Right mouse", "pad": "LT", "kbm_keys": ["RightMouseButton"], "pad_keys": ["Gamepad_LeftTrigger"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Special"},
+        {"action": "Suit ULTRA / super move", "kbm": "Hold Right mouse 0.3 s, or double-click Left mouse", "pad": "Hold LT 0.3 s, or LT + right stick click", "kbm_keys": ["RightMouseButton", "LeftMouseButton"], "pad_keys": ["Gamepad_LeftTrigger", "Gamepad_RightThumbstick"], "source": "Private/SuitSuperComponent.cpp", "note": "Only when the super meter is ready. Double-click window 0.28 s, hold 0.3 s (SuitSuperComponent::TickInput). The gamepad chord LT + R3 also fires IA_ToggleView (R3) - see defaults_overlaps."},
+        {"action": "Hulkbuster", "kbm": "Q", "pad": "X", "kbm_keys": ["Q"], "pad_keys": ["Gamepad_FaceButton_Left"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Hulkbuster", "note": "While Hulkbuster is active, Left mouse punches."},
+        {"action": "Vent reactor", "kbm": "X", "pad": "D-pad down", "kbm_keys": ["X"], "pad_keys": ["Gamepad_DPad_Down"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Vent"},
+        {"action": "Summon ally", "kbm": "G", "pad": "D-pad up", "kbm_keys": ["G"], "pad_keys": ["Gamepad_DPad_Up"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Ally"}
+     ]
+    },
+    {
+      "id": "suit",
+      "title": "SUIT",
+      "rows": [
+        {"action": "Suit menu / wheel (hold, release to pick)", "kbm": "T", "pad": "LB", "kbm_keys": ["T"], "pad_keys": ["Gamepad_LeftShoulder"], "source": "Private/IronManCharacter.cpp", "ia": "IA_SuitWheel", "note": "Left mouse also confirms."},
+        {"action": "Suit wheel: next page (wheel open)", "kbm": "Mouse wheel / Tab", "pad": "RB", "kbm_keys": ["MouseWheelAxis", "Tab"], "pad_keys": ["Gamepad_RightShoulder"], "source": "Private/IronManCharacter.cpp", "ia": "IA_WheelPage", "note": "IA_WheelPage is ignored unless the wheel is open (Input_WheelPage)."},
+        {"action": "Quick suits 1-5", "kbm": "1 2 3 4 5", "pad": "-", "kbm_keys": ["One", "Two", "Three", "Four", "Five"], "pad_keys": [], "source": "Private/IronManCharacter.cpp", "ia": "IA_QuickSlot1..5"},
+        {"action": "Faceplate open / close", "kbm": "H", "pad": "D-pad left", "kbm_keys": ["H"], "pad_keys": ["Gamepad_DPad_Left"], "source": "Private/SuitSuperComponent.cpp", "rebind_name": "Faceplate", "rebind_default": "H"},
+        {"action": "Exit suit / call suit", "kbm": "O", "pad": "-", "kbm_keys": ["O"], "pad_keys": [], "source": "Private/CareerWidgets.cpp", "rebind_name": "SuitExit", "rebind_default": "O", "note": "On foot: near the suit = suit up, far away = it flies to you."},
+        {"action": "Web swing mode (Iron Spider)", "kbm": "B", "pad": "D-pad right", "kbm_keys": ["B"], "pad_keys": ["Gamepad_DPad_Right"], "source": "Private/SuitSuperComponent.cpp", "rebind_name": "WebSwing", "rebind_default": "B", "note": "In swing mode: hold Space (pad A) in the air to swing, release to fling. B toggles swing mode / flight."},
+        {"action": "Web-zip (swing mode)", "kbm": "R", "pad": "X", "kbm_keys": ["R"], "pad_keys": ["Gamepad_FaceButton_Left"], "source": "Private/SuitSuperComponent.cpp", "rebind_name": "WebZip", "rebind_default": "R"}
+     ]
+    },
+    {
+      "id": "city",
+      "title": "CITY & CAREER",
+      "rows": [
+        {"action": "Interact (vehicles, shops, houses)", "kbm": "E", "pad": "-", "kbm_keys": ["E"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"},
+        {"action": "Shop", "kbm": "U", "pad": "-", "kbm_keys": ["U"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"},
+        {"action": "Avatar customizer", "kbm": "K", "pad": "-", "kbm_keys": ["K"], "pad_keys": [], "source": "Private/CareerWidgets.cpp", "note": "Also on the title / pause menu."},
+        {"action": "Phone", "kbm": "N", "pad": "-", "kbm_keys": ["N"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"},
+        {"action": "Map markers on / off", "kbm": "M", "pad": "-", "kbm_keys": ["M"], "pad_keys": [], "source": "Private/CareerWidgets.cpp", "note": "Toggles HUD bShowMarkers (not a full map screen)."},
+        {"action": "Close shop / phone / avatar screen", "kbm": "Esc, or the same key again (U / N / K)", "pad": "-", "kbm_keys": ["Escape", "U", "N", "K"], "pad_keys": [], "source": "Private/CareerWidgets.cpp", "note": "UCareerScreen::NativeOnKeyDown only knows keyboard keys: there is no gamepad close key (see proposed_gamepad)."}
+     ]
+    },
+    {
+      "id": "vehicle",
+      "title": "DRIVING & PILOTING",
+      "rows": [
+        {"action": "Throttle / brake", "kbm": "W / S", "pad": "-", "kbm_keys": ["W", "S"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"},
+        {"action": "Steer", "kbm": "A / D", "pad": "-", "kbm_keys": ["A", "D"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"},
+        {"action": "Climb / descend (aircraft)", "kbm": "Space / Left Ctrl", "pad": "-", "kbm_keys": ["SpaceBar", "LeftControl"], "pad_keys": [], "source": "Private/CareerWidgets.cpp", "note": "On the ground Space is the handbrake."},
+        {"action": "Rudder (aircraft)", "kbm": "X / Q", "pad": "-", "kbm_keys": ["X", "Q"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"},
+        {"action": "Boost", "kbm": "Left Shift", "pad": "-", "kbm_keys": ["LeftShift"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"},
+        {"action": "Get out", "kbm": "E", "pad": "-", "kbm_keys": ["E"], "pad_keys": [], "source": "Private/CareerWidgets.cpp"}
+     ]
+    },
+    {
+      "id": "system",
+      "title": "MENUS & CUTSCENES",
+      "rows": [
+        {"action": "Pause", "kbm": "P / Esc", "pad": "Menu (Start)", "kbm_keys": ["P", "Escape"], "pad_keys": ["Gamepad_Special_Right"], "source": "Private/IronManCharacter.cpp", "ia": "IA_Pause"},
+        {"action": "Skip cutscene / suit-up", "kbm": "Space, Left mouse, Esc or P", "pad": "A, RT or Menu", "kbm_keys": ["SpaceBar", "LeftMouseButton", "Escape", "P"], "pad_keys": ["Gamepad_FaceButton_Bottom", "Gamepad_RightTrigger", "Gamepad_Special_Right"], "source": "Private/IronManCharacter.cpp", "note": "TrySkipCinematic() runs from IA_Ascend / IA_Fire / IA_Pause (Input_AscendStarted, Input_FireStarted, Input_Pause)."},
+        {"action": "Resume (pause menu)", "kbm": "P or Esc", "pad": "Menu (Start)", "kbm_keys": ["P", "Escape"], "pad_keys": ["Gamepad_Special_Right"], "source": "Private/MainMenuWidget.cpp"},
+        {"action": "Back / close screen", "kbm": "Esc", "pad": "B", "kbm_keys": ["Escape"], "pad_keys": ["Gamepad_FaceButton_Right"], "source": "Private/SettingsWidget.cpp"},
+        {"action": "Story menu: chapter / side mission", "kbm": "Arrow keys", "pad": "D-pad", "kbm_keys": ["Left", "Right", "Up", "Down"], "pad_keys": ["Gamepad_DPad_Left", "Gamepad_DPad_Right", "Gamepad_DPad_Up", "Gamepad_DPad_Down"], "source": "Private/StoryMenuWidget.cpp"},
+        {"action": "Story menu: codex", "kbm": "C", "pad": "View (Back)", "kbm_keys": ["C"], "pad_keys": ["Gamepad_Special_Left"], "source": "Private/StoryMenuWidget.cpp"},
+        {"action": "Suit select: browse / confirm", "kbm": "Arrows or A / D, Enter", "pad": "D-pad, A", "kbm_keys": ["Left", "Right", "A", "D", "Enter"], "pad_keys": ["Gamepad_DPad_Left", "Gamepad_DPad_Right", "Gamepad_FaceButton_Bottom"], "source": "Private/SuitSelectWidget.cpp"},
+        {"action": "Fullscreen", "kbm": "F11 / Alt+Enter", "pad": "-", "kbm_keys": ["F11", "Enter"], "pad_keys": [], "source": "Private/ArenaPlayerController.cpp"},
+        {"action": "Game over: restart", "kbm": "Enter or Space", "pad": "Menu (Start)", "kbm_keys": ["Enter", "SpaceBar"], "pad_keys": ["Gamepad_Special_Right"], "source": "Private/MainMenuWidget.cpp"}
+     ]
+    }
+ ],
+  "not_listed_to_players": [
+    {"action": "Dev bar", "kbm": "F1 / ~", "kbm_keys": ["F1", "Tilde"], "source": "Private/CareerWidgets.cpp", "why": "Gated dev tool (UCareerInput::IsDevMenuAllowed); never shown to players per PROGRESS.md."}
+ ],
+  "defaults_overlaps": [
+    {
+      "id": "pad_X_hulkbuster_vs_webzip",
+      "keys": [
+        "Gamepad_FaceButton_Left"
+     ],
+      "actions": [
+        "Hulkbuster (IA_Hulkbuster)",
+        "Web-zip (SuitSuperComponent)"
+     ],
+      "effect": "In Iron Spider swing mode X fires both when Hulkbuster charges exist.",
+      "suggest": "WebZip pad key -> consume X only while swing mode is on (separate IMC at higher priority with bConsumeInput) or move Hulkbuster to a chord."
+    },
+    {
+      "id": "pad_R3_view_vs_ultra",
+      "keys": [
+        "Gamepad_RightThumbstick"
+     ],
+      "actions": [
+        "First/third person (IA_ToggleView)",
+        "Ultra chord LT + R3"
+     ],
+      "effect": "The LT + R3 ultra also toggles the camera view.",
+      "suggest": "Ignore IA_ToggleView while Gamepad_LeftTrigger is held (or move ultra to LT hold only; the LT 0.3 s hold already works)."
+    },
+    {
+      "id": "vehicle_pause_double",
+      "keys": [
+        "Escape",
+        "P"
+     ],
+      "actions": [
+        "IA_Pause (character)",
+        "UCareerInput::TickVehicle pause"
+     ],
+      "effect": "While driving both paths can call TogglePauseMenu; check that one press does not open then close the menu.",
+      "suggest": "Verify in PIE; if the pawn keeps input while driving, drop the TickVehicle branch."
+    },
+    {
+      "id": "career_screens_hardcoded_toggle",
+      "keys": [
+        "U",
+        "N",
+        "K"
+     ],
+      "actions": [
+        "UCareerScreen close keys",
+        "UCareerInput::TickKeys open keys"
+     ],
+      "effect": "Open and close keys are literal EKeys in two places; rebinding must change both.",
+      "suggest": "Both call ArenaInput::KeyFor(MappingName)."
+    }
+ ],
+  "reserved_not_rebindable": {
+    "keyboard_mouse": [
+      "Escape",
+      "F11",
+      "Alt+Enter",
+      "F1",
+      "Tilde",
+      "Enter (menus)",
+      "Arrow keys (menus)",
+      "Backspace (credits)",
+      "Mouse2D (look)",
+      "MouseWheelAxis (suit wheel scroll)",
+      "Left/Right mouse as UI click"
+   ],
+    "gamepad": [
+      "Gamepad_Left2D (move)",
+      "Gamepad_Right2D (look)",
+      "Gamepad_Special_Right (Menu/Start: pause, skip, resume)",
+      "Gamepad_FaceButton_Right while in menus (back)",
+      "Gamepad_FaceButton_Bottom while in menus (confirm)",
+      "D-pad in menus"
+   ],
+    "why": "UI navigation, axes with modifiers (Swizzle / Negate / Scalar / ScaleByDeltaTime), and keys that the engine or tutorials always rely on. Esc and Menu always open the pause menu even if the P / Pause row is rebound."
+  },
+  "rebindable_rows": {
+    "_note": "One row per player-mappable mapping. mapping_name is the STABLE id saved in the user's key profile (never the localized label). device: kbm | pad, one mapping name per (action, device) so conflict checks stay inside one device family. phase A = already an Enhanced Input action in IMC_IronMan; B = polled today, must go through ArenaInput::KeyFor() / a new IA; C = vehicle context (optional).",
+    "contexts": {
+      "Core": "IMC_IronMan + on-foot/flight career keys; all active together, so duplicates are conflicts.",
+      "Vehicle": "UCareerInput::TickVehicle; active only while driving; may reuse Core keys (W/S/Space/Ctrl/Shift/X/Q/E) on purpose.",
+      "Menu": "Widget NativeOnKeyDown; fixed."
+    },
+    "rows": [
+      {"mapping_name": "Move.Forward", "label": "Move forward", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Move", "default_kbm": ["W"], "note": "Swizzle(YXZ) modifier must survive the remap"},
+      {"mapping_name": "Move.Back", "label": "Move back", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Move", "default_kbm": ["S"], "note": "Swizzle + Negate"},
+      {"mapping_name": "Move.Left", "label": "Move left", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Move", "default_kbm": ["A"], "note": "Negate"},
+      {"mapping_name": "Move.Right", "label": "Move right", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Move", "default_kbm": ["D"]},
+      {"mapping_name": "ToggleFlight", "label": "Toggle flight", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_ToggleFlight", "default_kbm": ["F"], "default_pad": ["Gamepad_FaceButton_Top"]},
+      {"mapping_name": "Ascend", "label": "Fly up / jump", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Ascend", "default_kbm": ["SpaceBar"], "default_pad": ["Gamepad_FaceButton_Bottom"], "note": "Also web-swing key in swing mode and a cutscene skip key (SuitSuperComponent polls Space / A directly: resolve via KeyFor)"},
+      {"mapping_name": "Descend", "label": "Fly down", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Descend", "default_kbm": ["LeftControl"], "default_pad": ["Gamepad_FaceButton_Right"]},
+      {"mapping_name": "Descend.Alt", "label": "Fly down (alternate)", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Descend", "default_kbm": ["C"]},
+      {"mapping_name": "Boost", "label": "Boost (hold)", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_Boost", "default_kbm": ["LeftShift"], "default_pad": ["Gamepad_LeftThumbstick"]},
+      {"mapping_name": "ToggleView", "label": "First / third person", "group": "Flight", "phase": "A", "context": "Core", "ia": "IA_ToggleView", "default_kbm": ["V"], "default_pad": ["Gamepad_RightThumbstick"]},
+      {"mapping_name": "Fire", "label": "Repulsors", "group": "Combat", "phase": "A", "context": "Core", "ia": "IA_Fire", "default_kbm": ["LeftMouseButton"], "default_pad": ["Gamepad_RightTrigger"], "note": "Also: cutscene skip, wheel confirm, Hulkbuster punch, double-click ultra (SuitSuperComponent polls LeftMouseButton: resolve via KeyFor(\"Fire\"))"},
+      {"mapping_name": "Special", "label": "Suit special / hold = ULTRA", "group": "Combat", "phase": "A", "context": "Core", "ia": "IA_Special", "default_kbm": ["RightMouseButton"], "default_pad": ["Gamepad_LeftTrigger"], "note": "Hold-0.3 s ultra polls RightMouseButton / LT in SuitSuperComponent::TickInput (L776, L910): resolve via KeyFor(\"Special\")"},
+      {"mapping_name": "Hulkbuster", "label": "Hulkbuster", "group": "Combat", "phase": "A", "context": "Core", "ia": "IA_Hulkbuster", "default_kbm": ["Q"], "default_pad": ["Gamepad_FaceButton_Left"]},
+      {"mapping_name": "Vent", "label": "Vent reactor", "group": "Combat", "phase": "A", "context": "Core", "ia": "IA_Vent", "default_kbm": ["X"], "default_pad": ["Gamepad_DPad_Down"], "note": "HUD strings '[X] VENT' and UHelmetHUDWidget::VentKeyLabel must show the live key"},
+      {"mapping_name": "Ally", "label": "Summon ally", "group": "Combat", "phase": "A", "context": "Core", "ia": "IA_Ally", "default_kbm": ["G"], "default_pad": ["Gamepad_DPad_Up"]},
+      {"mapping_name": "FocusAim", "label": "Focus aim (hold)", "group": "Combat", "phase": "B", "context": "Core", "ia": "IA_FocusAim (new)", "default_kbm": ["LeftAlt"], "proposed_pad": ["Gamepad_RightShoulder"], "note": "TickAimFeel L2316 polls LeftAlt"},
+      {"mapping_name": "SuitWheel", "label": "Suit wheel (hold)", "group": "Suit", "phase": "A", "context": "Core", "ia": "IA_SuitWheel", "default_kbm": ["T"], "default_pad": ["Gamepad_LeftShoulder"]},
+      {"mapping_name": "WheelPage", "label": "Suit wheel: next page", "group": "Suit", "phase": "A", "context": "Core", "ia": "IA_WheelPage", "default_kbm": ["Tab"], "default_pad": ["Gamepad_RightShoulder"], "note": "MouseWheelAxis stays fixed (axis)"},
+      {"mapping_name": "QuickSuit1", "label": "Quick suit 1", "group": "Suit", "phase": "A", "context": "Core", "ia": "IA_QuickSlot1", "default_kbm": ["One"]},
+      {"mapping_name": "QuickSuit2", "label": "Quick suit 2", "group": "Suit", "phase": "A", "context": "Core", "ia": "IA_QuickSlot2", "default_kbm": ["Two"]},
+      {"mapping_name": "QuickSuit3", "label": "Quick suit 3", "group": "Suit", "phase": "A", "context": "Core", "ia": "IA_QuickSlot3", "default_kbm": ["Three"]},
+      {"mapping_name": "QuickSuit4", "label": "Quick suit 4", "group": "Suit", "phase": "A", "context": "Core", "ia": "IA_QuickSlot4", "default_kbm": ["Four"]},
+      {"mapping_name": "QuickSuit5", "label": "Quick suit 5", "group": "Suit", "phase": "A", "context": "Core", "ia": "IA_QuickSlot5", "default_kbm": ["Five"]},
+      {"mapping_name": "Faceplate", "label": "Faceplate open / close", "group": "Suit", "phase": "B", "context": "Core", "ia": "IA_Faceplate (new)", "default_kbm": ["H"], "default_pad": ["Gamepad_DPad_Left"], "legacy_ini": "[IronManArena.Keys] Faceplate"},
+      {"mapping_name": "SuitExit", "label": "Exit suit / call suit", "group": "Suit", "phase": "B", "context": "Core", "ia": "IA_SuitExit (new)", "default_kbm": ["O"], "proposed_pad": ["Gamepad_Special_Left+Gamepad_FaceButton_Top (chord)"], "legacy_ini": "[IronManArena.Keys] SuitExit"},
+      {"mapping_name": "WebSwing", "label": "Web swing mode", "group": "Suit", "phase": "B", "context": "Core", "ia": "IA_WebSwing (new)", "default_kbm": ["B"], "default_pad": ["Gamepad_DPad_Right"], "legacy_ini": "[IronManArena.Keys] WebSwing"},
+      {"mapping_name": "WebZip", "label": "Web-zip", "group": "Suit", "phase": "B", "context": "Core", "ia": "IA_WebZip (new)", "default_kbm": ["R"], "default_pad": ["Gamepad_FaceButton_Left"], "legacy_ini": "[IronManArena.Keys] WebZip"},
+      {"mapping_name": "Interact", "label": "Interact / get in / get out", "group": "City", "phase": "B", "context": "Core+Vehicle", "ia": "IA_Interact (new)", "default_kbm": ["E"], "proposed_pad": ["Gamepad_FaceButton_Left (context IMC while a prompt is up or driving)"], "note": "Prompt strings '[E] ...' are literal in CareerWidgets.cpp L1578/1978-2010 and WorkshopEasterEggs.cpp L851-859"},
+      {"mapping_name": "Shop", "label": "Shop", "group": "City", "phase": "B", "context": "Core", "ia": "IA_Shop (new)", "default_kbm": ["U"], "proposed_pad": ["Gamepad_Special_Left+Gamepad_DPad_Left (chord)"], "note": "UCareerScreen::NativeOnKeyDown closes on the same key"},
+      {"mapping_name": "Avatar", "label": "Avatar customizer", "group": "City", "phase": "B", "context": "Core", "ia": "IA_Avatar (new)", "default_kbm": ["K"], "proposed_pad": ["Gamepad_Special_Left+Gamepad_DPad_Right (chord)"], "note": "UMainMenuWidget L351 also handles K"},
+      {"mapping_name": "Phone", "label": "Phone", "group": "City", "phase": "B", "context": "Core", "ia": "IA_Phone (new)", "default_kbm": ["N"], "proposed_pad": ["Gamepad_Special_Left+Gamepad_DPad_Up (chord)"]},
+      {"mapping_name": "MapMarkers", "label": "Map markers on / off", "group": "City", "phase": "B", "context": "Core", "ia": "IA_MapMarkers (new)", "default_kbm": ["M"], "proposed_pad": ["Gamepad_Special_Left+Gamepad_DPad_Down (chord)"]},
+      {"mapping_name": "Pause", "label": "Pause", "group": "System", "phase": "A", "context": "Core", "ia": "IA_Pause", "default_kbm": ["P"], "fixed_extra": ["Escape", "Gamepad_Special_Right"], "note": "Escape and Menu stay bound and are not rebindable"},
+      {"mapping_name": "Vehicle.Throttle", "label": "Throttle", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["W"], "proposed_pad": ["Gamepad_RightTrigger"]},
+      {"mapping_name": "Vehicle.Brake", "label": "Brake / reverse", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["S"], "proposed_pad": ["Gamepad_LeftTrigger"]},
+      {"mapping_name": "Vehicle.SteerLeft", "label": "Steer left", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["A"], "proposed_pad": ["Gamepad_Left2D (X axis)"]},
+      {"mapping_name": "Vehicle.SteerRight", "label": "Steer right", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["D"], "proposed_pad": ["Gamepad_Left2D (X axis)"]},
+      {"mapping_name": "Vehicle.Climb", "label": "Climb / handbrake", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["SpaceBar"], "proposed_pad": ["Gamepad_FaceButton_Bottom"]},
+      {"mapping_name": "Vehicle.Descend", "label": "Descend", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["LeftControl"], "proposed_pad": ["Gamepad_FaceButton_Right"]},
+      {"mapping_name": "Vehicle.RudderRight", "label": "Rudder right", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["X"], "proposed_pad": ["Gamepad_RightShoulder"]},
+      {"mapping_name": "Vehicle.RudderLeft", "label": "Rudder left", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["Q"], "proposed_pad": ["Gamepad_LeftShoulder"]},
+      {"mapping_name": "Vehicle.Boost", "label": "Boost", "group": "Driving", "phase": "C", "context": "Vehicle", "default_kbm": ["LeftShift"], "proposed_pad": ["Gamepad_LeftThumbstick"]}
+   ]
+  },
+  "proposed_gamepad": {
+    "_status": "PROPOSED, not in the code. Gamepad keys used in gameplay today: all four face buttons, D-pad, LB, RB, LT, RT, L3, R3, both sticks and Menu (Start). Only Gamepad_Special_Left (View/Back) is free in gameplay (the story menu codex uses it in its own screen), so new actions use a View chord or a context that is only active at the right moment; each row states why it does not collide.",
+  "layout": [
+      {"action": "Focus aim (hold)", "pad": "RB (hold)", "reason": "Gamepad_RightShoulder is only read by IA_WheelPage and that action returns early unless the wheel is open (Input_WheelPage L956). Ignore Focus while bWheelOpen."},
+      {"action": "Career chord modifier", "pad": "hold View (Back)", "reason": "One free key; nothing else uses it in gameplay (Menu/Start is pause). HUD shows the four chords while View is held."},
+      {"action": "Phone", "pad": "View + D-pad up"},
+      {"action": "Shop", "pad": "View + D-pad left"},
+      {"action": "Avatar customizer", "pad": "View + D-pad right"},
+      {"action": "Map markers", "pad": "View + D-pad down"},
+      {"action": "Exit suit / call suit", "pad": "View + Y"},
+      {"action": "Interact / get in / get out", "pad": "X, but only while an interact prompt is showing or while driving", "reason": "X is Hulkbuster / web-zip. A higher-priority IMC (priority 10, consume input) is added only while UCareerInput::InteractKind != 0 or Driving is valid, so X never competes outside those moments."},
+      {"action": "Quick suits 1-5", "pad": "-", "reason": "Use the suit wheel (LB) on gamepad; five quick slots have no spare buttons."},
+      {"action": "Driving: throttle / brake", "pad": "RT / LT"},
+      {"action": "Driving: steer", "pad": "Left stick X"},
+      {"action": "Driving: climb / descend (air) | handbrake (ground)", "pad": "A / B"},
+      {"action": "Driving: rudder (air)", "pad": "RB / LB"},
+      {"action": "Driving: boost", "pad": "L3"},
+      {"action": "Driving: get out", "pad": "X"},
+      {"action": "Close shop / phone / avatar screen", "pad": "B or Menu", "reason": "UCareerScreen::NativeOnKeyDown only checks Escape and the toggle key."}
+   ]
+  }
+}

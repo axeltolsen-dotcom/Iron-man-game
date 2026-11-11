@@ -1,0 +1,270 @@
+diff --git a/Source/IronManArena/Private/Generated/ControlsReference.inl b/Source/IronManArena/Private/Generated/ControlsReference.inl
+index 7eead23..8ccd701 100644
+--- a/Source/IronManArena/Private/Generated/ControlsReference.inl
++++ b/Source/IronManArena/Private/Generated/ControlsReference.inl
+@@ -16,18 +16,18 @@ CONTROLS_ROW(TEXT("Repulsors (hold to keep firing)"), TEXT("Left mouse"), TEXT("
+ CONTROLS_ROW(TEXT("Focus aim (hold)"), TEXT("Left Alt"), TEXT("-"), TEXT("TickAimFeel; no gamepad key. Slow hover while shooting gives half focus automatically."), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Charged shot"), TEXT("Hold Left mouse while focused (Alt)"), TEXT("-"), TEXT("Repulsor / red blast / laser suits; full charge after 0.7 s at focus > 85 %."), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Suit special (tap)"), TEXT("Right mouse"), TEXT("LT"), TEXT(""), TEXT(""), TEXT(""))
+-CONTROLS_ROW(TEXT("Suit ULTRA / super move"), TEXT("Hold Right mouse 0.3 s, or double-click Left mouse"), TEXT("Hold LT 0.3 s, or LT + right stick click"), TEXT("Only when the super meter is ready. Double-click window 0.28 s."), TEXT(""), TEXT(""))
++CONTROLS_ROW(TEXT("Suit ULTRA / super move"), TEXT("Hold Right mouse 0.3 s, or double-click Left mouse"), TEXT("Hold LT 0.3 s, or LT + right stick click"), TEXT("Only when the super meter is ready. Double-click window 0.28 s, hold 0.3 s (SuitSuperComponent::TickInput). The gamepad chord LT + R3 also fires IA_ToggleView (R3) - see defaults_overlaps."), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Hulkbuster"), TEXT("Q"), TEXT("X"), TEXT("While Hulkbuster is active, Left mouse punches."), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Vent reactor"), TEXT("X"), TEXT("D-pad down"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Summon ally"), TEXT("G"), TEXT("D-pad up"), TEXT(""), TEXT(""), TEXT(""))
+ 
+ CONTROLS_GROUP(TEXT("SUIT"))
+ CONTROLS_ROW(TEXT("Suit menu / wheel (hold, release to pick)"), TEXT("T"), TEXT("LB"), TEXT("Left mouse also confirms."), TEXT(""), TEXT(""))
+-CONTROLS_ROW(TEXT("Suit wheel: next page"), TEXT("Mouse wheel / Tab"), TEXT("RB"), TEXT(""), TEXT(""), TEXT(""))
++CONTROLS_ROW(TEXT("Suit wheel: next page (wheel open)"), TEXT("Mouse wheel / Tab"), TEXT("RB"), TEXT("IA_WheelPage is ignored unless the wheel is open (Input_WheelPage)."), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Quick suits 1-5"), TEXT("1 2 3 4 5"), TEXT("-"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Faceplate open / close"), TEXT("H"), TEXT("D-pad left"), TEXT(""), TEXT("Faceplate"), TEXT("H"))
+ CONTROLS_ROW(TEXT("Exit suit / call suit"), TEXT("O"), TEXT("-"), TEXT("On foot: near the suit = suit up, far away = it flies to you."), TEXT("SuitExit"), TEXT("O"))
+-CONTROLS_ROW(TEXT("Web swing mode (Iron Spider)"), TEXT("B"), TEXT("D-pad right"), TEXT("In swing mode: hold Space in the air to swing, release to fling."), TEXT("WebSwing"), TEXT("B"))
++CONTROLS_ROW(TEXT("Web swing mode (Iron Spider)"), TEXT("B"), TEXT("D-pad right"), TEXT("In swing mode: hold Space (pad A) in the air to swing, release to fling. B toggles swing mode / flight."), TEXT("WebSwing"), TEXT("B"))
+ CONTROLS_ROW(TEXT("Web-zip (swing mode)"), TEXT("R"), TEXT("X"), TEXT(""), TEXT("WebZip"), TEXT("R"))
+ 
+ CONTROLS_GROUP(TEXT("CITY & CAREER"))
+@@ -36,6 +36,7 @@ CONTROLS_ROW(TEXT("Shop"), TEXT("U"), TEXT("-"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Avatar customizer"), TEXT("K"), TEXT("-"), TEXT("Also on the title / pause menu."), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Phone"), TEXT("N"), TEXT("-"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Map markers on / off"), TEXT("M"), TEXT("-"), TEXT("Toggles HUD bShowMarkers (not a full map screen)."), TEXT(""), TEXT(""))
++CONTROLS_ROW(TEXT("Close shop / phone / avatar screen"), TEXT("Esc, or the same key again (U / N / K)"), TEXT("-"), TEXT("UCareerScreen::NativeOnKeyDown only knows keyboard keys: there is no gamepad close key (see proposed_gamepad)."), TEXT(""), TEXT(""))
+ 
+ CONTROLS_GROUP(TEXT("DRIVING & PILOTING"))
+ CONTROLS_ROW(TEXT("Throttle / brake"), TEXT("W / S"), TEXT("-"), TEXT(""), TEXT(""), TEXT(""))
+@@ -47,12 +48,14 @@ CONTROLS_ROW(TEXT("Get out"), TEXT("E"), TEXT("-"), TEXT(""), TEXT(""), TEXT("")
+ 
+ CONTROLS_GROUP(TEXT("MENUS & CUTSCENES"))
+ CONTROLS_ROW(TEXT("Pause"), TEXT("P / Esc"), TEXT("Menu (Start)"), TEXT(""), TEXT(""), TEXT(""))
+-CONTROLS_ROW(TEXT("Skip cutscene / suit-up"), TEXT("Space, Left mouse or Esc"), TEXT("A, RT or Menu"), TEXT("TrySkipCinematic from IA_Ascend / IA_Fire / IA_Pause."), TEXT(""), TEXT(""))
++CONTROLS_ROW(TEXT("Skip cutscene / suit-up"), TEXT("Space, Left mouse, Esc or P"), TEXT("A, RT or Menu"), TEXT("TrySkipCinematic() runs from IA_Ascend / IA_Fire / IA_Pause (Input_AscendStarted, Input_FireStarted, Input_Pause)."), TEXT(""), TEXT(""))
++CONTROLS_ROW(TEXT("Resume (pause menu)"), TEXT("P or Esc"), TEXT("Menu (Start)"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Back / close screen"), TEXT("Esc"), TEXT("B"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Story menu: chapter / side mission"), TEXT("Arrow keys"), TEXT("D-pad"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Story menu: codex"), TEXT("C"), TEXT("View (Back)"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Suit select: browse / confirm"), TEXT("Arrows or A / D, Enter"), TEXT("D-pad, A"), TEXT(""), TEXT(""), TEXT(""))
+ CONTROLS_ROW(TEXT("Fullscreen"), TEXT("F11 / Alt+Enter"), TEXT("-"), TEXT(""), TEXT(""), TEXT(""))
++CONTROLS_ROW(TEXT("Game over: restart"), TEXT("Enter or Space"), TEXT("Menu (Start)"), TEXT(""), TEXT(""), TEXT(""))
+ 
+ // Keyboard / mouse keys already used anywhere (rebinding refuses these unless it is the row's own key).
+ CONTROLS_RESERVED_KEY(TEXT("W"))
+@@ -89,8 +92,8 @@ CONTROLS_RESERVED_KEY(TEXT("U"))
+ CONTROLS_RESERVED_KEY(TEXT("K"))
+ CONTROLS_RESERVED_KEY(TEXT("N"))
+ CONTROLS_RESERVED_KEY(TEXT("M"))
+-CONTROLS_RESERVED_KEY(TEXT("P"))
+ CONTROLS_RESERVED_KEY(TEXT("Escape"))
++CONTROLS_RESERVED_KEY(TEXT("P"))
+ CONTROLS_RESERVED_KEY(TEXT("Left"))
+ CONTROLS_RESERVED_KEY(TEXT("Right"))
+ CONTROLS_RESERVED_KEY(TEXT("Up"))
+diff --git a/Source/IronManArena/Private/SettingsWidget.cpp b/Source/IronManArena/Private/SettingsWidget.cpp
+index f880e4c..f9646d7 100644
+--- a/Source/IronManArena/Private/SettingsWidget.cpp
++++ b/Source/IronManArena/Private/SettingsWidget.cpp
+@@ -14,6 +14,7 @@
+ #include "Components/HorizontalBox.h"
+ #include "Components/HorizontalBoxSlot.h"
+ #include "Components/ScrollBox.h"
++#include "Components/WidgetSwitcher.h"
+ #include "Components/SizeBox.h"
+ #include "Components/TextBlock.h"
+ #include "Components/Button.h"
+@@ -35,6 +36,8 @@ namespace
+ 	FString CapString(int32 Cap) { return Cap > 0 ? FString::Printf(TEXT("%d fps"), Cap) : FString(TEXT("Unlimited")); }
+ }
+ 
++int32 USettingsWidget::LastTab = 0;
++
+ void USettingsWidget::NativeOnInitialized()
+ {
+ 	Super::NativeOnInitialized();
+@@ -241,16 +244,53 @@ void USettingsWidget::BuildTree()
+ 	UTextBlock* Title = ArenaUI::MakeText(WidgetTree, LOCTEXT("Title", "SETTINGS"), 40, ArenaUI::Red);
+ 	if (UVerticalBoxSlot* S = Outer->AddChildToVerticalBox(Title)) { S->SetHorizontalAlignment(HAlign_Center); S->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f)); }
+ 
++	// Tab strip: VIDEO | CONTROLS | AUDIO | ACCESSIBILITY | HELMET HUD (Q / E or LB / RB switch tabs).
++	{
++		UHorizontalBox* Strip = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
++		const FText Names[5] = { LOCTEXT("TabVideo", "VIDEO"), LOCTEXT("TabControls", "CONTROLS"), LOCTEXT("TabAudio", "AUDIO"),
++			LOCTEXT("TabAccess", "ACCESSIBILITY"), LOCTEXT("TabHud", "HELMET HUD") };
++		for (int32 i = 0; i < 5; ++i)
++		{
++			UTextBlock* L = nullptr;
++			UButton* B = ArenaUI::MakeButton(WidgetTree, Names[i], 15, L);
++			switch (i)
++			{
++			case 0: B->OnClicked.AddDynamic(this, &USettingsWidget::HandleTabVideo); break;
++			case 1: B->OnClicked.AddDynamic(this, &USettingsWidget::HandleTabControls); break;
++			case 2: B->OnClicked.AddDynamic(this, &USettingsWidget::HandleTabAudio); break;
++			case 3: B->OnClicked.AddDynamic(this, &USettingsWidget::HandleTabAccessibility); break;
++			default: B->OnClicked.AddDynamic(this, &USettingsWidget::HandleTabHud); break;
++			}
++			TabButtons.Add(B);
++			TabLabels.Add(L);
++			if (UHorizontalBoxSlot* S = Strip->AddChildToHorizontalBox(B)) { S->SetPadding(FMargin(4.f, 0.f)); }
++		}
++		if (UVerticalBoxSlot* S = Outer->AddChildToVerticalBox(Strip)) { S->SetHorizontalAlignment(HAlign_Center); S->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f)); }
++	}
++
+ 	USizeBox* ScrollSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+ 	ScrollSize->SetHeightOverride(560.f);
+ 	ScrollSize->SetWidthOverride(660.f);
+ 	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+ 	ScrollSize->SetContent(Scroll);
+ 	Outer->AddChildToVerticalBox(ScrollSize);
+-	UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+-	Scroll->AddChild(Box);
++	TabScroll = Scroll;
++	TabSwitcher = WidgetTree->ConstructWidget<UWidgetSwitcher>(UWidgetSwitcher::StaticClass());
++	Scroll->AddChild(TabSwitcher);
++	// One page per tab. The Add* helpers take the page box, so every existing slider / check works unchanged.
++	UVerticalBox* VideoBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
++	UVerticalBox* ControlsBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
++	UVerticalBox* AudioBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
++	UVerticalBox* AccessBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
++	UVerticalBox* HudBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
++	TabSwitcher->AddChild(VideoBox);
++	TabSwitcher->AddChild(ControlsBox);
++	TabSwitcher->AddChild(AudioBox);
++	TabSwitcher->AddChild(AccessBox);
++	TabSwitcher->AddChild(HudBox);
+ 
+ 	UTextBlock* Tmp = nullptr;
++	UVerticalBox* Box = VideoBox;
+ 	AddHeader(Box, LOCTEXT("Video", "VIDEO"));
+ 	WindowModeCombo = AddCombo(Box, LOCTEXT("WindowMode", "Window mode"));
+ 	WindowModeCombo->AddOption(TEXT("Fullscreen"));
+@@ -268,11 +308,13 @@ void USettingsWidget::BuildTree()
+ 	MotionBlurCheck = AddCheck(Box, LOCTEXT("MotionBlur", "Motion blur"));
+ 	DofCheck = AddCheck(Box, LOCTEXT("Dof", "Cinematic depth of field"));
+ 
+-	AddHeader(Box, LOCTEXT("Controls", "CAMERA & CONTROLS"));
++	Box = ControlsBox;
++	AddHeader(Box, LOCTEXT("Controls", "CAMERA"));
+ 	FovSlider = AddSlider(Box, LOCTEXT("Fov", "Field of view"), 70.f, 120.f, 1.f, Tmp); FovValue = Tmp;
+ 	SensSlider = AddSlider(Box, LOCTEXT("Sens", "Mouse sensitivity"), 0.1f, 3.f, 0.05f, Tmp); SensValue = Tmp;
+ 	InvertCheck = AddCheck(Box, LOCTEXT("Invert", "Invert Y"));
+ 
++	Box = AudioBox;
+ 	AddHeader(Box, LOCTEXT("Audio", "AUDIO"));
+ 	MasterSlider = AddSlider(Box, LOCTEXT("Master", "Master volume"), 0.f, 1.f, 0.01f, Tmp); MasterValue = Tmp;
+ 	SfxSlider = AddSlider(Box, LOCTEXT("Sfx", "SFX volume"), 0.f, 1.f, 0.01f, Tmp); SfxValue = Tmp;
+@@ -280,19 +322,21 @@ void USettingsWidget::BuildTree()
+ 	VoiceSlider = AddSlider(Box, LOCTEXT("Voice", "Voice volume"), 0.f, 1.f, 0.01f, Tmp); VoiceValue = Tmp;
+ 	MusicSlider = AddSlider(Box, LOCTEXT("Music", "Music volume"), 0.f, 1.f, 0.01f, Tmp); MusicValue = Tmp;
+ 
++	Box = AccessBox;
+ 	AddHeader(Box, LOCTEXT("Access", "ACCESSIBILITY"));
+ 	SubtitlesCheck = AddCheck(Box, LOCTEXT("Subtitles", "Subtitles"));
+ 	ShakeCheck = AddCheck(Box, LOCTEXT("Shake", "Camera shake"));
+ 	ShakeSlider = AddSlider(Box, LOCTEXT("ShakeAmt", "Camera shake intensity"), 0.f, 1.5f, 0.05f, Tmp); ShakeValue = Tmp;
+ 	SubtitleScaleSlider = AddSlider(Box, LOCTEXT("SubSize", "Subtitle size"), 0.8f, 1.6f, 0.05f, Tmp); SubtitleScaleValue = Tmp;
+ 
++	Box = HudBox;
+ 	AddHeader(Box, LOCTEXT("HelmetHud", "HELMET HUD"));
+ 	HudColorBlindCheck = AddCheck(Box, LOCTEXT("HudCB", "Colour-blind safe HUD"));
+ 	HudReducedMotionCheck = AddCheck(Box, LOCTEXT("HudRM", "Reduced motion"));
+ 	HudOpacitySlider = AddSlider(Box, LOCTEXT("HudOp", "HUD opacity"), 0.5f, 1.f, 0.05f, Tmp); HudOpacityValue = Tmp;
+ 	HudScaleSlider = AddSlider(Box, LOCTEXT("HudScale", "HUD scale"), 0.75f, 1.25f, 0.05f, Tmp); HudScaleValue = Tmp;
+ 
+-	AddControlsReference(Box);
++	AddControlsReference(ControlsBox);
+ 
+ 	UHorizontalBox* Buttons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+ 	auto AddButton = [this, Buttons](const FText& Label) -> UButton*
+@@ -307,12 +351,33 @@ void USettingsWidget::BuildTree()
+ 	AddButton(LOCTEXT("Back", "BACK"))->OnClicked.AddDynamic(this, &USettingsWidget::HandleBack);
+ 	if (UVerticalBoxSlot* S = Outer->AddChildToVerticalBox(Buttons)) { S->SetHorizontalAlignment(HAlign_Center); S->SetPadding(FMargin(0.f, 14.f, 0.f, 4.f)); }
+ 
+-	StatusText = ArenaUI::MakeText(WidgetTree, LOCTEXT("Hint", "F11 / Alt+Enter toggles fullscreen anywhere.  Esc = back."), 13, ArenaUI::Ice, "Regular");
++	StatusText = ArenaUI::MakeText(WidgetTree, LOCTEXT("Hint", "Q / E or LB / RB: switch tab.  F11 / Alt+Enter toggles fullscreen anywhere.  Esc = back."), 13, ArenaUI::Ice, "Regular");
+ 	if (UVerticalBoxSlot* S = Outer->AddChildToVerticalBox(StatusText)) { S->SetHorizontalAlignment(HAlign_Center); }
+ 
+ 	RefreshFromSettings();
++	SelectTab(LastTab);
++}
++
++void USettingsWidget::SelectTab(int32 Index)
++{
++	if (!TabSwitcher) { return; }
++	Index = FMath::Clamp(Index, 0, TabSwitcher->GetChildrenCount() - 1);
++	LastTab = Index;
++	TabSwitcher->SetActiveWidgetIndex(Index);
++	if (TabScroll) { TabScroll->ScrollToStart(); }
++	for (int32 i = 0; i < TabButtons.Num(); ++i)
++	{
++		if (TabButtons[i]) { TabButtons[i]->SetBackgroundColor(i == Index ? ArenaUI::ButtonBgSelected : ArenaUI::ButtonBg); }
++		if (TabLabels.IsValidIndex(i) && TabLabels[i]) { TabLabels[i]->SetColorAndOpacity(FSlateColor(i == Index ? FLinearColor::White : ArenaUI::Gold)); }
++	}
+ }
+ 
++void USettingsWidget::HandleTabVideo() { SelectTab(0); }
++void USettingsWidget::HandleTabControls() { SelectTab(1); }
++void USettingsWidget::HandleTabAudio() { SelectTab(2); }
++void USettingsWidget::HandleTabAccessibility() { SelectTab(3); }
++void USettingsWidget::HandleTabHud() { SelectTab(4); }
++
+ void USettingsWidget::RefreshFromSettings()
+ {
+ 	UArenaGameUserSettings* S = UArenaGameUserSettings::GetArenaSettings();
+@@ -484,6 +549,11 @@ FReply USettingsWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
+ 	{
+ 		if (PC->HandleGlobalKey(InKeyEvent)) { RefreshFromSettings(); return FReply::Handled(); }
+ 	}
++	{
++		const FKey K = InKeyEvent.GetKey();
++		if (K == EKeys::E || K == EKeys::Gamepad_RightShoulder) { SelectTab((LastTab + 1) % 5); return FReply::Handled(); }
++		if (K == EKeys::Q || K == EKeys::Gamepad_LeftShoulder) { SelectTab((LastTab + 4) % 5); return FReply::Handled(); }
++	}
+ 	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Right)
+ 	{
+ 		HandleBack();
+diff --git a/Source/IronManArena/Public/SettingsWidget.h b/Source/IronManArena/Public/SettingsWidget.h
+index 1ea5579..dbe0475 100644
+--- a/Source/IronManArena/Public/SettingsWidget.h
++++ b/Source/IronManArena/Public/SettingsWidget.h
+@@ -13,6 +13,8 @@ class USlider;
+ class UTextBlock;
+ class UVerticalBox;
+ class UButton;
++class UWidgetSwitcher;
++class UScrollBox;
+ 
+ UCLASS()
+ class IRONMANARENA_API USettingsWidget : public UUserWidget
+@@ -35,6 +37,8 @@ protected:
+ 	void AddHeader(UVerticalBox* Box, const FText& Label);
+ 	/** Read-only key-bindings reference (Generated/ControlsReference.inl from contrib/vison/menu). */
+ 	void AddControlsReference(UVerticalBox* Box);
++	/** Tabs: Video, Controls, Audio, Accessibility, Helmet HUD (one UWidgetSwitcher, one scroll box). */
++	void SelectTab(int32 Index);
+ 	void UpdateSliderLabels();
+ 	void ApplyLiveOptions();
+ 
+@@ -50,6 +54,11 @@ protected:
+ 	void HandleDefaults();
+ 	UFUNCTION()
+ 	void HandleBack();
++	UFUNCTION() void HandleTabVideo();
++	UFUNCTION() void HandleTabControls();
++	UFUNCTION() void HandleTabAudio();
++	UFUNCTION() void HandleTabAccessibility();
++	UFUNCTION() void HandleTabHud();
+ 
+ 	UPROPERTY(Transient) TObjectPtr<UComboBoxString> WindowModeCombo;
+ 	UPROPERTY(Transient) TObjectPtr<UComboBoxString> ResolutionCombo;
+@@ -86,6 +95,13 @@ protected:
+ 	UPROPERTY(Transient) TObjectPtr<USlider> SubtitleScaleSlider;
+ 	UPROPERTY(Transient) TObjectPtr<UTextBlock> SubtitleScaleValue;
+ 	UPROPERTY(Transient) TObjectPtr<UTextBlock> StatusText;
++	UPROPERTY(Transient) TObjectPtr<UWidgetSwitcher> TabSwitcher;
++	UPROPERTY(Transient) TObjectPtr<UScrollBox> TabScroll;
++	UPROPERTY(Transient) TArray<TObjectPtr<UButton>> TabButtons;
++	UPROPERTY(Transient) TArray<TObjectPtr<UTextBlock>> TabLabels;
++
++	/** Remembered between openings so Back / re-enter lands on the same tab. */
++	static int32 LastTab;
+ 
+ 	TArray<FIntPoint> Resolutions;
+ 	bool bRefreshing = false;

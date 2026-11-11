@@ -1,0 +1,17 @@
+diff --git a/Source/IronManArena/Private/PilotAvatar.cpp b/Source/IronManArena/Private/PilotAvatar.cpp
+--- a/Source/IronManArena/Private/PilotAvatar.cpp
++++ b/Source/IronManArena/Private/PilotAvatar.cpp
+@@ -251,7 +251,12 @@
+ 		N = N.ToLower();
+ 		bool bTint = true;
+ 		FLinearColor C = FLinearColor::White;
+-		if (N.Contains(TEXT("skin")) || N.Contains(TEXT("body"))) { C = SkinC; }
++		if (N.Contains(TEXT("skin")) || N.Contains(TEXT("body")))
++		{
++			// Textured MetaHuman / Character Creator skin (Tier >= 2) already has its own albedo: multiplying it by a
++			// 0.12-0.80 tone swatch would dim it. Only flat CityKit-style bodies take the tone tint.
++			if (E.Tier >= 2) { bTint = false; } else { C = SkinC; }
++		}
+ 		else if (N.Contains(TEXT("hair")) || N.Contains(TEXT("beard"))) { C = HairC; }
+ 		else if (N.Contains(TEXT("shirt")) || N.Contains(TEXT("main")) || N.Contains(TEXT("vest")) || N.Contains(TEXT("top")) || N.Contains(TEXT("cloth"))) { C = ColorAt(OC, O.TopColor); }
+ 		else if (N.Contains(TEXT("pants")) || N.Contains(TEXT("legs")) || N.Contains(TEXT("bottom"))) { C = ColorAt(OC, O.PantsColor); }
