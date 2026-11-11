@@ -18,6 +18,7 @@ class UCareerInput;
 struct FKeyEvent;
 
 class AMenuCameraActor;
+class ULoadingScreenWidget;
 
 UCLASS()
 class IRONMANARENA_API AArenaPlayerController : public APlayerController
@@ -113,4 +114,10 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<AMenuCameraActor> MenuCamera;
 	void StartMenuCamera();
 	void StopMenuCamera();
+
+	/** Stark boot screen (LoadingScreenWidget.h) shown while a mode is set up. */
+	UPROPERTY(Transient) TObjectPtr<ULoadingScreenWidget> LoadingScreen;
+	/** Paints the loading screen first, then runs Work behind it (game paused while waiting). Runs Work at once
+	 *  when the screen is skipped (headless / tests). */
+	void RunBehindLoadingScreen(const FText& Title, const FText& Subtitle, TFunction<void()> Work);
 };

@@ -13,6 +13,9 @@
 #include "SuitSelectWidget.h"
 #include "SettingsWidget.h"
 #include "StoryMenuWidget.h"
+#include "LoadingScreenWidget.h"
+#include "StoryLibrary.h"
+#include "SuitTypes.h"
 #include "ArenaGameMode.h"
 #include "IronManCharacter.h"
 #include "ArenaGameUserSettings.h"
@@ -23,6 +26,8 @@
 #include "TimerManager.h"
 #include "InputCoreTypes.h"
 #include "Input/Events.h"
+
+#define LOCTEXT_NAMESPACE "ArenaPlayerController"
 
 AArenaPlayerController::AArenaPlayerController()
 {
@@ -243,7 +248,10 @@ void AArenaPlayerController::MenuOpenSuitSelect()
 	{
 		// No suit select available: straight into the Arena with the last suit.
 		HideMenu();
-		if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr) { GM->StartNewGame(); }
+		RunBehindLoadingScreen(LOCTEXT("LoadCity", "City Free Play"), LOCTEXT("LoadCitySub", "Suiting up over the city"), [this]()
+		{
+			if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr) { GM->StartNewGame(); }
+		});
 		return;
 	}
 	const AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr;
@@ -257,11 +265,17 @@ void AArenaPlayerController::MenuOpenSuitSelect()
 void AArenaPlayerController::MenuConfirmSuit(int32 SuitIndex)
 {
 	HideMenu();
-	if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr)
+	const FText SuitName = USuitLibrary::GetAllSuits().IsValidIndex(SuitIndex) ? USuitLibrary::GetSuit(SuitIndex).Name : FText::GetEmpty();
+	RunBehindLoadingScreen(LOCTEXT("LoadCity", "City Free Play"),
+		SuitName.IsEmpty() ? LOCTEXT("LoadCitySub", "Suiting up over the city") : FText::Format(LOCTEXT("LoadCitySuit", "Suiting up: {0}"), SuitName),
+		[this, SuitIndex]()
 	{
-		GM->SetSelectedSuitIndex(SuitIndex);
-		GM->StartNewGame(SuitIndex);
-	}
+		if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr)
+		{
+			GM->SetSelectedSuitIndex(SuitIndex);
+			GM->StartNewGame(SuitIndex);
+		}
+	});
 }
 
 void AArenaPlayerController::MenuOpenStory()
@@ -278,19 +292,30 @@ void AArenaPlayerController::MenuOpenStory()
 void AArenaPlayerController::MenuStartStory(int32 ChapterIndex, bool bPlayPrologue)
 {
 	HideMenu();
-	if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr)
+	const int32 Chapter = FMath::Max(0, ChapterIndex);
+	const FStoryBook& Book = UStoryLibrary::GetStory();
+	const FText ChapterTitle = Book.Chapters.IsValidIndex(Chapter) ? FText::FromString(Book.Chapters[Chapter].Title) : FText::GetEmpty();
+	RunBehindLoadingScreen(bPlayPrologue ? LOCTEXT("LoadPrologue", "Prologue") : FText::Format(LOCTEXT("LoadChapter", "Chapter {0}"), FText::AsNumber(Chapter + 1)),
+		ChapterTitle, [this, Chapter, bPlayPrologue]()
 	{
-		GM->StartStory(FMath::Max(0, ChapterIndex), bPlayPrologue);
-	}
+		if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr)
+		{
+			GM->StartStory(Chapter, bPlayPrologue);
+		}
+	});
 }
 
 void AArenaPlayerController::MenuStartSideMission(FName MissionId)
 {
 	HideMenu();
-	if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr)
+	const FStoryChapter* Mission = UStoryLibrary::GetStory().FindSideMission(MissionId);
+	RunBehindLoadingScreen(LOCTEXT("LoadSide", "Side Mission"), Mission ? FText::FromString(Mission->Title) : FText::GetEmpty(), [this, MissionId]()
 	{
-		GM->StartSideMission(MissionId);
-	}
+		if (AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr)
+		{
+			GM->StartSideMission(MissionId);
+		}
+	});
 }
 
 void AArenaPlayerController::MenuOpenSettings()
@@ -334,3 +359,30 @@ void AArenaPlayerController::MenuQuit()
 {
 	UKismetSystemLibrary::QuitGame(this, this, EQuitPreference::Quit, false);
 }
+
+void AArenaPlayerController::RunBehindLoadingScreen(const FText& Title, const FText& Subtitle, TFunction<void()> Work)
+{
+	if (!IsLocalController() || ULoadingScreenWidget::ShouldSkip())
+	{
+		Work();
+		return;
+	}
+	if (!LoadingScreen) { LoadingScreen = CreateWidget<ULoadingScreenWidget>(this, ULoadingScreenWidget::StaticClass()); }
+	if (!LoadingScreen)
+	{
+		Work();
+		return;
+	}
+	if (!LoadingScreen->IsInViewport()) { LoadingScreen->AddToViewport(100); } // over every HUD and menu
+	// Freeze the world while the screen is up so nothing moves or shoots before the mode is ready.
+	SetPause(true);
+	TWeakObjectPtr<AArenaPlayerController> WeakThis(this);
+	LoadingScreen->Begin(Title, Subtitle, [WeakThis, Job = MoveTemp(Work)]()
+	{
+		if (!WeakThis.IsValid()) { return; }
+		WeakThis->SetPause(false);
+		Job();
+	});
+}
+
+#undef LOCTEXT_NAMESPACE
