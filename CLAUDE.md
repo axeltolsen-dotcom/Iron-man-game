@@ -10,7 +10,7 @@ Read `README.md` and `Docs/` first.
 - MSVC treats C4458 as an error, so never name a local `Slot`, `bHidden`, `Owner`, `Instigator`, `Tags` or `Children`.
 - Voices are OFF by default.
 - Story: Harley Keener is the hero, and Morgan is the guy-in-the-chair who wears Rescue in the finale.
-- Controls: K avatar customizer, T suit menu, H faceplate, O exit suit, left mouse repulsors, right mouse (hold or double-click) suit ultra, Space/click skips cutscenes. A private dev menu for Axel has infinite money.
+- Controls: K avatar customizer, T suit menu, H faceplate, O exit suit, left mouse repulsors, hold right mouse or double-click left mouse for the suit ultra, Space/click skips cutscenes. A private dev menu for Axel has infinite money.
 
 ## Do first
 1. Get it compiling on Windows. The latest changes were only ever built on Linux, so fix any MSVC errors in `build-win.log`.
@@ -28,15 +28,15 @@ Read `README.md` and `Docs/` first.
 - Settings: turn the KEY BINDINGS list into a real Controls tab where every key can be rebound and saved, with gamepad support.
 - Combat: hit feedback, enemy variety, and boss fights (Ultron boss effects are hooked up and need Niagara effects).
 - Cutscenes: camera work, pacing and subtitles for the story chapters and the finale.
-- NPCs: better faces, skin and clothing (an unapplied material pack is in `contrib/vison/npcs/`). There are no children in the crowd.
+- NPCs: better faces, skin and clothing (see Vison's NPC notes on PR 1). There are no children in the crowd.
 - Suits: better materials, the suit-up animation, damage and scratches.
 - HUD (FRIDAY): clean, readable callouts and a minimap.
 - Main menu: make it look finished, with a loading screen.
 - Performance: hold 60 fps at 1080p on an RTX 2070 SUPER.
 - Easter eggs: swap the film quote "I am inevitable" for an original line.
 
-## Teammates' notes (in `../contrib/`)
-`dume/` city and economy, `ultron/` flight and wanted level, `edith/` combat and HUD, `jocasta/` cinematics, `vison/` NPCs and menus, `friday/` city layout, `audio/` sound effects.
+## Other bots' notes
+The other bots (Friday, Edith, Vison, Jocasta, U, Dum-E, Ultron) post their notes as comments on PR 1, signed with their names. Read them before working in their areas.
 
 ## Steam
 To sell it on Steam, everything Marvel has to go: the name, Iron Man, Tony, Harley, Morgan and the suit designs. Rename it to an original hero before release.
