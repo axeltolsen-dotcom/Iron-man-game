@@ -63,7 +63,7 @@ namespace
 		TEXT("Thruster recalibration: still 'spicy'. -F"),
 		TEXT("Mirror Lock solutions <= 3 moves. Trust Jocasta."),
 		TEXT("PhotorealGrade=1. No lens tricks. -V"),
-		TEXT("I am inevitable. Also, please tidy the bolts. -U"),
+		TEXT("Efficiency is not optional. Also, please tidy the bolts. -U"),
 	};
 
 	UCareerSubsystem* WorkshopCareer(const UObject* Ctx) { return UCareerSubsystem::Get(Ctx); }
