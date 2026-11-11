@@ -424,6 +424,8 @@ private:
 	void UpdateSubtitle();
 	void UpdateGame();
 	void UpdateRadarAndWeapon();
+	/** Rebuilds MinimapLocalSegs (street map under the threat radar) from the city around the owning pawn. */
+	void UpdateMinimapRoads(float RangeM);
 	void UpdateGlitch(bool bWasHit);
 	void UpdateFX();
 	void UpdateTransforms(float DeltaSeconds);
@@ -462,6 +464,17 @@ private:
 	bool bHasState = false;
 	bool bTreeBuiltInCode = false;
 	float HudTime = 0.f;
+
+	// Street map under the threat radar: world road lines (cached per city actor) and this frame's clipped
+	// segments in radar metres (X right, Y forward) with their widths in metres.
+	TWeakObjectPtr<AActor> MinimapCity;
+	TArray<FVector4d> MinimapWorldSegs;
+	TArray<float> MinimapWorldWidthCm;
+	TArray<FVector4f> MinimapLocalSegs;
+	TArray<float> MinimapLocalWidthM;
+	float MinimapNorthDeg = 0.f;
+	bool bMinimapHasNorth = false;
+	float MinimapNextScanTime = 0.f;
 
 	// FRIDAY callouts (HUD SFX + suit-AI lines) and the HUDDataSubsystem hit serial last seen.
 	FHelmetHUDCallouts Callouts;

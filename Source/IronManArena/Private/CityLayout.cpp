@@ -239,6 +239,26 @@ ACityLayout* ACityLayout::SpawnCity(UWorld* World, const FVector& Origin)
 	return World->SpawnActor<ACityLayout>(ACityLayout::StaticClass(), FTransform(Origin), SP);
 }
 
+void ACityLayout::GetMinimapRoads(TArray<FVector4d>& OutSegments, TArray<float>& OutWidthsCm) const
+{
+	OutSegments.Reset();
+	OutWidthsCm.Reset();
+	const FCityData& D = Data();
+	const FTransform& Xf = GetActorTransform();
+	for (const TSharedPtr<FJsonValue>& V : Arr(D.Root, TEXT("roads")))
+	{
+		const TSharedPtr<FJsonObject> R = AsObj(V);
+		if (!R.IsValid()) { continue; }
+		const FVector2D* A = D.Nodes.Find(Str(R, TEXT("from")));
+		const FVector2D* B = D.Nodes.Find(Str(R, TEXT("to")));
+		if (!A || !B) { continue; }
+		const FVector WA = Xf.TransformPosition(FVector(A->X, A->Y, 0.0));
+		const FVector WB = Xf.TransformPosition(FVector(B->X, B->Y, 0.0));
+		OutSegments.Add(FVector4d(WA.X, WA.Y, WB.X, WB.Y));
+		OutWidthsCm.Add(float(Num(R, TEXT("widthCm"), 1500.0)));
+	}
+}
+
 ACityLayout* ACityLayout::Find(const UObject* WorldContext)
 {
 	UWorld* World = WorldContext ? WorldContext->GetWorld() : nullptr;

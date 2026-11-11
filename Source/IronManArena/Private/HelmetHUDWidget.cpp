@@ -4,8 +4,10 @@
 #include "ArenaGameMode.h"
 #include "ArenaGameUserSettings.h"
 #include "BossTitan.h"
+#include "CityLayout.h"
 #include "DamageArcMath.h"
 #include "DamageDirectionWidget.h"
+#include "DowntownDistrict.h"
 #include "HUDDataSubsystem.h"
 #include "EnemyBase.h"
 #include "IronManCharacter.h"
@@ -1758,6 +1760,111 @@ void UHelmetHUDWidget::UpdateTargets(float DeltaSeconds)
 // Radar, weapon, Hulkbuster
 // ================================================================================================
 
+namespace
+{
+	/** Clips segment A-B (radar metres) to the circle of radius R round the origin. False when nothing is left. */
+	bool MinimapClipToCircle(FVector2f& InOutA, FVector2f& InOutB, float R)
+	{
+		const FVector2f Dir = InOutB - InOutA;
+		const float QA = Dir.SizeSquared();
+		if (QA < 1e-4f) { return false; }
+		const float QB = 2.f * FVector2f::DotProduct(InOutA, Dir);
+		const float QC = InOutA.SizeSquared() - R * R;
+		const float Disc = QB * QB - 4.f * QA * QC;
+		if (Disc <= 0.f) { return false; }
+		const float Root = FMath::Sqrt(Disc);
+		const float T0 = FMath::Max((-QB - Root) / (2.f * QA), 0.f);
+		const float T1 = FMath::Min((-QB + Root) / (2.f * QA), 1.f);
+		if (T0 >= T1) { return false; }
+		const FVector2f Start = InOutA;
+		InOutA = Start + Dir * T0;
+		InOutB = Start + Dir * T1;
+		return true;
+	}
+}
+
+void UHelmetHUDWidget::UpdateMinimapRoads(float RangeM)
+{
+	MinimapLocalSegs.Reset();
+	MinimapLocalWidthM.Reset();
+	bMinimapHasNorth = false;
+	const APawn* Pawn = GetOwningPlayerPawn();
+	if (!Pawn || !GetWorld())
+	{
+		return;
+	}
+	bMinimapHasNorth = true;
+	const FRotator ControlRot = Pawn->GetControlRotation();
+	MinimapNorthDeg = -float(ControlRot.Yaw);
+
+	// Find the live city (the JSON city layout, else the Downtown grid); rescan every 2 s while there is none.
+	AActor* City = MinimapCity.Get();
+	if ((!City || City->IsHidden()) && HudTime >= MinimapNextScanTime)
+	{
+		MinimapNextScanTime = HudTime + 2.f;
+		MinimapWorldSegs.Reset();
+		MinimapWorldWidthCm.Reset();
+		City = nullptr;
+		ACityLayout* Layout = ACityLayout::Find(this);
+		if (Layout && !Layout->IsHidden())
+		{
+			Layout->GetMinimapRoads(MinimapWorldSegs, MinimapWorldWidthCm);
+			City = Layout;
+		}
+		else if (ADowntownDistrict* Dist = ADowntownDistrict::Find(this))
+		{
+			if (!Dist->IsHidden())
+			{
+				const FVector DistLoc = Dist->GetActorLocation();
+				const double Lo = -double(ADowntownDistrict::HalfExtent);
+				const double Hi = double(ADowntownDistrict::HalfExtent);
+				const float RoadW = ADowntownDistrict::RoadWidth + 2.f * ADowntownDistrict::WalkWidth;
+				for (int32 Line = 0; Line <= ADowntownDistrict::NumBlocks; ++Line)
+				{
+					const double GX = Dist->RoadLineWorldX(Line);
+					const double GY = Dist->RoadLineWorldY(Line);
+					MinimapWorldSegs.Add(FVector4d(GX, DistLoc.Y + Lo, GX, DistLoc.Y + Hi));
+					MinimapWorldWidthCm.Add(RoadW);
+					MinimapWorldSegs.Add(FVector4d(DistLoc.X + Lo, GY, DistLoc.X + Hi, GY));
+					MinimapWorldWidthCm.Add(RoadW);
+				}
+				City = Dist;
+			}
+		}
+		MinimapCity = City;
+		if (City)
+		{
+			UE_LOG(LogTemp, Log, TEXT("HUD minimap: %d road segments from %s"), MinimapWorldSegs.Num(), *City->GetName());
+		}
+	}
+	if (!City || City->IsHidden() || MinimapWorldSegs.Num() == 0)
+	{
+		return;
+	}
+
+	const FVector Location = Pawn->GetActorLocation();
+	const FRotator YawOnly(0.0, ControlRot.Yaw, 0.0);
+	const FVector YawFwd = YawOnly.Vector();
+	const FVector YawRight = FRotationMatrix(YawOnly).GetUnitAxis(EAxis::Y);
+	auto ToLocal = [&Location, &YawFwd, &YawRight](double WX, double WY) -> FVector2f
+	{
+		const FVector Delta(WX - Location.X, WY - Location.Y, 0.0);
+		return FVector2f(float(FVector::DotProduct(Delta, YawRight)), float(FVector::DotProduct(Delta, YawFwd))) / 100.f;
+	};
+	const float ClipR = FMath::Max(RangeM, 1.f);
+	for (int32 i = 0; i < MinimapWorldSegs.Num(); ++i)
+	{
+		const FVector4d& Seg = MinimapWorldSegs[i];
+		FVector2f SegA = ToLocal(Seg.X, Seg.Y);
+		FVector2f SegB = ToLocal(Seg.Z, Seg.W);
+		if (MinimapClipToCircle(SegA, SegB, ClipR))
+		{
+			MinimapLocalSegs.Add(FVector4f(SegA.X, SegA.Y, SegB.X, SegB.Y));
+			MinimapLocalWidthM.Add(MinimapWorldWidthCm.IsValidIndex(i) ? MinimapWorldWidthCm[i] / 100.f : 15.f);
+		}
+	}
+}
+
 void UHelmetHUDWidget::UpdateRadarAndWeapon()
 {
 	float Range = HudState.RadarRangeM;
@@ -1765,6 +1872,7 @@ void UHelmetHUDWidget::UpdateRadarAndWeapon()
 	{
 		Range = HudState.bBossActive ? Config.RadarRangeBossM : (HudState.bFlying ? Config.RadarRangeFlightM : Config.RadarRangeGroundM);
 	}
+	UpdateMinimapRoads(Range);
 	SetTextIfChanged(RadarRangeText, FString::Printf(TEXT("%dm"), FMath::RoundToInt(Range)));
 	SetTextColorIfChanged(RadarRangeText, WithAlpha(PalPrimary, 0.8f));
 	if (UMaterialInstanceDynamic* MID = GetMID(RadarSweep))
@@ -2623,6 +2731,32 @@ int32 UHelmetHUDWidget::NativePaint(const FPaintArgs& Args, const FGeometry& All
 		const float A = GlobalAlpha * ElemAlpha;
 		const FVector2f Centre = Pos + Size2 * 0.5f;
 		const float Radius = FMath::Max(FMath::Min(Size2.X, Size2.Y) * 0.5f - 2.f, 4.f);
+		// Street map: the city's roads round the player, heading-up, under the rings and blips.
+		{
+			float MapRange = HudState.RadarRangeM;
+			if (MapRange <= 0.f)
+			{
+				MapRange = HudState.bBossActive ? Config.RadarRangeBossM : (HudState.bFlying ? Config.RadarRangeFlightM : Config.RadarRangeGroundM);
+			}
+			MapRange = FMath::Max(MapRange, 1.f);
+			const FLinearColor RoadInk = WithAlpha(Ink, A * 0.16f);
+			for (int32 i = 0; i < MinimapLocalSegs.Num(); ++i)
+			{
+				const FVector4f& Seg = MinimapLocalSegs[i];
+				const float WidthPx = FMath::Clamp(MinimapLocalWidthM[i] / MapRange * Radius, 1.f, 7.f);
+				Line(Centre + FVector2f(Seg.X, -Seg.Y) / MapRange * Radius, Centre + FVector2f(Seg.Z, -Seg.W) / MapRange * Radius, RoadInk, WidthPx);
+			}
+			if (bMinimapHasNorth)
+			{
+				// "N" drawn with lines just outside the outer ring (world +X is north, as on the heading tape).
+				const float NorthRad = FMath::DegreesToRadians(MinimapNorthDeg);
+				const FVector2f NDir(FMath::Sin(NorthRad), -FMath::Cos(NorthRad));
+				const FVector2f NC = Centre + NDir * (Radius + 8.f);
+				const FLinearColor NInk = WithAlpha(Ink, A * 0.85f);
+				Line(Centre + NDir * (Radius - 3.f), Centre + NDir * (Radius + 2.f), NInk, 1.5f);
+				Poly({ NC + FVector2f(-2.5f, 3.5f), NC + FVector2f(-2.5f, -3.5f), NC + FVector2f(2.5f, 3.5f), NC + FVector2f(2.5f, -3.5f) }, NInk, 1.2f);
+			}
+		}
 		for (int32 Ring = 1; Ring <= 3; ++Ring)
 		{
 			const float R = Radius * float(Ring) / 3.f;

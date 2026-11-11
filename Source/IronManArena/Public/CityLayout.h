@@ -71,6 +71,9 @@ public:
 	/** Legacy Tower base (world). */
 	FVector GetLandmarkLocation() const;
 
+	/** Road centre lines for the HUD street map: world XY as (Ax, Ay, Bx, By) plus the full road width in cm. */
+	void GetMinimapRoads(TArray<FVector4d>& OutSegments, TArray<float>& OutWidthsCm) const;
+
 	int32 GetNumBuildingInstances() const { return NumBuildingInstances; }
 
 	/** Hidden while a story chapter set is up (AArenaEnvironment::SetArenaDressingVisible). */
