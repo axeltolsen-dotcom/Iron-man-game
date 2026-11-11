@@ -89,6 +89,8 @@ protected:
 	TSharedRef<SWidget> Frame(const FText& Title, TSharedRef<SWidget> Content, float Width = 1180.f);
 	void EnsurePreview(int32 Framing);
 	void PushPreview();
+	/** Save the draft avatar and close the creator (START / Enter on first launch, SAVE CHARACTER otherwise). */
+	void ConfirmDraft();
 
 	// casino
 	void CasinoPlay();

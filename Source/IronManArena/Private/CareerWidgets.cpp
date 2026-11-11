@@ -153,10 +153,14 @@ ACareerPreviewStage::ACareerPreviewStage()
 	Capture->PrimaryComponentTick.bTickEvenWhenPaused = true;
 	Capture->bAlwaysPersistRenderingState = true;
 	Capture->FOVAngle = 30.f;
+	Capture->PostProcessSettings.bOverride_AutoExposureMethod = true;
+	Capture->PostProcessSettings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
+	Capture->PostProcessSettings.bOverride_AutoExposureBias = true;
+	Capture->PostProcessSettings.AutoExposureBias = 0.35f;
 	Capture->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
-	Capture->PostProcessSettings.AutoExposureMinBrightness = 2.f;
+	Capture->PostProcessSettings.AutoExposureMinBrightness = 0.4f;
 	Capture->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
-	Capture->PostProcessSettings.AutoExposureMaxBrightness = 8.f;
+	Capture->PostProcessSettings.AutoExposureMaxBrightness = 1.2f;
 	Capture->PostProcessSettings.bOverride_BloomIntensity = true;
 	Capture->PostProcessSettings.BloomIntensity = 0.3f;
 	Capture->PostProcessSettings.bOverride_VignetteIntensity = true;
@@ -190,7 +194,7 @@ void ACareerPreviewStage::ShowAvatar(const FAvatarConfig& Config)
 		TArray<FArenaPaintedPart> Dummy;
 		Floor = ArenaVisuals::AddRuntimePart(this, GetRootComponent(), EArenaShape::Cylinder, FVector(0, 0, -4.f), FVector(2.2f, 2.2f, 0.08f), FRotator::ZeroRotator,
 			FLinearColor(0.1f, 0.11f, 0.13f), 0.f, EArenaSurface::Steel, false, Dummy);
-		if (Floor) { Capture->ShowOnlyComponents.Add(Floor); }
+		if (Floor) { Floor->bDisallowNanite = true; }
 	}
 	if (!Avatar)
 	{
@@ -203,8 +207,24 @@ void ACareerPreviewStage::ShowAvatar(const FAvatarConfig& Config)
 	{
 		Avatar->ApplyConfig(Config, true);
 		UE_LOG(LogTemp, Log, TEXT("Career: avatar preview rebuilt (%s, skin %d, hair %d, face %d)"), Config.Body == EAvatarBody::Feminine ? TEXT("girl") : TEXT("boy"), Config.SkinTone, int32(Config.Hair), Config.Face);
+		// Recreate the show-only list from the current components. ApplyConfig destroys and rebuilds
+		// parts, and a leftover Floor-only ShowOnlyComponents list can hide the body in packaged builds.
+		Capture->ClearShowOnlyComponents();
 		Capture->ShowOnlyActors.Reset();
+		Capture->ShowOnlyActorComponents(this, true);
+		Capture->ShowOnlyActorComponents(Avatar, true);
+		Capture->ShowOnlyActors.Add(this);
 		Capture->ShowOnlyActors.Add(Avatar);
+		int32 PrimCount = 0;
+		TInlineComponentArray<UStaticMeshComponent*> PreviewMeshes(Avatar);
+		for (UStaticMeshComponent* MeshComp : PreviewMeshes)
+		{
+			if (!MeshComp) { continue; }
+			MeshComp->bDisallowNanite = true;
+			++PrimCount;
+		}
+		if (Floor) { Floor->bDisallowNanite = true; }
+		UE_LOG(LogTemp, Log, TEXT("Career: preview show-only %d avatar mesh components"), PrimCount);
 	}
 	SetFraming(Framing);
 }
@@ -308,15 +328,45 @@ void UCareerScreen::CloseScreen()
 	if (InputOwner.IsValid()) { InputOwner->CloseScreen(); }
 }
 
+void UCareerScreen::ConfirmDraft()
+{
+	UCareerSubsystem* Career = UCareerSubsystem::Get(this);
+	if (!Career) { return; }
+	FAvatarConfig Saved = Draft;
+	if (Saved.PilotName.TrimStartAndEnd().IsEmpty()) { Saved.PilotName = TEXT("Harley"); }
+	Career->SetAvatar(Saved, true);
+	const bool bFirstLaunch = (Screen == ECareerScreen::FirstLaunch);
+	if (bFirstLaunch) { Career->MarkCharacterCreated(); }
+	Career->Toast(FText::Format(LOCTEXT("Saved", "Character saved. Welcome, {0}."), FText::FromString(Saved.PilotName)), UiGood);
+	UE_LOG(LogTemp, Log, TEXT("Career: ConfirmDraft (first-launch=%d, name=%s)"), bFirstLaunch ? 1 : 0, *Saved.PilotName);
+	CloseScreen();
+}
+
 void UCareerScreen::Refresh()
 {
 	if (Body.IsValid()) { Body->SetContent(BuildPage()); }
+	// RebuildWidget tears down the focused START button; keep UI-only focus so clicks and Enter still land.
+	if (APlayerController* PlayerCtrl = GetOwningPlayer())
+	{
+		if (Screen != ECareerScreen::None && Screen != ECareerScreen::DevBar)
+		{
+			FInputModeUIOnly Mode;
+			Mode.SetWidgetToFocus(TakeWidget());
+			PlayerCtrl->SetInputMode(Mode);
+			PlayerCtrl->bShowMouseCursor = true;
+		}
+	}
 }
 
 FReply UCareerScreen::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
 	const FKey K = InKeyEvent.GetKey();
-	if (Screen == ECareerScreen::FirstLaunch) { return FReply::Unhandled(); } // must finish setup
+	if (Screen == ECareerScreen::FirstLaunch)
+	{
+		if (K == EKeys::Enter) { ConfirmDraft(); return FReply::Handled(); }
+		if (K == EKeys::Escape) { return FReply::Handled(); } // must finish setup; do not leak Esc to the title menu
+		return FReply::Unhandled(); // name field still gets typing
+	}
 	const bool bToggleKey = (K == EKeys::Escape)
 		|| (Screen == ECareerScreen::DevBar && (K == EKeys::F1 || K == EKeys::Tilde))
 		|| (Screen == ECareerScreen::Shop && K == EKeys::U)
@@ -357,7 +407,14 @@ TSharedRef<SWidget> UCareerScreen::Frame(const FText& Title, TSharedRef<SWidget>
 {
 	const UCareerSubsystem* C = UCareerSubsystem::Get(this);
 	TWeakObjectPtr<UCareerScreen> Self(this);
-	return SNew(SBox).HAlign(HAlign_Center).VAlign(VAlign_Center)
+	// Full-viewport dimmer so title-menu buttons (ARENA / STORY / ...) cannot steal clicks
+	// around the modal, including the first-launch START button.
+	return SNew(SBorder)
+		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+		.BorderBackgroundColor(FLinearColor(0.f, 0.f, 0.f, 0.55f))
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(0.f)
 	[
 		SNew(SBox).WidthOverride(Width).MaxDesiredHeight(860.f)
 		[
@@ -888,15 +945,9 @@ TSharedRef<SWidget> UCareerScreen::BuildAvatar(bool bFirstLaunch)
 		Self->PushPreview();
 		Self->Refresh();
 	})];
-	Actions->AddSlot().AutoWidth().Padding(3.f)[Btn(bFirstLaunch ? LOCTEXT("StartGame", "START  >") : LOCTEXT("SaveChar", "SAVE CHARACTER"), [C, Self, bFirstLaunch]()
+	Actions->AddSlot().AutoWidth().Padding(3.f)[Btn(bFirstLaunch ? LOCTEXT("StartGame", "START  >") : LOCTEXT("SaveChar", "SAVE CHARACTER"), [Self]()
 	{
-		if (!Self.IsValid()) { return; }
-		FAvatarConfig X = Self->Draft;
-		if (X.PilotName.TrimStartAndEnd().IsEmpty()) { X.PilotName = TEXT("Harley"); }
-		C->SetAvatar(X, true);
-		if (bFirstLaunch) { C->MarkCharacterCreated(); }
-		C->Toast(FText::Format(LOCTEXT("Saved", "Character saved. Welcome, {0}."), FText::FromString(X.PilotName)), UiGood);
-		Self->CloseScreen();
+		if (Self.IsValid()) { Self->ConfirmDraft(); }
 	}, true, FLinearColor(0.1f, 0.35f, 0.15f), 15)];
 
 	TSharedRef<SWidget> Content = SNew(SHorizontalBox)

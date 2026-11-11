@@ -7,6 +7,7 @@
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
 #include "Misc/PackageName.h"
 #include "UObject/UObjectGlobals.h"
 #include "HAL/IConsoleManager.h"
@@ -190,6 +191,19 @@ namespace ArenaVisuals
 		return M;
 	}
 
+
+	/** Cooked builds cannot add MATUSAGE_Nanite. Project Nanite shapes (SM_Cube etc.) stay invisible
+	 *  if the paint material (M_ArenaEmissive) does not already have that flag. Fall back to raster. */
+	static void AllowRasterIfMaterialLacksNanite(UStaticMeshComponent* Comp, UMaterialInterface* Mat)
+	{
+		if (!Comp || !Mat) { return; }
+		const UMaterial* BaseMat = Mat->GetMaterial();
+		if (BaseMat && !BaseMat->GetUsageByFlag(MATUSAGE_Nanite))
+		{
+			Comp->bDisallowNanite = true;
+		}
+	}
+
 	EArenaSurface ResolveSurface(const FArenaPaintedPart& Part)
 	{
 		if (Part.Surface != EArenaSurface::Auto) { return Part.Surface; }
@@ -244,6 +258,7 @@ namespace ArenaVisuals
 			Part.MID->SetVectorParameterValue(ColorParam, Color);
 			Part.MID->SetScalarParameterValue(EmissiveParam, EmissiveToNits(Emissive));
 			Comp->SetMaterial(0, Part.MID);
+			AllowRasterIfMaterialLacksNanite(Comp, Mat);
 		}
 		OutParts.Add(Part);
 		return Comp;
