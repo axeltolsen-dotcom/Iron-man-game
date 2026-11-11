@@ -10,7 +10,10 @@ Import the city kit (Dum-E's CC0 pack, prepared by Tools/prepare_env_assets.py) 
   Materials -> /Game/Env/Materials:
     MI_Env_*  instances of /Game/Realism/Materials/M_SurfacePBR (triplanar, world-aligned)
     M_RoadUV + MI_Env_Road4Lane / MI_Env_Road2Lane: road textures with lane markings laid along the mesh's
-              local X axis (object-space UVs: UTiles across the road, VTilesPerMeter along it)
+              local X axis (object-space UVs: UTiles across the road, VTilesPerMeter along it).
+              Texture samples use standard TextureSampleParameter2D nodes; a Custom node only
+              computes the float2 UV. Sampling inside Custom HLSL crashed dxcompiler while cooking
+              PCD3D_SM5 (null ShaderMap / EXCEPTION_ACCESS_VIOLATION).
 glTF is Y-up metres; Interchange converts to Z-up centimetres. Report: Saved/Env/env_report.txt
 Kit piece sizes for C++: Saved/Env/kit_pieces.json is also copied to Content/Env/kit_pieces.json.
 """
@@ -234,15 +237,31 @@ def custom(mat, code, inputs, y, out=unreal.CustomMaterialOutputType.CMOT_FLOAT3
     return c
 
 
+def const_f(mat, value, x, y):
+    return expr(mat, unreal.MaterialExpressionConstant, x, y, r=value)
+
+
+def tex_sample(mat, name, path, sampler, x, y, uv_node):
+    """Regular TextureSampleParameter2D. Do not sample textures inside Custom HLSL — that
+    path made dxcompiler crash (EXCEPTION_ACCESS_VIOLATION) while cooking M_RoadUV for PCD3D_SM5."""
+    e = expr(mat, unreal.MaterialExpressionTextureSampleParameter2D, x, y,
+             parameter_name=name, sampler_type=sampler)
+    t = unreal.load_asset(path)
+    if t:
+        e.set_editor_property("texture", t)
+    if not mel.connect_material_expressions(uv_node, "", e, "Coordinates"):
+        if not mel.connect_material_expressions(uv_node, "", e, "UVs"):
+            log("  ! UV link failed for %s" % name)
+    return e
+
+
 def build_road_master():
     name = "M_RoadUV"
     mat = fresh(name, unreal.Material, unreal.MaterialFactoryNew())
-    mat.set_editor_property("tangent_space_normal", False)
+    # Tangent-space normals + standard texture samples (no GetPrimitiveData in custom HLSL).
+    mat.set_editor_property("tangent_space_normal", True)
     st = unreal.MaterialSamplerType
     d = "Road007"
-    tc = tex_param(mat, "BaseColorMap", "%s/%s/T_%s_diff" % (TEX, d, d), st.SAMPLERTYPE_COLOR, -300)
-    tn = tex_param(mat, "NormalMap", "%s/%s/T_%s_nor_dx" % (TEX, d, d), st.SAMPLERTYPE_NORMAL, -100)
-    ta = tex_param(mat, "ARMMap", "%s/%s/T_%s_arm" % (TEX, d, d), st.SAMPLERTYPE_MASKS, 100)
     lp = expr(mat, unreal.MaterialExpressionLocalPosition, -1200, 300) if hasattr(unreal, "MaterialExpressionLocalPosition") else None
     if lp is None:
         wp = expr(mat, unreal.MaterialExpressionWorldPosition, -1400, 300)
@@ -257,38 +276,55 @@ def build_road_master():
     tint = expr(mat, unreal.MaterialExpressionVectorParameter, -1200, 700, parameter_name="Color", default_value=unreal.LinearColor(1, 1, 1, 1))
     wet = expr(mat, unreal.MaterialExpressionScalarParameter, -1200, 800, parameter_name="Wetness", default_value=0.0)
     es = expr(mat, unreal.MaterialExpressionScalarParameter, -1200, 900, parameter_name="EmissiveStrength", default_value=0.0)
-    # Object-space UV: U across the road (local Y), V along it (local X). Bounds give the scaled size in cm.
-    uv = """
-float3 ext = max(Bounds, 1.0);            // object bounds, world size (cm)
-float u = (LP.y / 100.0 + 0.5) * UT;      // basic cube spans -50..50 locally
-float v = (LP.x / 100.0) * (ext.x / 100.0) / VT;
-float2 uv = float2(u, v);
-"""
-    col = custom(mat, uv + "float3 c = Texture2DSample(Tex, TexSampler, uv).rgb * Tint; return c * lerp(1.0, 0.5, saturate(Wet));",
-                 ["Tex", "LP", "Bounds", "UT", "VT", "Tint", "Wet"], -300)
-    arm = custom(mat, uv + "float3 a = Texture2DSample(Tex, TexSampler, uv).rgb; a.g = lerp(a.g, 0.08, saturate(Wet) * 0.85); return a;",
-                 ["Tex", "LP", "Bounds", "UT", "VT", "Wet"], 0)
-    nor = custom(mat, uv + """
-float3 t = Texture2DSample(Tex, TexSampler, uv).xyz * 2.0 - 1.0;   // DirectX: +x = +u, +y = -v
-float3 n = normalize(float3(-t.y * 0.6, t.x * 0.6, 1.0));          // local: v -> +X, u -> +Y
-return normalize(mul(n, (float3x3)GetPrimitiveData(Parameters).LocalToWorld));
-""", ["Tex", "LP", "Bounds", "UT", "VT"], 300)
-    for c, t in ((col, tc), (arm, ta), (nor, tn)):
-        link(t, c, "Tex"); link(lp, c, "LP"); link(os_, c, "Bounds"); link(ut, c, "UT"); link(vt, c, "VT")
-    link(tint, col, "Tint"); link(wet, col, "Wet"); link(wet, arm, "Wet")
+    # Object-space UV only: U across the road (local Y), V along it (local X). No texture samples here.
+    uv = custom(mat, """
+float3 ext = max(Bounds, 1.0);
+float u = (LP.y / 100.0 + 0.5) * UT;
+float v = (LP.x / 100.0) * (ext.x / 100.0) / max(VT, 0.001);
+return float2(u, v);
+""", ["LP", "Bounds", "UT", "VT"], -800, out=unreal.CustomMaterialOutputType.CMOT_FLOAT2)
+    link(lp, uv, "LP"); link(os_, uv, "Bounds"); link(ut, uv, "UT"); link(vt, uv, "VT")
+    base = tex_sample(mat, "BaseColorMap", "%s/%s/T_%s_diff" % (TEX, d, d), st.SAMPLERTYPE_COLOR, -400, -300, uv)
+    nrm = tex_sample(mat, "NormalMap", "%s/%s/T_%s_nor_dx" % (TEX, d, d), st.SAMPLERTYPE_NORMAL, -400, -100, uv)
+    arm = tex_sample(mat, "ARMMap", "%s/%s/T_%s_arm" % (TEX, d, d), st.SAMPLERTYPE_MASKS, -400, 100, uv)
+    sat = expr(mat, unreal.MaterialExpressionSaturate, -200, 800)
+    link(wet, sat, "")
+    dark = expr(mat, unreal.MaterialExpressionLinearInterpolate, -50, -300)
+    link(const_f(mat, 1.0, -200, -360), dark, "A")
+    link(const_f(mat, 0.5, -200, -320), dark, "B")
+    link(sat, dark, "Alpha")
+    tinted = expr(mat, unreal.MaterialExpressionMultiply, -50, -240)
+    link(base, tinted, "A", "RGB")
+    link(tint, tinted, "B")
+    col = expr(mat, unreal.MaterialExpressionMultiply, 150, -240)
+    link(tinted, col, "A")
+    link(dark, col, "B")
     mel.connect_material_property(col, "", MP.MP_BASE_COLOR)
-    for chan, p, y in (("r", MP.MP_AMBIENT_OCCLUSION, -50), ("g", MP.MP_ROUGHNESS, 50), ("b", MP.MP_METALLIC, 150)):
-        m = expr(mat, unreal.MaterialExpressionComponentMask, -300, y, **{chan: True})
-        link(arm, m, "")
-        mel.connect_material_property(m, "", p)
-    mel.connect_material_property(nor, "", MP.MP_NORMAL)
-    em = expr(mat, unreal.MaterialExpressionMultiply, -300, 400)
-    link(tint, em, "A"); link(es, em, "B")
+    ao = expr(mat, unreal.MaterialExpressionComponentMask, -50, 40, r=True)
+    link(arm, ao, "", "RGB")
+    mel.connect_material_property(ao, "", MP.MP_AMBIENT_OCCLUSION)
+    rough_s = expr(mat, unreal.MaterialExpressionComponentMask, -50, 120, g=True)
+    link(arm, rough_s, "", "RGB")
+    wet_a = expr(mat, unreal.MaterialExpressionMultiply, -50, 200)
+    link(sat, wet_a, "A")
+    link(const_f(mat, 0.85, -200, 200), wet_a, "B")
+    rough = expr(mat, unreal.MaterialExpressionLinearInterpolate, 150, 120)
+    link(rough_s, rough, "A")
+    link(const_f(mat, 0.08, -50, 260), rough, "B")
+    link(wet_a, rough, "Alpha")
+    mel.connect_material_property(rough, "", MP.MP_ROUGHNESS)
+    metal = expr(mat, unreal.MaterialExpressionComponentMask, -50, 320, b=True)
+    link(arm, metal, "", "RGB")
+    mel.connect_material_property(metal, "", MP.MP_METALLIC)
+    mel.connect_material_property(nrm, "RGB", MP.MP_NORMAL)
+    em = expr(mat, unreal.MaterialExpressionMultiply, 150, 400)
+    link(tint, em, "A")
+    link(es, em, "B")
     mel.connect_material_property(em, "", MP.MP_EMISSIVE_COLOR)
     mel.layout_material_expressions(mat)
     mel.recompile_material(mat)
     eal.save_asset(MAT + "/" + name, only_if_is_dirty=False)
-    log("OK   %s/%s" % (MAT, name))
+    log("OK   %s/%s (cook-safe samples)" % (MAT, name))
     return mat
 
 
@@ -343,4 +379,5 @@ def main():
         f.write("\n".join(LOG) + "\n")
 
 
-main()
+if __name__ == "__main__":
+    main()
