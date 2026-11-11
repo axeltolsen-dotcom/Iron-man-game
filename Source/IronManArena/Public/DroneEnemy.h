@@ -70,6 +70,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void TickEnemy(float DeltaSeconds, AIronManCharacter* Player) override;
 	virtual void OnKilled() override;
+	virtual void SpawnDeathFX() override;
+
+	/** Combat realism damage state: wobble/list, rotor flicker, sag and sparks. */
+	void TickDroneDamageState(float DeltaSeconds);
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> RotorL;
@@ -85,4 +89,15 @@ protected:
 	float OrbitDistance = 800.f;
 	float HeightOffset = 150.f;
 	float OrbitDirection = 1.f;
+
+	/** Aim cone (degrees) once the drone is at or below the wobble threshold (it has no spread when healthy). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drone|Damage")
+	float DamagedAimSpreadDeg = 2.f;
+
+	/** -1 = left rotor damaged, +1 = right, 0 = not damaged yet (picked from the hit side at the 50% line). */
+	int32 DamagedSide = 0;
+	float SparkTimer = 1.f;
+	float DamagePitch = 0.f;
+	float DamageRoll = 0.f;
+	float SagOffset = 0.f;
 };

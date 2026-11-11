@@ -42,6 +42,14 @@ enum class EArenaGameState : uint8
 	GameOver
 };
 
+/** Jocasta combat realism hit-stop kinds (combat_realism.json hitReaction.hitStop). */
+enum class EArenaHitStop : uint8
+{
+	RepulsorKill,   // 30 ms
+	HeavyHit,       // 60 ms
+	BossPhaseBreak  // 90 ms
+};
+
 UCLASS()
 class IRONMANARENA_API AArenaGameMode : public AGameModeBase
 {
@@ -122,6 +130,15 @@ public:
 
 	/** Called by AEnemyBase when it dies (before it is destroyed). */
 	void OnEnemyKilled(AEnemyBase* Enemy);
+
+	/**
+	 * Combat realism hit-stop: global time dilation 0.05 for 30 / 60 / 90 ms of REAL time through
+	 * UArenaFeelSubsystem (longest request wins, never stacks, restores to the dilation stack with a
+	 * wall-clock deadline). No-op while paused, in -ArenaSmoke / -StoryAutoplay / automation tests /
+	 * story autopilot runs, and with ima.HitStop 0. Heavy hits are rate-limited (0.25 s real time).
+	 * Returns true if a freeze was requested.
+	 */
+	bool RequestHitStop(EArenaHitStop StopKind);
 
 	UFUNCTION(BlueprintCallable, Category = "Arena")
 	void AddScore(int32 Points);
@@ -304,4 +321,7 @@ protected:
 	bool bTankAnnouncedThisWave = false;
 	bool bSwarmAnnouncedThisWave = false;
 	bool bHighScoreAnnounced = false;
+
+	/** FPlatformTime seconds of the last heavy-hit freeze (RequestHitStop rate limit). */
+	double LastHeavyHitStopRealTime = -100.0;
 };

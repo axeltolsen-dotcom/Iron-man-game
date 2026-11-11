@@ -271,9 +271,10 @@ void ArenaCombat::Knockback(AActor* Target, const FVector& Dir, float Strength)
 	if (!Target || Strength <= 0.f) { return; }
 	const FVector D = Dir.GetSafeNormal2D() + FVector(0, 0, 0.15f);
 	if (ACharacter* C = Cast<ACharacter>(Target)) { C->LaunchCharacter(D * Strength, false, false); return; }
-	// Drones / tanks / bosses: a short shove that never pushes them into walls (sweep).
-	const float Mass = Target->IsA<AEnemyBase>() && Target->GetSimpleCollisionRadius() > 300.f ? 0.15f : 1.f;
-	Target->AddActorWorldOffset(D * Strength * 0.06f * Mass, true);
+	// Drones / tanks / bosses: knockback now comes from AEnemyBase::TakeDamage (Jocasta combat realism:
+	// decaying velocity, damage x kind scale, swept), so the old one-frame shove would double it.
+	if (Target->IsA<AEnemyBase>()) { return; }
+	Target->AddActorWorldOffset(D * Strength * 0.06f, true);
 }
 
 ArenaCombat::FShot ArenaCombat::FireHitscan(AActor* Shooter, AController* Inst, const FVector& Muzzle, const FVector& Dir,

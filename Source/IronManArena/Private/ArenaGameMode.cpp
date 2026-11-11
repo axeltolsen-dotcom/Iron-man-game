@@ -1,4 +1,6 @@
 #include "ArenaGameMode.h"
+#include "ArenaFeel.h"
+#include "HAL/PlatformTime.h"
 #include "GameFramework/WorldSettings.h"
 #include "CityLayout.h"
 #include "ArenaSmokeTest.h"
@@ -474,6 +476,42 @@ void AArenaGameMode::OnEnemyKilled(AEnemyBase* Enemy)
 
 	if (Cast<ABossTitan>(Enemy)) { UJarvisComponent::Notify(this, EAIEvent::BossDefeated); }
 	else if (Combo == 4 || Combo == ComboMax) { UJarvisComponent::Notify(this, EAIEvent::Combo); }
+}
+
+namespace
+{
+	/** Hit-stop never runs in headless / automated runs (smoke, story autoplay, automation, autopilot). */
+	bool ArenaHitStopSuppressedRun()
+	{
+		return GIsAutomationTesting
+			|| FParse::Param(FCommandLine::Get(), TEXT("ArenaSmoke"))
+			|| FParse::Param(FCommandLine::Get(), TEXT("StoryAutoplay"))
+			|| AStoryAutopilot::IsAnyRunning();
+	}
+}
+
+bool AArenaGameMode::RequestHitStop(EArenaHitStop StopKind)
+{
+	UWorld* World = GetWorld();
+	if (!World || World->IsPaused() || ArenaHitStopSuppressedRun()) { return false; }
+	const CombatRealism::FTuning& Tune = CombatRealism::Get();
+	float RealSeconds = Tune.HitStopKillSec;
+	if (StopKind == EArenaHitStop::HeavyHit)
+	{
+		const double Now = FPlatformTime::Seconds();
+		if (Now - LastHeavyHitStopRealTime < 0.25) { return false; } // multi-hit punches / splash: one freeze
+		LastHeavyHitStopRealTime = Now;
+		RealSeconds = Tune.HitStopHeavySec;
+	}
+	else if (StopKind == EArenaHitStop::BossPhaseBreak)
+	{
+		RealSeconds = Tune.HitStopBossPhaseSec;
+	}
+	if (RealSeconds <= 0.f) { return false; }
+	UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this);
+	if (!Feel) { return false; }
+	Feel->HitStop(RealSeconds, Tune.HitStopDilation);
+	return true;
 }
 
 void AArenaGameMode::ShowBanner(const FText& Title, const FText& Subtitle, float Seconds)

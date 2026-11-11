@@ -25,6 +25,62 @@ enum class EEnemyKind : uint8
 	Boss
 };
 
+/**
+ * Jocasta combat realism (contrib/jocasta/combat_realism.md): how a hit was dealt. The player's
+ * heavy weapons open an FEnemyHitClassScope around their ApplyDamage calls so enemies can tell a
+ * Hulkbuster punch / charged shot (Heavy) or the unibeam (Beam) apart from a repulsor bolt
+ * (every damage type in the project is the plain UDamageType).
+ */
+enum class EEnemyHitClass : uint8
+{
+	Normal,
+	Beam,   // continuous beams: stagger, but no hit-stop per tick
+	Heavy   // punch, charged shot: stagger + hit-stop
+};
+
+struct IRONMANARENA_API FEnemyHitClassScope
+{
+	explicit FEnemyHitClassScope(EEnemyHitClass InHitClass);
+	~FEnemyHitClassScope();
+	static EEnemyHitClass GetCurrent();
+
+private:
+	EEnemyHitClass PrevHitClass;
+};
+
+namespace CombatRealism
+{
+	/** Tunables from Content/Story/combat_realism.json (Jocasta's file, copied verbatim); defaults if missing. */
+	struct FTuning
+	{
+		float KnockHalfLife = 0.12f;
+		float KnockDrone = 220.f;   // cm/s per damage point
+		float KnockTank = 25.f;
+		float KnockBoss = 8.f;
+		float DroneKickMaxDeg = 25.f;
+		float StaggerDrone = 0.5f;
+		float StaggerTank = 0.3f;
+		float StaggerBoss = 0.f;
+		float HitStopKillSec = 0.03f;
+		float HitStopHeavySec = 0.06f;
+		float HitStopBossPhaseSec = 0.09f;
+		float HitStopDilation = 0.05f;
+		float DroneWobbleBelow = 0.5f;
+		float DroneWobbleDeg = 4.f;
+		float DroneWobbleHz = 2.f;
+		float DroneAimSpreadMul = 1.25f;
+		float DroneSmokeBelow = 0.25f;
+		float DroneSparkMin = 1.f;
+		float DroneSparkMax = 2.f;
+		float DroneSagCm = 30.f;
+		float DroneSpiralMin = 0.6f;
+		float DroneSpiralMax = 1.2f;
+		bool bLoadedFromFile = false;
+	};
+
+	IRONMANARENA_API const FTuning& Get();
+}
+
 UCLASS(Abstract)
 class IRONMANARENA_API AEnemyBase : public APawn
 {
@@ -61,6 +117,15 @@ public:
 	/** Rough radius used by the chest beam / melee hit tests and aim assist. */
 	float GetHitRadius() const;
 
+	/** Health / MaxHealth (0..1). */
+	float GetHealthFraction() const { return MaxHealth > 0.f ? FMath::Clamp(Health / MaxHealth, 0.f, 1.f) : 0.f; }
+
+	/** Combat realism: true while a heavy hit has the enemy staggered (no firing). */
+	bool IsStaggered() const { return StaggerLeft > 0.f; }
+
+	/** Current decaying knockback velocity (cm/s), added to the swept move every tick. */
+	FVector GetKnockbackVelocity() const { return KnockVelocity; }
+
 	// ---------------- Tunables (shared) ----------------
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Stats")
@@ -93,6 +158,15 @@ protected:
 
 	/** Called once after Health reaches 0, before the actor is destroyed. Spawn drops here. */
 	virtual void OnKilled();
+
+	/** Death visual after the bookkeeping (kill count, score, Destroy are immediate). Default: the blast. */
+	virtual void SpawnDeathFX();
+
+	/** Direction the hit pushes us (unit, may be zero): shot direction, projectile velocity or away from the causer. */
+	FVector ComputeHitDirection(FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const;
+
+	/** Knockback + angular kick + stagger for one hit (Jocasta combat realism 2). */
+	void ApplyHitReaction(float Applied, const FVector& HitDir, bool bStaggerHit);
 
 	/** Spawn a pickup slightly offset from this enemy. */
 	void DropPickup(EPickupType Type, const FVector& Offset = FVector::ZeroVector);
@@ -143,6 +217,17 @@ protected:
 	float Age = 0.f;
 	float FlashLeft = 0.f;
 	bool bDead = false;
+
+	// ---------------- Combat realism (contrib/jocasta/combat_realism.md) ----------------
+	/** Decaying knockback velocity (half-life KnockHalfLife), applied with a swept MoveBy after TickEnemy. */
+	FVector KnockVelocity = FVector::ZeroVector;
+	/** Unit direction of the last hit (world). */
+	FVector LastHitDir = FVector::ZeroVector;
+	/** Seconds of stagger left (subclasses skip firing). */
+	float StaggerLeft = 0.f;
+	/** Drone angular kick (degrees, decays); subclasses add it to their VisualRoot pose. */
+	float KickPitch = 0.f;
+	float KickRoll = 0.f;
 
 	/** Random helper. */
 	static float Rand(float Min, float Max) { return FMath::FRandRange(Min, Max); }

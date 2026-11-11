@@ -102,7 +102,7 @@ void ATankBot::TickEnemy(float DeltaSeconds, AIronManCharacter* Player)
 
 	// --- Fire a ballistic shell that lands on the player's position in ShellFlightTime ---
 	FireCooldown -= DeltaSeconds;
-	if (FireCooldown <= 0.f && Dist2D < FireRange)
+	if (FireCooldown <= 0.f && Dist2D < FireRange && !IsStaggered()) // combat realism: heavy hits stagger (no fire)
 	{
 		FireCooldown = Rand(FireIntervalMin, FireIntervalMax);
 		Recoil = 1.f;

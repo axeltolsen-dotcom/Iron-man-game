@@ -1532,6 +1532,7 @@ void AIronManCharacter::FireRepulsor()
 		FVector ShotDir = Dir;
 		if (Count > 1) { ShotDir = Dir.RotateAngleAxis((i - (Count - 1) * 0.5f) * FanDegrees, FVector::UpVector); }
 		if (Spread > 0.f) { ShotDir = FMath::VRandCone(ShotDir, FMath::DegreesToRadians(Spread)); }
+		const FEnemyHitClassScope ShotHitScope(bCharged ? EEnemyHitClass::Heavy : EEnemyHitClass::Normal);
 		const ArenaCombat::FShot Shot = ArenaCombat::FireHitscan(this, GetController(), Muzzle, ShotDir, Range, Damage, Blast, Radius, Color, bCharged ? 1400.f : 420.f);
 		AArenaTracer::Spawn(World, Muzzle, Shot.End, Color, TracerW, TracerLife, BeamRim);
 		bAnyKill |= Shot.bKill;
@@ -1811,6 +1812,7 @@ void AIronManCharacter::TickBeam(float DeltaSeconds)
 			{
 				const float Whole = FMath::FloorToFloat(Acc);
 				Acc -= Whole;
+				const FEnemyHitClassScope BeamHitScope(EEnemyHitClass::Beam); // stagger, no per-tick hit-stop
 				UGameplayStatics::ApplyDamage(Enemy, Whole, GetController(), this, UDamageType::StaticClass());
 			}
 		}
@@ -1854,6 +1856,7 @@ void AIronManCharacter::PunchImpact()
 		Seen.Add(A);
 		if (AEnemyBase* Enemy = Cast<AEnemyBase>(A))
 		{
+			const FEnemyHitClassScope PunchHitScope(EEnemyHitClass::Heavy);
 			UGameplayStatics::ApplyDamage(Enemy, PunchDamage * SuitDamageMul, GetController(), this, UDamageType::StaticClass());
 		}
 		else if (AIronProjectile* P = Cast<AIronProjectile>(A))

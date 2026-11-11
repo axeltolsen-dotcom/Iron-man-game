@@ -134,9 +134,10 @@ void ABossTitan::EnterPhase(int32 NewPhase)
 	Phase = NewPhase;
 	InvulnerableLeft = PhaseChangeInvulnerability;
 	if (State == EBossState::Venting) { State = EBossState::Fighting; VentLeft = 0.f; SetCoreColor(FLinearColor(0.65f, 0.3f, 1.f)); }
+	// Combat realism: 90 ms hit-stop on the phase break (game-mode helper; off in automated runs).
+	if (AArenaGameMode* PhaseGM = GetArenaGameMode()) { PhaseGM->RequestHitStop(EArenaHitStop::BossPhaseBreak); }
 	if (UArenaFeelSubsystem* Feel = UArenaFeelSubsystem::Get(this))
 	{
-		Feel->HitStop(0.12f, 0.1f);
 		Feel->PlayShake(TEXT("hit_heavy"));
 	}
 	if (!BossVFX || !BossVFX->HasPhaseFX()) { AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), 600.f, FLinearColor(0.85f, 0.6f, 1.f), 0.6f); }

@@ -81,6 +81,8 @@ private:
 	float Trauma = 0.f;
 	float HitStopLeft = 0.f;
 	float HitStopDilation = 1.f;
+	/** FPlatformTime deadline of the current freeze: a hitch or a pause can never leave the dilation stuck. */
+	double HitStopRealEnd = 0.0;
 	/** Last value we wrote via ApplyDilation (for detecting external overrides). */
 	float AppliedDilation = 1.f;
 	/** Named sources (SuitWheel, ...). Applied = min(values), or 1 if empty; HitStop mins on top. */

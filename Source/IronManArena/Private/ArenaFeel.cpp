@@ -92,6 +92,7 @@ void UArenaFeelSubsystem::HitStop(float RealSeconds, float Dilation)
 	if (S && S->bHudReducedMotion) { RealSeconds *= 0.5f; } // shorter freeze for motion-sensitive players
 	const bool bWasHitStopping = HitStopLeft > 0.f;
 	HitStopLeft = FMath::Max(HitStopLeft, FMath::Min(RealSeconds, 0.3f));
+	HitStopRealEnd = FMath::Max(bWasHitStopping ? HitStopRealEnd : 0.0, FPlatformTime::Seconds() + FMath::Min(RealSeconds, 0.3f));
 	HitStopDilation = FMath::Clamp(FMath::Min(bWasHitStopping ? HitStopDilation : 1.f, Dilation), 0.02f, 1.f);
 	ApplyDilation();
 }
@@ -302,7 +303,9 @@ void UArenaFeelSubsystem::Tick(float DeltaTime)
 		else
 		{
 			HitStopLeft -= RealDt;
-			if (HitStopLeft <= 0.f)
+			// Wall-clock deadline too: FApp delta is clamped to 0.1 s, so a hitch (or time spent paused,
+			// when this subsystem doesn't tick) could otherwise stretch the freeze.
+			if (HitStopLeft <= 0.f || FPlatformTime::Seconds() >= HitStopRealEnd)
 			{
 				HitStopLeft = 0.f;
 				HitStopDilation = 1.f;

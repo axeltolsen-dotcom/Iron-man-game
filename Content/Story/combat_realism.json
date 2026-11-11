@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "extends": "contrib/jocasta/suit_reactive_state.json",
+  "boundary": "Enemy/character state, hit reactions, animation weight only. World lighting, atmosphere, VFX look and destruction are Ultron's.",
+  "enemyDamage": {
+    "drone": {
+      "wobbleBelow": 0.5,
+      "wobbleDeg": 4,
+      "wobbleHz": 2,
+      "aimSpreadMul": 1.25,
+      "smokeBelow": 0.25,
+      "sparkIntervalSec": [
+        1,
+        2
+      ],
+      "altitudeSagCm": 30,
+      "death": {
+        "spiralSec": [
+          0.6,
+          1.2
+        ],
+        "debrisPieces": 3,
+        "debrisLifeSec": 4
+      }
+    },
+    "tank": {
+      "locational": {
+        "treadHitsToSlow": 3,
+        "treadSlowPct": 40,
+        "turretHitsToSlow": 3,
+        "turretTraverseSlowPct": 50
+      },
+      "dentsBelow": 0.66,
+      "fireBelow": 0.33,
+      "misfireEveryNthShot": 3,
+      "death": {
+        "cookOffDelaySec": 0.4,
+        "turretLaunchM": [
+          2,
+          4
+        ],
+        "wreckLifeSec": 20
+      }
+    },
+    "boss": {
+      "phase2Break": [
+        "shoulderPlates"
+      ],
+      "phase3Break": [
+        "chestPlate"
+      ],
+      "exposedFrameGlow": [
+        1.0,
+        0.25,
+        0.1
+      ],
+      "chargeWobbleSec": 0.15,
+      "ramHeatTint": true,
+      "death": {
+        "slowMoSec": 0.5,
+        "timeDilation": 0.3
+      }
+    }
+  },
+  "hitReaction": {
+    "flash": {
+      "mode": "per-part, falloff from impact",
+      "keepExistingDuration": true,
+      "sparkBurst": true
+    },
+    "knockback": {
+      "halfLifeSec": 0.12,
+      "cmPerSecPerDamage": {
+        "drone": 220,
+        "tank": 25,
+        "boss": 8
+      },
+      "droneAngularKickMaxDeg": 25
+    },
+    "stagger": {
+      "sources": [
+        "unibeam",
+        "hulkbusterPunch",
+        "potatoCannon"
+      ],
+      "sec": {
+        "drone": 0.5,
+        "tank": 0.3,
+        "boss": 0
+      }
+    },
+    "hitStop": {
+      "repulsorKillMs": 30,
+      "heavyHitMs": 60,
+      "bossPhaseBreakMs": 90,
+      "timeDilation": 0.05
+    },
+    "player": {
+      "flinchDeg": [
+        3,
+        6
+      ],
+      "flightKnockM": 2,
+      "thrustDropSec": 0.25,
+      "maxShakeSec": 0.5,
+      "spineMountBackHit": {
+        "scorchMul": 1.5,
+        "heatAdd": 0.05,
+        "reactorDipSec": 0.3,
+        "reactorDipTo": 0.6,
+        "tagSource": "contrib/friday/realism UHUDDataSubsystem"
+      }
+    }
+  },
+  "animationWeight": {
+    "harley": {
+      "accelSec": [
+        0.15,
+        0.25
+      ],
+      "stepCamBobCm": [
+        1,
+        2
+      ],
+      "upperBodyTurnLeadSec": 0.1,
+      "carry": {
+        "speedMul": 0.65,
+        "turnRateMul": 0.5,
+        "leanBack": true
+      }
+    },
+    "morgan": {
+      "idleGestures": [
+        "typing",
+        "leanIn",
+        "chairSwivel"
+      ],
+      "urgentLean": true
+    },
+    "jocasta": {
+      "accelSec": 0.02,
+      "stepBob": 0,
+      "attackHesitationVsUltronSec": 0.2
+    },
+    "vison": {
+      "hover": true,
+      "driftHz": 0.2,
+      "knockback": 0,
+      "hitEffect": "phase ripple"
+    }
+  },
+  "perf": {
+    "maxPhysicsDebris": 24,
+    "debrisSleepSec": 1.5,
+    "updateHz": 10
+  }
+}
