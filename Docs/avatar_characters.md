@@ -1,7 +1,9 @@
 # Player avatar: real character bodies
 
-The avatar creator (first launch over the title screen, **K** anywhere, or **CUSTOMIZE AVATAR [K]** on the title / pause menu)
-shows a live 3D preview of the real body the pawn uses, turning on a stand (ROTATE < >).
+**Disabled:** the first-launch “CREATE YOUR CHARACTER” overlay, the **CUSTOMIZE AVATAR** main-menu entry and the **K** customizer hotkey are off. The game goes straight to the title menu with the default pilot (Harley). On-foot still uses that default (or a previously saved look).
+
+The avatar creator previously (first launch over the title screen, **K** anywhere, or **CUSTOMIZE AVATAR [K]** on the title / pause menu)
+showed a live 3D preview of the real body the pawn uses, turning on a stand (ROTATE < >).
 
 ## Which body is used (AvatarCatalog, scanned from the asset registry at runtime)
 1. **Epic / Fab character tech** when it is in the project:

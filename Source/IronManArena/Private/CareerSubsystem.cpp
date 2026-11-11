@@ -100,6 +100,14 @@ void UCareerSubsystem::Load()
 	if (JobClaimUnix.Num() != JobsClaimed.Num()) { JobClaimUnix.SetNumZeroed(JobsClaimed.Num()); }
 	UpgradeLevels.SetNumZeroed(int32(ECareerUpgrade::Count));
 	OutfitSlots.SetNum(Career::OutfitSlots);
+	// Character creator is disabled: go straight to the menu as Harley (or a previously saved pilot).
+	if (!bAvatarCreated)
+	{
+		if (Avatar.PilotName.TrimStartAndEnd().IsEmpty()) { Avatar.PilotName = TEXT("Harley"); }
+		bAvatarCreated = true;
+		Save();
+		UE_LOG(LogTemp, Log, TEXT("Career: default pilot %s (character creator disabled)"), *Avatar.PilotName);
+	}
 }
 
 void UCareerSubsystem::Save()

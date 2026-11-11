@@ -504,7 +504,6 @@ TSharedRef<SWidget> UCareerScreen::BuildDevBar()
 		Add(Btn(Life->bLifeEnabled ? LOCTEXT("LifeOn", "CITY LIFE: ON") : LOCTEXT("LifeOff", "CITY LIFE: OFF"), [Life, Self]() { Life->bLifeEnabled = !Life->bLifeEnabled; if (Self.IsValid()) { Self->Refresh(); } }));
 	}
 	UCareerInput* In = InputOwner.Get();
-	Add(Btn(LOCTEXT("EditChar", "EDIT CHARACTER"), [In]() { if (In) { In->OpenScreen(ECareerScreen::Avatar); } }));
 	Add(Btn(LOCTEXT("ShopDev", "SHOP"), [In]() { if (In) { In->OpenScreen(ECareerScreen::Shop); } }));
 	Add(Btn(LOCTEXT("PhoneDev", "PHONE"), [In]() { if (In) { In->OpenScreen(ECareerScreen::Phone); } }));
 	if (In && In->GetHUD())
@@ -1795,6 +1794,11 @@ void UCareerInput::OpenScreen(ECareerScreen Screen, int32 Param)
 	APlayerController* P = PC();
 	if (!P) { return; }
 	if (Screen == ECareerScreen::DevBar && !IsDevMenuAllowed()) { return; }
+	if (Screen == ECareerScreen::Avatar || Screen == ECareerScreen::FirstLaunch)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Career: avatar creator is disabled (screen %d ignored)"), int32(Screen));
+		return;
+	}
 	UE_LOG(LogTemp, Log, TEXT("Career: open screen %d (avatar=3, first-launch=4)"), int32(Screen));
 	if (!ScreenWidget)
 	{
@@ -1877,12 +1881,10 @@ void UCareerInput::OnFreePlayStarted()
 	if (!C) { return; }
 	C->ApplySuitLock(Player(this));
 	C->ReapplyLook();
-	if (C->NeedsCharacterSetup() && !ShouldSkipFirstLaunchCreator())
+	// Character creator is disabled: stay in free play with the default (Harley) or saved pilot.
+	if (C->NeedsCharacterSetup())
 	{
-		bFirstLaunchShown = true;
-		UE_LOG(LogTemp, Log, TEXT("Career: free play started without a character - opening the creator"));
-		OpenScreen(ECareerScreen::FirstLaunch);
-		return;
+		UE_LOG(LogTemp, Log, TEXT("Career: free play started - character creator disabled, using default pilot"));
 	}
 	if (!C->GetHomeHouse().IsNone()) { C->TravelToHouse(C->GetHomeHouse()); }
 	bGreeted = false;
@@ -2135,7 +2137,6 @@ void UCareerInput::TickKeys()
 	}
 	if (GetOpenScreen() == ECareerScreen::DevBar) { return; }
 	if (P->WasInputKeyJustPressed(EKeys::U)) { OpenScreen(ECareerScreen::Shop); return; }
-	if (P->WasInputKeyJustPressed(EKeys::K)) { OpenScreen(ECareerScreen::Avatar); return; }
 	if (P->WasInputKeyJustPressed(EKeys::N)) { OpenScreen(ECareerScreen::Phone); return; }
 	if (P->WasInputKeyJustPressed(EKeys::M) && HUD) { HUD->bShowMarkers = !HUD->bShowMarkers; }
 	if (P->WasInputKeyJustPressed(Key(TEXT("SuitExit"), EKeys::O)) && !Driving.IsValid()) { if (bSuitOff) { RequestSuitUp(); } else { SetSuitOff(true); } }
@@ -2154,18 +2155,8 @@ void UCareerInput::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 		UE_LOG(LogTemp, Log, TEXT("Career: headless run (smoke / story autopilot / automation) - closing the first-launch creator"));
 		CloseScreen();
 	}
-	// First launch: the character creator opens straight over the title screen (before any mode is picked).
-	if (!bFirstLaunchShown && !IsScreenOpen())
-	{
-		const AArenaPlayerController* TPC = Cast<AArenaPlayerController>(P);
-		const UCareerSubsystem* CS = UCareerSubsystem::Get(this);
-		if (TPC && TPC->IsMenuOpen() && TPC->GetLastMenuMode() == EMenuMode::Title && CS && CS->NeedsCharacterSetup() && !ShouldSkipFirstLaunchCreator())
-		{
-			bFirstLaunchShown = true;
-			UE_LOG(LogTemp, Log, TEXT("Career: no character yet - opening the first-launch creator on the title screen"));
-			OpenScreen(ECareerScreen::FirstLaunch);
-		}
-	}
+	// Character creator disabled: never open the first-launch overlay over the title menu.
+	if (!bFirstLaunchShown) { bFirstLaunchShown = true; }
 	{
 		const AArenaGameMode* GM = GetWorld() ? GetWorld()->GetAuthGameMode<AArenaGameMode>() : nullptr;
 		const AArenaPlayerController* APC = Cast<AArenaPlayerController>(P);

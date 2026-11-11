@@ -137,8 +137,6 @@ void UMainMenuWidget::BuildTree()
 	ResumeButton = MakeButton(Box, LOCTEXT("Resume", "RESUME"), Tmp); ResumeLabel = Tmp;
 	StartButton = MakeButton(Box, LOCTEXT("Arena", "ARENA"), Tmp); StartLabel = Tmp;
 	StoryButton = MakeButton(Box, LOCTEXT("Story", "STORY"), Tmp); StoryLabel = Tmp;
-	AvatarButton = MakeButton(Box, LOCTEXT("Avatar", "CUSTOMIZE AVATAR  [K]"), Tmp);
-	AvatarButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleAvatarClicked);
 	SettingsButton = MakeButton(Box, LOCTEXT("Settings", "SETTINGS"), Tmp); SettingsLabel = Tmp;
 	TitleButton = MakeButton(Box, LOCTEXT("ToTitle", "QUIT TO TITLE"), Tmp); TitleLabel = Tmp;
 	CreditsButton = MakeButton(Box, LOCTEXT("Credits", "CREDITS"), Tmp); CreditsLabel = Tmp;
@@ -155,7 +153,7 @@ void UMainMenuWidget::BuildTree()
 	ControlsText = MakeText(WidgetTree, LOCTEXT("Controls",
 		"WASD move  |  Mouse aim  |  F flight  |  Space / Ctrl up / down  |  Shift boost  |  V first / third person  |  Alt focus aim\n"
 		"LMB repulsors (hold in focus = charged shot)  |  RMB special  |  hold RMB / double-click = SUPER  |  X vent  |  Q Hulkbuster\n"
-		"O exit suit / call suit  |  H faceplate  |  B web swing (Iron Spider)  |  E interact  |  U shop  |  K avatar  |  N phone  |  M map\n"
+		"O exit suit / call suit  |  H faceplate  |  B web swing (Iron Spider)  |  E interact  |  U shop  |  N phone  |  M map\n"
 		"1-5 quick suits  |  hold T suit wheel  |  G summon ally  |  P / Esc pause  |  F11 fullscreen"),
 		12, FLinearColor(0.6f, 0.8f, 0.95f, 0.85f), "Regular");
 	ControlsText->SetJustification(ETextJustify::Left);
@@ -205,10 +203,7 @@ void UMainMenuWidget::BuildTree()
 
 void UMainMenuWidget::HandleAvatarClicked()
 {
-	Click();
-	// Over the title: open on top (closing returns to the title). Paused: resume first, the editor pauses on its own.
-	if (Mode == EMenuMode::Paused) { if (AArenaPlayerController* PC = Cast<AArenaPlayerController>(GetOwningPlayer())) { PC->MenuResume(); } }
-	if (UCareerInput* CI = UCareerInput::Get(this)) { CI->OpenScreen(ECareerScreen::Avatar); }
+	// Character creator (CUSTOMIZE AVATAR / K) is disabled.
 }
 
 void UMainMenuWidget::HandleCreditsClicked()
@@ -336,7 +331,7 @@ void UMainMenuWidget::RefreshTexts()
 		break;
 	}
 	ResumeButton->SetVisibility(Mode == EMenuMode::Paused ? Shown : Hidden);
-	if (AvatarButton) { AvatarButton->SetVisibility(Mode != EMenuMode::GameOver && UCareerInput::Get(this) ? Shown : Hidden); }
+	if (AvatarButton) { AvatarButton->SetVisibility(Hidden); }
 	StoryButton->SetVisibility(Mode == EMenuMode::Title ? Shown : Hidden);
 	SettingsButton->SetVisibility(Mode != EMenuMode::GameOver ? Shown : Hidden);
 	TitleButton->SetVisibility(Mode != EMenuMode::Title ? Shown : Hidden);
@@ -348,7 +343,6 @@ FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 	if (PC && PC->HandleGlobalKey(InKeyEvent)) { return FReply::Handled(); }
 
 	const FKey Key = InKeyEvent.GetKey();
-	if (Key == EKeys::K && Mode != EMenuMode::GameOver) { HandleAvatarClicked(); return FReply::Handled(); }
 	if (CreditsPanel && CreditsPanel->GetVisibility() != ESlateVisibility::Collapsed && (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::BackSpace))
 	{
 		CreditsPanel->SetVisibility(ESlateVisibility::Collapsed);

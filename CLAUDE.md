@@ -10,7 +10,7 @@ Read `README.md` and `Docs/` first.
 - MSVC treats C4458 as an error, so never name a local `Slot`, `bHidden`, `Owner`, `Instigator`, `Tags` or `Children`.
 - Voices are OFF by default.
 - Story: Harley Keener is the hero, and Morgan is the guy-in-the-chair who wears Rescue in the finale.
-- Controls: K avatar customizer, T suit menu, H faceplate, O exit suit, left mouse repulsors, hold right mouse or double-click left mouse for the suit ultra, Space/click skips cutscenes. A private dev menu for Axel has infinite money.
+- Controls: T suit menu, H faceplate, O exit suit, left mouse repulsors, hold right mouse or double-click left mouse for the suit ultra, Space/click skips cutscenes. A private dev menu for Axel has infinite money. The first-launch character creator, CUSTOMIZE AVATAR menu entry and K customizer hotkey are disabled; the default pilot is Harley.
 
 ## Do first
 1. Get it compiling on Windows. The latest changes were only ever built on Linux, so fix any MSVC errors in `build-win.log`.
