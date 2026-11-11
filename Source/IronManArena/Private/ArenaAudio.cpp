@@ -59,6 +59,11 @@ namespace
 		};
 		FString Json;
 		for (const FString& P : Paths) { if (FFileHelper::LoadFileToString(Json, *P)) { break; } }
+		if (Json.IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ArenaAudio: sfx_manifest.json not found (%s) - game SFX are off"), *Paths[0]);
+			return;
+		}
 		TSharedPtr<FJsonObject> Root;
 		if (Json.IsEmpty() || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), Root) || !Root.IsValid()) { return; }
 		const TSharedPtr<FJsonObject>* Ev = nullptr;
