@@ -3,6 +3,7 @@
 #include "ArenaUI.h"
 #include "ArenaGameUserSettings.h"
 #include "ArenaPlayerController.h"
+#include "CareerWidgets.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -120,6 +121,102 @@ USlider* USettingsWidget::AddSlider(UVerticalBox* Box, const FText& Label, float
 	return S;
 }
 
+namespace
+{
+	// One read-only row of the key-bindings reference (Vison's controls table, contrib/vison/menu).
+	struct FSettingsControlsRow
+	{
+		const TCHAR* Group = nullptr;
+		const TCHAR* Action = nullptr;
+		const TCHAR* Kbm = nullptr;
+		const TCHAR* Pad = nullptr;
+		const TCHAR* Note = nullptr;
+		const TCHAR* RebindName = nullptr;
+		const TCHAR* RebindDefault = nullptr;
+	};
+
+	TArray<FSettingsControlsRow> SettingsControlsTable()
+	{
+		TArray<FSettingsControlsRow> Rows;
+		const TCHAR* CurrentGroup = TEXT("");
+#define CONTROLS_GROUP(G) CurrentGroup = G;
+#define CONTROLS_ROW(A, K, P, N, RN, RD) { FSettingsControlsRow R; R.Group = CurrentGroup; R.Action = A; R.Kbm = K; R.Pad = P; R.Note = N; R.RebindName = RN; R.RebindDefault = RD; Rows.Add(R); }
+#define CONTROLS_RESERVED_KEY(K)
+#include "Generated/ControlsReference.inl"
+#undef CONTROLS_GROUP
+#undef CONTROLS_ROW
+#undef CONTROLS_RESERVED_KEY
+		return Rows;
+	}
+
+	UTextBlock* SettingsControlsCell(UWidgetTree* Tree, UHorizontalBox* Row, const FString& Text, float Width, const FLinearColor& Color, int32 Size)
+	{
+		UTextBlock* T = ArenaUI::MakeText(Tree, FText::FromString(Text), Size, Color, "Regular");
+		T->SetJustification(ETextJustify::Left);
+		T->SetAutoWrapText(true);
+		USizeBox* SB = Tree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		SB->SetWidthOverride(Width);
+		SB->SetContent(T);
+		if (UHorizontalBoxSlot* HS = Row->AddChildToHorizontalBox(SB)) { HS->SetVerticalAlignment(VAlign_Top); HS->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f)); }
+		return T;
+	}
+}
+
+void USettingsWidget::AddControlsReference(UVerticalBox* Box)
+{
+	AddHeader(Box, LOCTEXT("KeyBindings", "KEY BINDINGS"));
+	{
+		UHorizontalBox* Head = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		SettingsControlsCell(WidgetTree, Head, TEXT("ACTION"), 230.f, ArenaUI::Gold, 12);
+		SettingsControlsCell(WidgetTree, Head, TEXT("KEYBOARD / MOUSE"), 220.f, ArenaUI::Gold, 12);
+		SettingsControlsCell(WidgetTree, Head, TEXT("GAMEPAD"), 170.f, ArenaUI::Gold, 12);
+		if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Head)) { VS->SetPadding(FMargin(0.f, 2.f, 0.f, 2.f)); }
+	}
+
+	const FLinearColor NoteColor(0.55f, 0.6f, 0.68f, 1.f);
+	FString LastGroup;
+	for (const FSettingsControlsRow& R : SettingsControlsTable())
+	{
+		const FString GroupName(R.Group);
+		if (GroupName != LastGroup)
+		{
+			LastGroup = GroupName;
+			UTextBlock* G = ArenaUI::MakeText(WidgetTree, FText::FromString(GroupName), 13, ArenaUI::Red);
+			G->SetJustification(ETextJustify::Left);
+			if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(G)) { VS->SetPadding(FMargin(0.f, 8.f, 0.f, 2.f)); }
+		}
+
+		// The four rebindable actions show the key actually read from [IronManArena.Keys].
+		FString KbmText(R.Kbm);
+		if (R.RebindName && R.RebindName[0] && R.RebindDefault && R.RebindDefault[0])
+		{
+			const FKey DefaultKey(R.RebindDefault);
+			const FKey Bound = UCareerInput::Key(R.RebindName, DefaultKey);
+			if (Bound.IsValid() && Bound != DefaultKey) { KbmText = Bound.GetDisplayName().ToString() + TEXT("  (rebound)"); }
+		}
+
+		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		SettingsControlsCell(WidgetTree, Line, R.Action, 230.f, ArenaUI::Ice, 14);
+		SettingsControlsCell(WidgetTree, Line, KbmText, 220.f, FLinearColor::White, 14);
+		SettingsControlsCell(WidgetTree, Line, R.Pad, 170.f, FLinearColor::White, 14);
+		if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Line)) { VS->SetPadding(FMargin(0.f, 2.f)); }
+
+		if (R.Note && R.Note[0])
+		{
+			UTextBlock* N = ArenaUI::MakeText(WidgetTree, FText::FromString(R.Note), 12, NoteColor, "Italic");
+			N->SetJustification(ETextJustify::Left);
+			N->SetAutoWrapText(true);
+			if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(N)) { VS->SetPadding(FMargin(14.f, 0.f, 0.f, 3.f)); }
+		}
+	}
+
+	UTextBlock* Foot = ArenaUI::MakeText(WidgetTree, LOCTEXT("KeysFoot",
+		"Exit suit, Faceplate, Web swing and Web-zip can be rebound under [IronManArena.Keys] in GameUserSettings.ini."), 12, NoteColor, "Italic");
+	Foot->SetJustification(ETextJustify::Left);
+	Foot->SetAutoWrapText(true);
+	if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Foot)) { VS->SetPadding(FMargin(0.f, 6.f, 0.f, 0.f)); }
+}
+
 void USettingsWidget::BuildTree()
 {
 	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("Root"));
@@ -194,6 +291,8 @@ void USettingsWidget::BuildTree()
 	HudReducedMotionCheck = AddCheck(Box, LOCTEXT("HudRM", "Reduced motion"));
 	HudOpacitySlider = AddSlider(Box, LOCTEXT("HudOp", "HUD opacity"), 0.5f, 1.f, 0.05f, Tmp); HudOpacityValue = Tmp;
 	HudScaleSlider = AddSlider(Box, LOCTEXT("HudScale", "HUD scale"), 0.75f, 1.25f, 0.05f, Tmp); HudScaleValue = Tmp;
+
+	AddControlsReference(Box);
 
 	UHorizontalBox* Buttons = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	auto AddButton = [this, Buttons](const FText& Label) -> UButton*

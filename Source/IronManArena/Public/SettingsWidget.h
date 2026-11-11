@@ -33,6 +33,8 @@ protected:
 	UCheckBox* AddCheck(UVerticalBox* Box, const FText& Label);
 	USlider* AddSlider(UVerticalBox* Box, const FText& Label, float Min, float Max, float Step, UTextBlock*& OutValue);
 	void AddHeader(UVerticalBox* Box, const FText& Label);
+	/** Read-only key-bindings reference (Generated/ControlsReference.inl from contrib/vison/menu). */
+	void AddControlsReference(UVerticalBox* Box);
 	void UpdateSliderLabels();
 	void ApplyLiveOptions();
 
