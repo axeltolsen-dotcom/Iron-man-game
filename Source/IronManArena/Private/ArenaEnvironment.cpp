@@ -32,8 +32,13 @@ AArenaEnvironment::AArenaEnvironment()
 	{
 		// AddPart disables collision; arena geometry must block (WorldStatic, BlockAll).
 		C->SetCollisionProfileName(TEXT("BlockAll"));
-		C->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		C->SetCanEverAffectNavigation(true);
+		// QueryAndPhysics can touch BodyInstance / phys materials; skip that on the CDO
+		// so the cook commandlet does not fail before GEngine exists.
+		if (!HasAnyFlags(RF_ClassDefaultObject))
+		{
+			C->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		}
 	};
 
 	// Floor: top surface at the actor's Z.

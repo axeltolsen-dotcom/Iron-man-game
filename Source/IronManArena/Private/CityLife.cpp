@@ -86,12 +86,23 @@ ACityCar::ACityCar()
 	Box->SetBoxExtent(FVector(225.f, 92.f, 70.f));
 	Box->SetCollisionProfileName(TEXT("PhysicsActor"));
 	Box->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	Box->SetSimulatePhysics(false);
-	Box->SetMassOverrideInKg(NAME_None, 1400.f, true);
 	SetRootComponent(Box);
 	Body = CreateDefaultSubobject<USceneComponent>(TEXT("Body"));
 	Body->SetupAttachment(Box);
 	Body->SetRelativeLocation(FVector(0, 0, -70.f));
+}
+
+void ACityCar::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	// SetSimulatePhysics / SetMassOverrideInKg query the physical material through
+	// FBodyInstance, which logs an Error (and fails the cook commandlet) if called
+	// while constructing the native CDO — GEngine is not up yet.
+	if (Box && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		Box->SetSimulatePhysics(false);
+		Box->SetMassOverrideInKg(NAME_None, 1400.f, true);
+	}
 }
 
 void ACityCar::Setup(int32 Paint, ECityCarMode InMode)

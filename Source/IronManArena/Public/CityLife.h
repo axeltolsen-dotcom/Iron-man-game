@@ -40,6 +40,7 @@ class IRONMANARENA_API ACityCar : public AActor
 
 public:
 	ACityCar();
+	virtual void PostInitializeComponents() override;
 	void Setup(int32 Paint, ECityCarMode Mode);
 	void ApplyCityDamage(float Amount, const FVector& From, bool bFromPlayer);
 	bool IsWrecked() const { return Mode == ECityCarMode::Wreck; }
