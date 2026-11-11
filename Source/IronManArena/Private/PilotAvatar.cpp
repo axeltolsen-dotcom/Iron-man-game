@@ -250,7 +250,7 @@ bool APilotAvatar::BuildCatalog()
 		if (Orig) { N += TEXT("|") + Orig->GetName(); }
 		N = N.ToLower();
 		bool bTint = true;
-		FLinearColor C;
+		FLinearColor C = FLinearColor::White;
 		if (N.Contains(TEXT("skin")) || N.Contains(TEXT("body"))) { C = SkinC; }
 		else if (N.Contains(TEXT("hair")) || N.Contains(TEXT("beard"))) { C = HairC; }
 		else if (N.Contains(TEXT("shirt")) || N.Contains(TEXT("main")) || N.Contains(TEXT("vest")) || N.Contains(TEXT("top")) || N.Contains(TEXT("cloth"))) { C = ColorAt(OC, O.TopColor); }
