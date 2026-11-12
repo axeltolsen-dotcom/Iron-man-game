@@ -645,6 +645,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Visuals") TObjectPtr<UStaticMeshComponent> FlameHandR;
 	UPROPERTY(VisibleAnywhere, Category = "Visuals") TObjectPtr<USceneComponent> HulkbusterPlates;
 	UPROPERTY(VisibleAnywhere, Category = "Visuals") TObjectPtr<UPointLightComponent> ArcLight;
+	/** USuitReactiveComponent: critical-damage reactor stutter (1 = steady). */
+	float ReactorStutterMul = 1.f;
 	UPROPERTY(VisibleAnywhere, Category = "Visuals") TObjectPtr<UPointLightComponent> RepulsorLight;
 
 	/** Chest beam: pivot oriented along the aim, cylinder child stretched to the beam length. */

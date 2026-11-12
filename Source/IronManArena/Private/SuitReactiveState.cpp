@@ -8,6 +8,8 @@
 #include "ArenaSaveGame.h"
 #include "StoryDirector.h"
 #include "SuitRig.h"
+#include "ArenaCombat.h"
+#include "ArenaAudio.h"
 
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/StaticMeshComponent.h"
@@ -20,6 +22,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Misc/AutomationTest.h"
+#include "HAL/IConsoleManager.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -362,6 +365,7 @@ void USuitReactiveComponent::SwitchSuit(FName NewSuit)
 	State.GrimeUnwashed = State.GrimeLive;
 	State.ScorchLive = Saved ? FMath::Clamp(Saved->Scorch, 0.f, 1.f) : 0.f;
 	State.DamageLevel = Saved ? FMath::Clamp(Saved->Damage, 0.f, 1.f) : 0.f;
+	if (DevDamageOverride >= 0.f) { State.DamageLevel = DevDamageOverride; } // ima.SuitDamage sticks across suit swaps
 	PaintGeneration = MAX_uint32; // rebase (new suit = new deterministic damage panels)
 	if (bHadSuit && bSaveDirty) { WriteSave(); }
 	if (Saved && SuitReactive::NeedsRepair(State))
@@ -447,6 +451,236 @@ void USuitReactiveComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (bSaveDirty && SaveTimer >= 20.f) { WriteSave(); }
 
 	PushToMaterials(false);
+	TickDamageFX(Dt, Char->HitFlashLeft > 0.f || Char->CloakLeft > 0.f);
+	TickServo(Dt);
+}
+
+// =====================================================================================
+// Damage tiers 2 / 3: seam flicker, seam sparks, reactor stutter (suit_reactive_realism.md)
+// =====================================================================================
+
+namespace
+{
+	// Same naming rules as SuitRig's glow classifier (B13 CamelCase tokens).
+	bool SuitReactGlowToken(const FString& N, const TCHAR* Tok)
+	{
+		const int32 Len = FCString::Strlen(Tok);
+		for (int32 At = N.Find(Tok, ESearchCase::CaseSensitive); At != INDEX_NONE;
+			At = N.Find(Tok, ESearchCase::CaseSensitive, ESearchDir::FromStart, At + 1))
+		{
+			const int32 After = At + Len;
+			if (After >= N.Len() || !FChar::IsLower(N[After])) { return true; }
+		}
+		return false;
+	}
+
+	/** 0 = skip (eyes, repulsors: driven elsewhere), 1 = seam / trim light, 2 = reactor core. */
+	int32 SuitReactGlowKind(const FArenaPaintedPart& P)
+	{
+		const FString N = P.Component ? P.Component->GetName() : FString();
+		if (N.Contains(TEXT("Eye")) || N.Contains(TEXT("Visor"))) { return 0; }
+		if (N.Contains(TEXT("Palm")) || N.Contains(TEXT("Muzzle")) || N.Contains(TEXT("Repulsor")) || N.Contains(TEXT("Unibeam")) || N.Contains(TEXT("Thruster")) || N.Contains(TEXT("Flame"))) { return 0; }
+		if (N.Contains(TEXT("Reactor")) || SuitReactGlowToken(N, TEXT("Core")) || SuitReactGlowToken(N, TEXT("Arc")) || SuitReactGlowToken(N, TEXT("Tri"))) { return 2; }
+		return 1;
+	}
+
+	/** Seam light brightness at tier 2+: steady most of the time, a brownout dip once every 2 s (0.5 Hz) with a double blink. */
+	float SuitReactSeamFlicker(float T)
+	{
+		const float Phase = FMath::Fmod(T, 2.f);
+		// Windows are >= 0.15 s so the 10 Hz component tick always lands in them.
+		if (Phase < 0.2f) { return 0.2f; }
+		if (Phase < 0.35f) { return 0.85f; }
+		if (Phase < 0.5f) { return 0.3f; }
+		return 0.9f + 0.1f * FMath::Sin(T * 9.f);
+	}
+}
+
+#if !UE_BUILD_SHIPPING
+// Dev: preview the damage tiers without taking hits ("ima.SuitDamage 1" = critical, 0 = repaired).
+static FAutoConsoleCommandWithWorldAndArgs GSuitReactDamageCmd(
+	TEXT("ima.SuitDamage"),
+	TEXT("Set the player suit's damage level (0, 0.33, 0.66, 1). 1 = critical: seam flicker, sparks, reactor stutter."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		const float Level = Args.Num() > 0 ? FMath::Clamp(FCString::Atof(*Args[0]), 0.f, 1.f) : 1.f;
+		if (!World) { return; }
+		for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+		{
+			const APawn* Pawn = It->Get() ? It->Get()->GetPawn() : nullptr;
+			if (USuitReactiveComponent* Comp = Pawn ? Pawn->FindComponentByClass<USuitReactiveComponent>() : nullptr)
+			{
+				Comp->DevSetDamageLevel(Level);
+			}
+		}
+	}));
+#endif
+
+void USuitReactiveComponent::DevSetDamageLevel(float Level)
+{
+	State.DamageLevel = FMath::Clamp(Level, 0.f, 1.f);
+	DevDamageOverride = State.DamageLevel > 0.f ? State.DamageLevel : -1.f;
+	if (State.DamageLevel <= 0.f && bGlowFXActive) { RestoreGlowFX(); }
+	PushToMaterials(true);
+	UE_LOG(LogIronManArena, Log, TEXT("Suit reactive: %s damage level set to %.2f (ima.SuitDamage)"), *TrackedSuit.ToString(), State.DamageLevel);
+}
+
+void USuitReactiveComponent::RestoreGlowFX()
+{
+	AIronManCharacter* Char = GetSuitOwner();
+	if (Char)
+	{
+		for (const FGlowFX& G : GlowFX)
+		{
+			TArray<FArenaPaintedPart>& Arr = G.bFP ? Char->FPParts : Char->Parts;
+			if (Arr.IsValidIndex(G.Index) && Arr[G.Index].MID) { ArenaVisuals::SetPartGlow(Arr[G.Index], Arr[G.Index].Emissive); }
+		}
+		Char->ReactorStutterMul = 1.f;
+	}
+	bGlowFXActive = false;
+	StutterLeft = 0.f;
+}
+
+void USuitReactiveComponent::TickDamageFX(float Dt, bool bPaintLocked)
+{
+	AIronManCharacter* Char = GetSuitOwner();
+	if (!Char) { return; }
+	const SuitReactive::FTuning& T = SuitReactive::Get();
+	const float Dmg = State.DamageLevel;
+	const bool bBattered = Dmg >= T.Tiers[2] - 0.01f && Dmg > 0.f;
+	const bool bCritical = Dmg >= T.Tiers[3] - 0.01f && Dmg > 0.f;
+	const bool bRun = bBattered && !Char->bCareerSuitOff && !Char->bInCinematic && !Char->bDead;
+
+	// Rebuild the glow-part list when the suit is repainted / rebuilt.
+	const uint32 Gen = SuitRig::GetPaintGeneration();
+	const int32 PartCount = Char->Parts.Num() + Char->FPParts.Num();
+	if (Gen != GlowFXGeneration || PartCount != GlowFXPartCount)
+	{
+		GlowFXGeneration = Gen;
+		GlowFXPartCount = PartCount;
+		GlowFX.Reset();
+		bGlowFXActive = false;
+		auto Collect = [this, Char](const TArray<FArenaPaintedPart>& Arr, bool bFP)
+		{
+			for (int32 i = 0; i < Arr.Num(); ++i)
+			{
+				const FArenaPaintedPart& P = Arr[i];
+				if (!P.Component || !P.MID || P.Emissive <= 0.f) { continue; }
+				// Makeshift mounted cores are driven every frame by the character (heat colour + flicker).
+				if (!bFP && (i == Char->Rig.MountedCorePart || i == Char->Rig.ForearmCorePart)) { continue; }
+				if (bFP && i == Char->Rig.FPMountedCorePart) { continue; }
+				const int32 Kind = SuitReactGlowKind(P);
+				if (Kind == 0) { continue; }
+				FGlowFX G;
+				G.Index = i;
+				G.bFP = bFP;
+				G.bReactor = Kind == 2;
+				GlowFX.Add(G);
+			}
+		};
+		Collect(Char->Parts, false);
+		Collect(Char->FPParts, true);
+	}
+
+	if (bBattered && !bRun && !bLoggedFXWait)
+	{
+		bLoggedFXWait = true;
+		UE_LOG(LogIronManArena, Log, TEXT("Suit reactive: damage FX waiting (suit off %d, cinematic %d, dead %d)"), Char->bCareerSuitOff ? 1 : 0, Char->bInCinematic ? 1 : 0, Char->bDead ? 1 : 0);
+	}
+	if (!bRun || bPaintLocked)
+	{
+		if (bGlowFXActive && !bPaintLocked) { RestoreGlowFX(); }
+		if (!bRun) { Char->ReactorStutterMul = 1.f; }
+		return;
+	}
+	if (!bGlowFXActive)
+	{
+		bGlowFXActive = true;
+		SparkTimer = FMath::FRandRange(1.f, 2.f);
+		StutterTimer = FMath::FRandRange(1.5f, 3.f);
+		UE_LOG(LogIronManArena, Log, TEXT("Suit reactive: %s %s damage FX on (%d glow parts)"),
+			*TrackedSuit.ToString(), bCritical ? TEXT("critical (flicker + sparks + reactor stutter)") : TEXT("battered (seam flicker)"), GlowFX.Num());
+	}
+
+	SeamFlickerTime += Dt;
+	const float Seam = SuitReactSeamFlicker(SeamFlickerTime);
+
+	// Critical: the reactor stutters (3-5 quick dropouts every 2-5 s).
+	float Reactor = 1.f;
+	if (bCritical)
+	{
+		if (StutterLeft > 0.f)
+		{
+			StutterLeft -= Dt;
+			Reactor = (int32(StutterLeft * 10.f) & 1) ? 0.15f : 0.8f; // flips every 10 Hz tick
+			if (StutterLeft <= 0.f) { StutterTimer = FMath::FRandRange(2.f, 5.f); }
+		}
+		else if ((StutterTimer -= Dt) <= 0.f)
+		{
+			StutterLeft = FMath::FRandRange(0.6f, 1.f);
+			Reactor = 0.15f;
+		}
+	}
+	Char->ReactorStutterMul = Reactor;
+
+	for (const FGlowFX& G : GlowFX)
+	{
+		TArray<FArenaPaintedPart>& Arr = G.bFP ? Char->FPParts : Char->Parts;
+		if (!Arr.IsValidIndex(G.Index) || !Arr[G.Index].MID) { continue; }
+		FArenaPaintedPart& P = Arr[G.Index];
+		const float Mul = G.bReactor ? Reactor : Seam;
+		ArenaVisuals::SetPartGlow(P, P.Emissive * Mul);
+	}
+
+	// Critical: a spark burst from one random seam every 2-4 s (body parts, so it reads in third person).
+	if (bCritical && (SparkTimer -= Dt) <= 0.f)
+	{
+		SparkTimer = FMath::FRandRange(2.f, 4.f);
+		TArray<int32, TInlineAllocator<64>> Seams;
+		for (int32 i = 0; i < Char->Parts.Num(); ++i)
+		{
+			const FArenaPaintedPart& P = Char->Parts[i];
+			if (P.Component && (P.Role == ESuitPaintRole::Primary || P.Role == ESuitPaintRole::Secondary)) { Seams.Add(i); }
+		}
+		if (Seams.Num() > 0 && GetWorld())
+		{
+			const UStaticMeshComponent* C = Char->Parts[Seams[FMath::RandRange(0, Seams.Num() - 1)]].Component;
+			const FVector At = C->Bounds.Origin + FMath::VRand() * (C->Bounds.SphereRadius * 0.5f);
+			FVector Out = At - Char->GetActorLocation();
+			Out.Z = FMath::Max(Out.Z * 0.3f, 0.f) + 20.f;
+			AArenaSparks::Spawn(GetWorld(), At, Out.GetSafeNormal(), FLinearColor(1.f, 0.72f, 0.35f), FMath::RandRange(5, 9), 520.f);
+			ArenaAudio::Play2D(this, TEXT("repulsor_impact"), 0.12f, FMath::FRandRange(1.5f, 1.8f));
+			++SparksSpawned;
+			if (SparksSpawned == 1) { UE_LOG(LogIronManArena, Log, TEXT("Suit reactive: first critical-damage seam spark")); }
+		}
+	}
+}
+
+void USuitReactiveComponent::TickServo(float Dt)
+{
+	AIronManCharacter* Char = GetSuitOwner();
+	if (!Char) { return; }
+	ServoCooldown -= Dt;
+	const float Yaw = Char->GetActorRotation().Yaw;
+	const float YawRate = bHadYaw && Dt > 0.f ? FMath::Abs(FMath::FindDeltaAngleDegrees(LastYaw, Yaw)) / Dt : 0.f;
+	LastYaw = Yaw;
+	bHadYaw = true;
+	const UCharacterMovementComponent* Move = Char->GetCharacterMovement();
+	const bool bOnFoot = Move && Move->IsMovingOnGround() && !Char->IsFlying();
+	const bool bMoving = bOnFoot && Char->GetVelocity().Size2D() > 150.f;
+	const bool bStart = bMoving && !bWasMovingOnFoot;
+	bWasMovingOnFoot = bMoving;
+	if (Char->bCareerSuitOff || Char->bInCinematic || Char->bDead || !bOnFoot || ServoCooldown > 0.f) { return; }
+	// Large joint rotation stand-ins: a fast turn on foot (> 90 deg/s) or breaking into a walk.
+	if (YawRate > 90.f || bStart)
+	{
+		ServoCooldown = FMath::FRandRange(0.7f, 1.1f);
+		const FString Id = TrackedSuit.ToString();
+		const bool bHeavy = Id.Contains(TEXT("hulk")) || Id.Contains(TEXT("war-machine")) || Id.Contains(TEXT("warmachine")) || Id.Contains(TEXT("war_machine"));
+		// Heavy frames: ~3 semitones down (2^(-3/12) = 0.84).
+		const float Pitch = (bHeavy ? 0.84f : 1.f) * FMath::FRandRange(0.95f, 1.06f);
+		ArenaAudio::Play2D(this, bHeavy ? FName(TEXT("suitup_servo_heavy")) : FName(TEXT("suitup_servo")), 0.14f, Pitch);
+	}
 }
 
 void USuitReactiveComponent::NotifyLanding(float DownSpeedCmS)
@@ -505,6 +739,7 @@ bool USuitReactiveComponent::RepairAndClean()
 	bSaveDirty = true;
 	WriteSave();
 	PushToMaterials(true);
+	if (bGlowFXActive) { RestoreGlowFX(); }
 	if (bWasDirty) { UE_LOG(LogIronManArena, Log, TEXT("Suit reactive: %s repaired and cleaned at the workshop"), *TrackedSuit.ToString()); }
 	return bWasDirty;
 }

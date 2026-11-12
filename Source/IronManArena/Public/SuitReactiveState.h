@@ -118,6 +118,8 @@ public:
 	/** Workshop repair + clean. Returns false if the suit was already clean. Saves. */
 	bool RepairAndClean();
 	bool NeedsRepair() const { return SuitReactive::NeedsRepair(State); }
+	/** Dev console ima.SuitDamage: force a damage level (not saved until the next wear change). */
+	void DevSetDamageLevel(float Level);
 
 	const SuitReactive::FState& GetState() const { return State; }
 	FName GetTrackedSuit() const { return TrackedSuit; }
@@ -145,6 +147,11 @@ private:
 	void SwitchSuit(FName NewSuit);
 	void PushToMaterials(bool bForce);
 	void PushParts(TArray<FArenaPaintedPart>& PartList, TArray<FPartBase>& BaseList, bool bRebase, bool bPaintLocked);
+	/** Damage tiers 2/3 (Jocasta): seam glow flicker at 0.5 Hz; critical = seam sparks every 2-4 s + reactor stutter. */
+	void TickDamageFX(float Dt, bool bPaintLocked);
+	void RestoreGlowFX();
+	/** Servo whine on fast turns / starts on foot (heavy suits pitched ~3 semitones down). */
+	void TickServo(float Dt);
 	void StashCurrent();
 	void LoadSaved();
 	void WriteSave();
@@ -165,4 +172,23 @@ private:
 	float SprayTimer = 0.f;
 	bool bNearWetGround = false;
 	double LastTickTime = -1.0;
+
+	// Damage FX on the suit's glow parts (rebuilt when the paint generation / part count changes).
+	struct FGlowFX { int32 Index = INDEX_NONE; bool bFP = false; bool bReactor = false; };
+	TArray<FGlowFX> GlowFX;
+	uint32 GlowFXGeneration = MAX_uint32;
+	int32 GlowFXPartCount = -1;
+	bool bGlowFXActive = false;
+	float SeamFlickerTime = 0.f;
+	float SparkTimer = 2.5f;
+	float StutterTimer = 3.f;
+	float StutterLeft = 0.f;
+	int32 SparksSpawned = 0;
+	// Servo
+	float ServoCooldown = 0.f;
+	float LastYaw = 0.f;
+	bool bHadYaw = false;
+	bool bWasMovingOnFoot = false;
+	float DevDamageOverride = -1.f;
+	bool bLoggedFXWait = false;
 };

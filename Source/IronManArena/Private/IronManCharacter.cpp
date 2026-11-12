@@ -2240,7 +2240,7 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 	{
 		const float EnergyFrac = MaxEnergy > 0.f ? Energy / MaxEnergy : 0.f;
 		const float ReactorMul = GetSuit().Reactor == ESuitReactor::None ? 0.25f : 1.f;
-		ArcLight->SetIntensity(SuitLightLumens::Reactor * ReactorMul * (0.25f + 0.75f * EnergyFrac * (0.85f + 0.15f * FMath::Sin(Time * 4.f))));
+		ArcLight->SetIntensity(SuitLightLumens::Reactor * ReactorMul * ReactorStutterMul * (0.25f + 0.75f * EnergyFrac * (0.85f + 0.15f * FMath::Sin(Time * 4.f))));
 	}
 
 	// Makeshift mounted reactor: the exposed core shifts blue -> orange -> red with heat and
