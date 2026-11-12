@@ -1,4 +1,5 @@
 #include "IronProjectile.h"
+#include "SuitReactiveState.h"
 #include "ArenaAudio.h"
 #include "CityLife.h"
 #include "ArenaFXPool.h"
@@ -317,6 +318,7 @@ void AIronProjectile::Explode(AActor* DirectHitActor)
 			UGameplayStatics::ApplyDamage(A, Damage, InstigatorController, this, UDamageType::StaticClass());
 		}
 		AArenaBlastFX::Spawn(World, Here, BlastRadius, FLinearColor(1.f, 0.45f, 0.1f), 0.45f);
+		USuitReactiveComponent::ReportExplosion(World, Here, BlastRadius);
 		ArenaAudio::PlayAt(this, TEXT("missile_explosion"), Here, 1.f);
 	}
 	// City cars / pedestrians take player blasts and direct hits too (shooting overhaul).

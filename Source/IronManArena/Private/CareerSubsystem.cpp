@@ -1,4 +1,5 @@
 #include "CareerSubsystem.h"
+#include "SuitReactiveState.h"
 #include "CareerEconomy.h"
 #include "CareerWidgets.h"
 #include "ArenaAudio.h"
@@ -570,6 +571,13 @@ void UCareerSubsystem::TickHouses(float DeltaTime)
 					Char->Heal(35.f * DeltaTime);
 					Char->AddEnergy(40.f * DeltaTime);
 					if (ArmoryToastCooldown <= 0.f) { Toast(LOCTEXT("Armory", "ARMORY: repairing + recharging"), FLinearColor(0.4f, 0.85f, 1.f)); ArmoryToastCooldown = 5.f; }
+				}
+				// Workshop bay: strips the grime / scorch / battle damage the suit carried home (Jocasta reactive state).
+				USuitReactiveComponent* ReactiveComp = Char->GetSuitReactive();
+				if (ReactiveComp && !Char->bCareerSuitOff && ReactiveComp->NeedsRepair() && ReactiveComp->RepairAndClean())
+				{
+					Toast(LOCTEXT("ArmoryClean", "WORKSHOP: plates cleaned, scorch polished out, dents repaired"), FLinearColor(0.4f, 0.85f, 1.f));
+					ArmoryToastCooldown = 5.f;
 				}
 			}
 		}

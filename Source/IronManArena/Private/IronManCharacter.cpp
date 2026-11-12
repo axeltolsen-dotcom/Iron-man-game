@@ -17,6 +17,8 @@
 #include "JarvisComponent.h"
 #include "SuitUpCinematic.h"
 #include "ReactorComponent.h"
+#include "SuitReactiveState.h"
+#include "TankBot.h"
 #include "ArenaSaveGame.h"
 #include "SuitArmorKit.h"
 #include "SuitRig.h"
@@ -211,6 +213,7 @@ AIronManCharacter::AIronManCharacter()
 	BeamMesh->SetVisibility(false);
 
 	Reactor = CreateDefaultSubobject<UReactorComponent>(TEXT("Reactor"));
+	SuitReactive = CreateDefaultSubobject<USuitReactiveComponent>(TEXT("SuitReactive"));
 }
 
 // =====================================================================================
@@ -1233,7 +1236,8 @@ void AIronManCharacter::TickSuitWear(float DeltaSeconds)
 		ArenaVisuals::SetScalarOnAll(Parts, TEXT("Damage"), Damage);
 		ArenaVisuals::SetScalarOnAll(FPParts, TEXT("Damage"), Damage);
 	}
-	if (FMath::Abs(Heat - ShownSuitHeat) > 0.02f)
+	// HeatGlow on painted plates comes from USuitReactiveComponent (HeatTint, lagged reactor heat) when it exists.
+	if (!SuitReactive && FMath::Abs(Heat - ShownSuitHeat) > 0.02f)
 	{
 		ShownSuitHeat = Heat;
 		ArenaVisuals::SetScalarOnAll(Parts, TEXT("HeatGlow"), Heat);
@@ -1447,6 +1451,8 @@ void AIronManCharacter::Landed(const FHitResult& Hit)
 	// Vertical speed is still the falling speed here (CharacterMovement calls Landed before zeroing it).
 	const float DownSpeed = -float(GetVelocity().Z);
 	Super::Landed(Hit);
+	// Jocasta: hard / superhero landings leave grime on the suit.
+	if (SuitReactive && !bInCinematic && !IsDead() && !bCareerSuitOff) { SuitReactive->NotifyLanding(DownSpeed); }
 	if (DownSpeed < 600.f || bInCinematic || IsDead()) { return; } // camera_shake.json: > 6 m/s
 	UWorld* World = GetWorld();
 	if (!World) { return; }
@@ -1565,6 +1571,12 @@ void AIronManCharacter::FireRepulsor()
 	AArenaBlastFX::Spawn(World, Muzzle, bCharged ? 38.f : bRapidFireWeapon ? 9.f : (S.PrimaryWeapon == ESuitPrimaryWeapon::Sonic ? 24.f : 14.f), Color, bCharged ? 0.1f : 0.045f, false);
 	ArenaAudio::PlayAt(this, FireSfx, Muzzle, FireVol, FirePitch);
 	if (bCharged) { ArenaAudio::PlayAt(this, TEXT("explosion_near"), Muzzle, 0.6f); }
+	// Jocasta: palms scorch per repulsor shot (rapid-fire weapons scaled to the repulsor's shots per second, charged = x3).
+	if (SuitReactive)
+	{
+		const float ShotScale = FMath::Clamp(Interval / FMath::Max(0.01f, RepulsorFireInterval), 0.05f, 1.f) * (bCharged ? 3.f : 1.f);
+		for (float Left = ShotScale; Left > 0.f; Left -= 1.f) { if (Left >= 1.f || FMath::FRand() < Left) { SuitReactive->NotifyRepulsorShot(); } }
+	}
 	ArenaCombat::Rumble(this, bCharged ? 0.9f : bRapidFireWeapon ? 0.15f : 0.35f, bCharged ? 0.25f : 0.07f, bCharged);
 	if (bAnyKill) { ArenaCombat::Rumble(this, 0.7f, 0.18f, true); ArenaAudio::Play2D(this, TEXT("hud_target_lock"), 0.6f); }
 	else if (bAnyHit) { ArenaAudio::Play2D(this, TEXT("hud_beep_select"), 0.35f, 1.2f); }
@@ -2035,6 +2047,12 @@ float AIronManCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	Super::TakeDamage(Applied, DamageEvent, EventInstigator, DamageCauser);
 
 	Health -= Applied;
+	// Jocasta: tank shells scorch the plates (pooled shells keep the tank as owner / instigator).
+	if (SuitReactive && ((DamageCauser && Cast<ATankBot>(DamageCauser->GetOwner())) || Cast<ATankBot>(DamageCauser)
+		|| (EventInstigator && Cast<ATankBot>(EventInstigator->GetPawn()))))
+	{
+		SuitReactive->NotifyTankShellHit();
+	}
 	// FRIDAY HUD: directional damage arc + per-zone wear (contrib/friday/realism, HUDDataSubsystem).
 	if (UHUDDataSubsystem* HUDData = UHUDDataSubsystem::Get(this))
 	{

@@ -1,4 +1,5 @@
 #include "EnemyDeathSpiral.h"
+#include "SuitReactiveState.h"
 #include "ArenaAudio.h"
 #include "ArenaBlastFX.h"
 #include "ArenaCombat.h"
@@ -122,6 +123,7 @@ void AEnemyDeathSpiral::Explode()
 	UWorld* World = GetWorld();
 	const FVector Here = GetActorLocation();
 	AArenaBlastFX::Spawn(World, Here, BlastRadius, FLinearColor(1.f, 0.55f, 0.15f), 0.5f);
+	USuitReactiveComponent::ReportExplosion(World, Here, BlastRadius);
 	AArenaSparks::SpawnDebris(World, Here, SpiralVelocity, FLinearColor(0.35f, 0.36f, 0.4f), 50.f, 3);
 	ArenaAudio::PlayAt(this, TEXT("explosion_mid"), Here, 0.7f);
 	Destroy();

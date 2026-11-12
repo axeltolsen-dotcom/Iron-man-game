@@ -1,4 +1,5 @@
 #include "StoryAlly.h"
+#include "SuitReactiveState.h"
 
 #include "EnemyBase.h"
 #include "ArenaBlastFX.h"
@@ -74,8 +75,10 @@ void AStoryAlly::ApplyLook(FName AllyId)
 	if (AllyId != FName(TEXT("jocasta"))) { return; }
 	// Jocasta: a borrowed chassis in pale silver with a quiet blue core, no cape.
 	// Fights up close with short energy bursts (see contrib/jocasta/vision_quest_side_mission.md).
-	const FLinearColor Silver(0.72f, 0.74f, 0.78f);
-	const FLinearColor Pale(0.55f, 0.82f, 1.f);
+	// Jocasta's allyChassis values (suit_reactive_state.json): satin ceramic-composite, not Stark paint.
+	const SuitReactive::FTuning& Chassis = SuitReactive::Get();
+	const FLinearColor Silver = Chassis.AllyBaseColor;
+	const FLinearColor Pale = Chassis.AllySeamColor;
 	GlowColor = Pale;
 	BeamRange = 1800.f;
 	BeamDamagePerSecond = 85.f;
@@ -85,10 +88,17 @@ void AStoryAlly::ApplyLook(FName AllyId)
 		if (!Part.Component) { continue; }
 		const FName N = Part.Component->GetFName();
 		if (N == TEXT("Cape")) { Part.Component->SetVisibility(false); continue; }
-		if (N == TEXT("Gem") || N == TEXT("ChestLine")) { Part.Color = Pale; }
-		else if (N == TEXT("Head")) { Part.Color = Silver * 1.1f; }
-		else { Part.Color = Silver; }
+		if (N == TEXT("Gem")) { Part.Color = Pale; }
+		else if (N == TEXT("ChestLine")) { Part.Color = Pale; Part.Emissive = Chassis.AllySeamIntensity; }
+		else { Part.Color = N == TEXT("Head") ? Silver * 1.1f : Silver; }
 		Part.Color.A = 1.f;
+		if (Part.MID && Part.Emissive <= 0.f)
+		{
+			Part.MID->SetScalarParameterValue(TEXT("Metallic"), Chassis.AllyMetallic);
+			Part.MID->SetScalarParameterValue(TEXT("Roughness"), Chassis.AllyRoughness);
+			Part.MID->SetScalarParameterValue(TEXT("ClearCoat"), Chassis.AllyClearCoat);
+			Part.MID->SetScalarParameterValue(TEXT("FlakeAmount"), Chassis.AllyFlake);
+		}
 		RepaintPart(Part);
 	}
 	if (GemLight) { GemLight->SetLightColor(Pale); }

@@ -1,4 +1,5 @@
 #include "ArenaCombat.h"
+#include "SuitReactiveState.h"
 #include "ArenaAudio.h"
 #include "ArenaBlastFX.h"
 #include "ArenaFeel.h"
@@ -378,6 +379,7 @@ ArenaCombat::FShot ArenaCombat::FireHitscan(AActor* Shooter, AController* Inst, 
 			if (IsValid(E) && !E->IsDead()) { Knockback(E, E->GetActorLocation() - Impact, KnockStrength * 0.8f); }
 		}
 		AArenaBlastFX::Spawn(World, Impact, BlastRadius, FLinearColor(1.f, 0.55f, 0.2f), 0.22f, true);
+		USuitReactiveComponent::ReportExplosion(World, Impact, BlastRadius);
 		ArenaAudio::PlayAt(Shooter, TEXT("explosion_near"), Impact, 0.95f);
 		ArenaFeel::SpawnImpactDecal(World, Impact, Normal, FMath::Clamp(BlastRadius * 0.85f, 70.f, 320.f), 6.5f);
 	}

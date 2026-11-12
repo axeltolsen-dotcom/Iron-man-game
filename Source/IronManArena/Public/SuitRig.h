@@ -126,6 +126,9 @@ namespace SuitRig
 	/** First-person forearms/hands in front of Camera. Call from the owner's constructor. */
 	IRONMANARENA_API void BuildGauntlets(AActor* Owner, USceneComponent* Camera, FSuitRig& Rig, TArray<FArenaPaintedPart>& OutParts);
 
+	/** Bumped by every ApplyColors (USuitReactiveComponent re-reads the static finish it sits on). */
+	IRONMANARENA_API uint32 GetPaintGeneration();
+
 	/** Recolour Parts from Suit (parts must already be painted). */
 	IRONMANARENA_API void ApplyColors(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts);
 

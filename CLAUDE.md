@@ -29,7 +29,7 @@ Read `README.md` and `Docs/` first.
 - Combat: hit feedback, enemy variety, and boss fights (Ultron boss effects are hooked up and need Niagara effects).
 - Cutscenes: camera work, pacing and subtitles for the story chapters and the finale.
 - NPCs: better faces, skin and clothing (see Vison's NPC notes on PR 1). There are no children in the crowd.
-- Suits: better materials, the suit-up animation, damage and scratches.
+- Suits: better materials, the suit-up animation, damage and scratches. Done 11-12: Jocasta's reactive surface state (USuitReactiveComponent, Content/Story/suit_reactive_state.json): suits get wet in rain, grimy from hard landings / ground objectives / explosions, scorched by repulsor fire / explosions / tank shells, heat-tinted from the reactor, and pick up 4 damage tiers from health lost. Grime / scorch / damage are saved per suit; the mansion armory pad or Dum-E's tool tray [E] cleans and repairs them. Still to do: damage decal atlas, servo sounds, plate jiggle, hover heat shimmer, tier-2/3 seam flicker / sparks / reactor stutter.
 - HUD (FRIDAY): clean, readable callouts and a minimap.
 - Main menu: make it look finished, with a loading screen.
 - Performance: hold 60 fps at 1080p on an RTX 2070 SUPER.

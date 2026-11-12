@@ -44,6 +44,7 @@ class UMaterialInstanceDynamic;
 class ASuitUpCinematic;
 class UAudioComponent;
 class UReactorComponent;
+class USuitReactiveComponent;
 
 UCLASS()
 class IRONMANARENA_API AIronManCharacter : public ACharacter
@@ -189,6 +190,9 @@ public:
 	/** Power plant: energy output + heat / venting (see UReactorComponent). */
 	UFUNCTION(BlueprintPure, Category = "IronMan|Reactor")
 	UReactorComponent* GetReactor() const { return Reactor; }
+
+	/** Jocasta's reactive surface state (wet / grime / scorch / heat tint / damage tiers on the suit MIDs). */
+	USuitReactiveComponent* GetSuitReactive() const { return SuitReactive; }
 
 	UFUNCTION(BlueprintPure, Category = "IronMan|Reactor")
 	bool IsBoosting() const { return bBoostActive; }
@@ -606,6 +610,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UReactorComponent> Reactor;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USuitReactiveComponent> SuitReactive;
+
 	bool bBoostHeld = false;
 	TArray<int32> SelectableSuits; // rebuilt by SetAllowedSuits; all suits when unrestricted
 	bool bBoostActive = false;
@@ -761,6 +768,7 @@ public:
 	/** Camera FOV offset from a super-move punch-in. */
 	float SuperFov = 0.f;
 	friend class USuitSuperComponent;
+	friend class USuitReactiveComponent;
 protected:
 
 	// AI chatter state

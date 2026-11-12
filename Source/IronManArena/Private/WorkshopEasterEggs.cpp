@@ -1,4 +1,5 @@
 #include "WorkshopEasterEggs.h"
+#include "SuitReactiveState.h"
 
 #include "IronManArena.h"
 #include "IronManCharacter.h"
@@ -853,7 +854,12 @@ bool AWorkshopEasterEggs::GetInteractPrompt(const AIronManCharacter* Char, FText
 		return true;
 	}
 	case WorkshopEggs::TargetToolTray:
-		OutPrompt = (bDuckOut && !bDuckGiven) ? LOCTEXT("PDuck", "[E] take the Calibration Duck") : LOCTEXT("PTray", "[E] poke Dum-E's tool tray");
+		if (bDuckOut && !bDuckGiven) { OutPrompt = LOCTEXT("PDuck", "[E] take the Calibration Duck"); }
+		else if (const USuitReactiveComponent* ReactiveComp = Char->GetSuitReactive(); ReactiveComp && ReactiveComp->NeedsRepair() && !Char->bCareerSuitOff)
+		{
+			OutPrompt = LOCTEXT("PRepair", "[E] have Dum-E clean + repair the suit");
+		}
+		else { OutPrompt = LOCTEXT("PTray", "[E] poke Dum-E's tool tray"); }
 		return true;
 	case WorkshopEggs::TargetCar:
 		OutPrompt = CarStage < WorkshopEggs::NumTarps ? LOCTEXT("PTarp", "[E] pull the tarp") : LOCTEXT("PTarpBack", "[E] put the tarp back");
@@ -905,6 +911,14 @@ void AWorkshopEasterEggs::Interact(AIronManCharacter* Char, int32 Target)
 			ArenaAudio::Play2D(this, TEXT("ui_click"), 0.5f, 1.7f); // squeak
 			ArenaAudio::Play2D(this, TEXT("pickup_health"), 0.4f);
 			WorkshopToast(this, LOCTEXT("DuckTaken", "Calibration Duck: moral support (+5 HP)"), WorkshopToastGold);
+		}
+		else if (USuitReactiveComponent* ReactiveComp = Char->GetSuitReactive(); ReactiveComp && ReactiveComp->NeedsRepair() && !Char->bCareerSuitOff)
+		{
+			// Jocasta reactive state: the workshop strips grime, scorch and battle damage off the current suit.
+			ReactiveComp->RepairAndClean();
+			ArenaAudio::Play2D(this, TEXT("hud_beep_select"), 0.4f, 1.1f);
+			ArenaAudio::Play2D(this, TEXT("pickup_health"), 0.35f);
+			WorkshopToast(this, LOCTEXT("SuitRepaired", "Dum-E buffs out the scorch marks and hammers out the dents. Suit restored."), WorkshopToastTeal);
 		}
 		else
 		{

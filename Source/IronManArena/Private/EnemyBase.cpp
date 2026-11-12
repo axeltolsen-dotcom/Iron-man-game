@@ -1,4 +1,5 @@
 #include "EnemyBase.h"
+#include "SuitReactiveState.h"
 #include "ArenaFeel.h"
 #include "BossTitan.h"
 #include "IronManArena.h"
@@ -268,6 +269,7 @@ void AEnemyBase::ApplyHitReaction(float Applied, const FVector& HitDir, bool bSt
 void AEnemyBase::SpawnDeathFX()
 {
 	AArenaBlastFX::Spawn(GetWorld(), GetActorLocation(), DeathBlastRadius, FLinearColor(1.f, 0.55f, 0.15f), 0.5f);
+	USuitReactiveComponent::ReportExplosion(this, GetActorLocation(), DeathBlastRadius);
 }
 
 float AEnemyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

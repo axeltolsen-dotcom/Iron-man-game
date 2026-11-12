@@ -533,8 +533,12 @@ namespace SuitRig
 
 	static void ApplyColorsBase(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts);
 
+	static uint32 GPaintGeneration = 0;
+	uint32 GetPaintGeneration() { return GPaintGeneration; }
+
 	void ApplyColors(const FSuitDef& Suit, TArray<FArenaPaintedPart>& Parts)
 	{
+		++GPaintGeneration;
 		ApplyColorsBase(Suit, Parts);
 		if (!GWhiteTrim && !GPaleBlueTrim) { return; }
 		// Cosmetic reward "vison-white-trim" (side mission Synthezoid Signal): accent trim in

@@ -1,4 +1,5 @@
 #include "CityLife.h"
+#include "SuitReactiveState.h"
 #include "WantedPressure.h"
 #include "CareerEconomy.h"
 #include "ArenaGameUserSettings.h"
@@ -185,6 +186,7 @@ void ACityCar::Explode(bool bFromPlayer)
 	UWorld* World = GetWorld();
 	const FVector Here = GetActorLocation();
 	AArenaBlastFX::Spawn(World, Here + FVector(0, 0, 60.f), 650.f, FLinearColor(1.f, 0.45f, 0.1f), 0.7f);
+	USuitReactiveComponent::ReportExplosion(World, Here, 650.f);
 	ArenaAudio::PlayAt(this, TEXT("explosion_car"), Here, 1.2f);
 	ArenaAudio::PlayAt(this, TEXT("glass_break"), Here, 0.8f);
 	// Charred husk.

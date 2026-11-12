@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "complements": [
+    "contrib/u/suit_materials.json",
+    "contrib/vison/postprocess_realism.json"
+  ],
+  "params": {
+    "Wetness": {
+      "build": {
+        "rainPerSec": 0.25,
+        "waterContact": 1.0,
+        "lowFlightSprayPerSec": 0.15
+      },
+      "decayPerSec": 0.04,
+      "decayPerSecHot": 0.12,
+      "roughnessMul": 0.6,
+      "albedoDarkenPainted": 0.15,
+      "dropletNormalFrom": 0.4,
+      "decayHotAbove": 0.5
+    },
+    "GrimeLive": {
+      "build": {
+        "hardLanding": 0.05,
+        "groundObjectivePerMin": 0.08,
+        "nearExplosion": 0.06
+      },
+      "upFacingMul": 2.0,
+      "rainWashTo": 0.5,
+      "resetAt": "workshop",
+      "maxDarken": 0.3,
+      "maxRoughnessAdd": 0.25,
+      "rainWashPerSec": 0.02
+    },
+    "ScorchLive": {
+      "build": {
+        "repulsorShot": 0.002,
+        "nearExplosion": 0.08,
+        "tankShellHit": 0.12
+      },
+      "persistUntil": "repair",
+      "addsTo": "Scorch"
+    },
+    "HeatTint": {
+      "source": "reactorHeat",
+      "lagSec": 1.5,
+      "metallicThreshold": 0.8,
+      "emissiveAbove": 0.85,
+      "maxEmissive": 2.0
+    },
+    "DamageLevel": {
+      "tiers": [
+        0,
+        0.33,
+        0.66,
+        1.0
+      ],
+      "edgeWearAddMax": 0.3,
+      "persistUntil": "repair",
+      "healthLostForTier": [
+        0.25,
+        0.5,
+        0.75
+      ]
+    }
+  },
+  "damageDecalAtlas": {
+    "scratch": 8,
+    "dent": 4,
+    "crack": 4,
+    "burn": 2,
+    "maxPerSuit": 12,
+    "seed": "suitId"
+  },
+  "motion": {
+    "landing": {
+      "softBelowMps": 6,
+      "hardBelowMps": 15,
+      "cameraDipFrames": [
+        2,
+        4
+      ]
+    },
+    "servo": {
+      "minJointDegPerSec": 90,
+      "heavyPitchSemitones": -3,
+      "heavySuits": [
+        "war-machine",
+        "hulkbuster"
+      ]
+    },
+    "secondaryJiggle": {
+      "parts": [
+        "shoulder",
+        "backpack"
+      ],
+      "maxCm": 2,
+      "stiffness": 800,
+      "damping": 0.9
+    },
+    "hover": {
+      "bobHz": 0.3,
+      "bobCm": 1.5,
+      "thrusterShimmer": "screen-space distortion"
+    },
+    "flight": {
+      "maxBankDeg": 35
+    }
+  },
+  "updateHz": 10,
+  "allyChassis": {
+    "jocasta": {
+      "baseColorLinear": [
+        0.62,
+        0.66,
+        0.7
+      ],
+      "metallic": 0.1,
+      "roughness": 0.38,
+      "clearcoat": 0,
+      "metalFlake": 0,
+      "seamEmissive": {
+        "colorLinear": [
+          0.55,
+          0.78,
+          1.0
+        ],
+        "intensity": 6,
+        "pulseWithVoice": true
+      },
+      "ultronResidue": {
+        "colorLinear": [
+          1.0,
+          0.12,
+          0.08
+        ],
+        "intensity": 0.3,
+        "roughness": 0.6,
+        "where": "forearms",
+        "visible": "shadow or Mirror Lock red pulse"
+      },
+      "reactiveParams": [
+        "Wetness",
+        "GrimeLive",
+        "ScorchLive",
+        "DamageLevel"
+      ],
+      "substrateColorLinear": [
+        0.08,
+        0.08,
+        0.09
+      ]
+    }
+  },
+  "nearExplosion": {
+    "fullWithinRadiusPlusCm": 300,
+    "fadeCm": 600,
+    "fadeRadiusMul": 2.0
+  },
+  "_merge": "Merged 2026-11-12 from contrib/jocasta/suit_reactive_state.json; read by SuitReactiveState.cpp (SuitReactive::Get). Extra keys: DamageLevel.healthLostForTier, GrimeLive.rainWashPerSec, Wetness.decayHotAbove, nearExplosion."
+}

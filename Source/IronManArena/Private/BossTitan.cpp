@@ -1,4 +1,5 @@
 #include "BossTitan.h"
+#include "SuitReactiveState.h"
 #include "ArenaFeel.h"
 #include "ArenaVisuals.h"
 #include "StoryDirector.h"
@@ -428,5 +429,6 @@ void ABossTitan::OnKilled()
 			AArenaBlastFX::Spawn(GetWorld(), GetActorLocation() + FVector(Rand(-280.f, 280.f), Rand(-280.f, 280.f), Rand(-200.f, 200.f)),
 				Rand(250.f, 400.f), FLinearColor(1.f, 0.7f, 0.3f), Rand(0.4f, 0.9f));
 		}
+		USuitReactiveComponent::ReportExplosion(this, GetActorLocation(), 400.f);
 	}
 }

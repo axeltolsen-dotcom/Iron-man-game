@@ -8,6 +8,17 @@
 #include "CareerTypes.h"
 #include "ArenaSaveGame.generated.h"
 
+/** Persistent part of a suit's surface state (SuitReactiveWear, keyed by suit id; see SuitReactiveState.h). */
+USTRUCT(BlueprintType)
+struct IRONMANARENA_API FSuitReactiveSave
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save") float Grime = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save") float Scorch = 0.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save") float Damage = 0.f;
+};
+
 UCLASS()
 class IRONMANARENA_API UArenaSaveGame : public USaveGame
 {
@@ -135,6 +146,10 @@ public:
 	/** Unix seconds when each JobsClaimed entry was last claimed. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Career")
 	TArray<int64> JobClaimUnix;
+
+	/** Jocasta reactive surface state: grime / scorch / damage per suit id until the workshop repairs it. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Save|Suits")
+	TMap<FName, FSuitReactiveSave> SuitReactiveWear;
 
 	bool HasUpgrade(FName Id) const { return Upgrades.Contains(Id); }
 	bool IsCosmeticActive(FName Id) const { return Cosmetics.Contains(Id) && !CosmeticsDisabled.Contains(Id); }
