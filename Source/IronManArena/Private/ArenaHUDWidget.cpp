@@ -19,6 +19,7 @@
 #include "Components/TextBlock.h"
 #include "Styling/CoreStyle.h"
 #include "Engine/World.h"
+#include "Widgets/Layout/SDPIScaler.h"
 
 #define LOCTEXT_NAMESPACE "ArenaHUDWidget"
 
@@ -35,7 +36,12 @@ TSharedRef<SWidget> UArenaHUDWidget::RebuildWidget()
 	{
 		BuildTree();
 	}
-	return Super::RebuildWidget();
+	// HUD scale as a layout scale (see UHelmetHUDWidget::RebuildWidget): anchors stay on the screen edges.
+	return SNew(SDPIScaler)
+		.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UArenaHUDWidget::GetHudScale)))
+		[
+			Super::RebuildWidget()
+		];
 }
 
 UTextBlock* UArenaHUDWidget::AddText(UCanvasPanel* Root, const FText& Text, int32 Size, const FLinearColor& Color,
@@ -248,9 +254,11 @@ void UArenaHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	WaveText->SetText(FText::Format(LOCTEXT("WaveHud", "WAVE {0}\nHOSTILES {1}"), FText::AsNumber(GM->GetWave()), FText::AsNumber(GM->GetHostilesRemaining())));
 	TickStory(bStory ? GM : nullptr, Player);
 	TickReactor(Player);
+	// TickHelmet sets bGaugesHandedOff, which TickSubtitles reads: run it first (no one-frame overlap).
+	// It must stay after TickReactor, which re-shows the heat widgets the hand-off collapses.
+	TickHelmet(Player);
 	TickSubtitles(Player);
 	TickWheel(Player);
-	TickHelmet(Player);
 
 	if (const ABossTitan* Boss = GM->GetActiveBoss())
 	{
@@ -330,7 +338,10 @@ void UArenaHUDWidget::TickReactor(const AIronManCharacter* Player)
 void UArenaHUDWidget::TickSubtitles(const AIronManCharacter* Player)
 {
 	const UArenaGameUserSettings* Settings = UArenaGameUserSettings::GetArenaSettings();
-	const bool bWanted = !Settings || Settings->bSubtitles;
+	// In first person the helmet HUD draws the same JARVIS/FRIDAY line in its SubtitleBar (bottom-centre,
+	// same spot), so this copy only shows when the gauges are not handed off (third person, Hulkbuster,
+	// no helmet HUD).
+	const bool bWanted = (!Settings || Settings->bSubtitles) && !bGaugesHandedOff;
 	const UJarvisComponent* J = UJarvisComponent::Get(this);
 	FText Label, Line;
 	FLinearColor Color = HudCyan;
@@ -464,7 +475,8 @@ void UArenaHUDWidget::TickStory(const AArenaGameMode* GM, const AIronManCharacte
 	{
 		const float Meters = FVector::Dist(Player->GetActorLocation(), Beacon) / 100.f;
 		BeaconMarker->SetText(FText::Format(LOCTEXT("Beacon", "<>\n{0} m"), FText::AsNumber(FMath::RoundToInt(Meters))));
-		if (UCanvasPanelSlot* S = Cast<UCanvasPanelSlot>(BeaconMarker->Slot)) { S->SetPosition(Screen); }
+		// Screen is in viewport widget units; RootPanel is HUD-scaled.
+		if (UCanvasPanelSlot* S = Cast<UCanvasPanelSlot>(BeaconMarker->Slot)) { S->SetPosition(Screen / HudScale); }
 		BeaconMarker->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 	else

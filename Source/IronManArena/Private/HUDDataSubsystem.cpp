@@ -4,7 +4,9 @@
 #include "EnemyBase.h"
 #include "EngineUtils.h"
 #include "IronManCharacter.h"
+#include "Pickup.h"
 #include "ReactorComponent.h"
+#include "CollisionQueryParams.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Engine/World.h"
@@ -38,6 +40,80 @@ void UHUDDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	RegionIntegrity.Init(1.f, int32(EHUDBodyRegion::Count));
+	if (UWorld* World = GetWorld())
+	{
+		ActorSpawnedHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UHUDDataSubsystem::HandleActorSpawned));
+	}
+}
+
+void UHUDDataSubsystem::Deinitialize()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->RemoveOnActorSpawnedHandler(ActorSpawnedHandle);
+	}
+	ActorSpawnedHandle.Reset();
+	TrackedEnemies.Reset();
+	TrackedPickups.Reset();
+	Super::Deinitialize();
+}
+
+void UHUDDataSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+	RescanTrackedActors(); // level-placed actors never fire OnActorSpawned
+}
+
+// ------------------------------------------------------------------------------------------------
+// Tracked actors (HUD radar / brackets) and AGL
+// ------------------------------------------------------------------------------------------------
+
+void UHUDDataSubsystem::HandleActorSpawned(AActor* Actor)
+{
+	if (AEnemyBase* Enemy = Cast<AEnemyBase>(Actor))
+	{
+		TrackedEnemies.Add(Enemy);
+	}
+	else if (APickup* Pickup = Cast<APickup>(Actor))
+	{
+		TrackedPickups.Add(Pickup);
+	}
+}
+
+void UHUDDataSubsystem::RescanTrackedActors()
+{
+	UWorld* World = GetWorld();
+	if (!World) { return; }
+	TrackedEnemies.Reset();
+	TrackedPickups.Reset();
+	for (TActorIterator<AEnemyBase> It(World); It; ++It) { TrackedEnemies.Add(*It); }
+	for (TActorIterator<APickup> It(World); It; ++It) { TrackedPickups.Add(*It); }
+}
+
+float UHUDDataSubsystem::GetAglM(const AActor* Player)
+{
+	UWorld* World = GetWorld();
+	if (!Player || !World) { return -1.f; }
+	const FVector Location = Player->GetActorLocation();
+	const double NowS = World->GetRealTimeSeconds(); // undilated, like the arcs
+	const bool bStale = Player != AglActor.Get() || AglTraceTime < 0.0
+		|| NowS - AglTraceTime >= AglTraceIntervalS
+		|| FVector::DistSquared2D(Location, AglTraceLocation) > FMath::Square(500.0);
+	if (bStale)
+	{
+		AglActor = Player;
+		AglTraceLocation = Location;
+		AglTraceTime = NowS;
+		AglTraceM = -1.f;
+		FHitResult Hit;
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(HelmetHUDAgl), false, Player);
+		if (World->LineTraceSingleByChannel(Hit, Location, Location - FVector(0.0, 0.0, 20000.0), ECC_Visibility, Params))
+		{
+			AglTraceM = FMath::Max(0.f, (Hit.Distance - Player->GetSimpleCollisionHalfHeight()) / 100.f);
+		}
+	}
+	if (AglTraceM < 0.f) { return -1.f; }
+	return FMath::Max(0.f, AglTraceM + float(Location.Z - AglTraceLocation.Z) / 100.f);
 }
 
 bool UHUDDataSubsystem::IsReducedMotion() const
@@ -189,6 +265,12 @@ void UHUDDataSubsystem::Tick(float DeltaTime)
 	Arcs.Advance(RealDt);
 	SecondsSinceHit += RealDt;
 	SnapshotPlayer(RealDt);
+	RescanTimer += RealDt;
+	if (RescanTimer >= 1.f)
+	{
+		RescanTimer = 0.f;
+		RescanTrackedActors(); // drops destroyed entries, picks up streamed-in actors
+	}
 }
 
 void UHUDDataSubsystem::SnapshotPlayer(float RealDt)
@@ -233,7 +315,7 @@ void UHUDDataSubsystem::SnapshotPlayer(float RealDt)
 	AirspeedMs = float(V.Size()) / 100.f;
 	VerticalSpeedMs = float(V.Z) / 100.f;
 
-	// AGL: not traced here (the helmet HUD already traces once per frame); AltitudeM stays -1.
+	// AGL: not traced here (the helmet HUD asks GetAglM(), throttled to ~10 Hz); AltitudeM stays -1.
 	AltitudeM = -1.f;
 }
 

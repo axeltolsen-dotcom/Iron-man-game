@@ -56,6 +56,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HelmetHUD")
 	void SetAccessibility(bool bInColorBlindSafe, bool bInReducedMotion, float InHudOpacity, float InSubtitleScale);
 
+	/**
+	 * Settings > HUD scale (clamped 0.75..1.25). Applied as a layout scale on top of the engine's DPI
+	 * scale (SDPIScaler around the tree), so edge-anchored elements stay on the edges and the safe
+	 * zone re-lays out, unlike SetRenderScale.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "HelmetHUD")
+	void SetHudScale(float InScale) { HudScalePref = FMath::Clamp(InScale, 0.75f, 1.25f); }
+	float GetHudScale() const { return HudScalePref; }
+
 	/** Re-reads hud_layout.json and re-applies slots, fonts and palettes. */
 	UFUNCTION(BlueprintCallable, Category = "HelmetHUD")
 	void ReloadLayout();
@@ -78,6 +87,12 @@ public:
 	 * frame-to-frame values (previous energy for the draw rate) and then overwritten.
 	 */
 	static void FillStateFromGame(const UObject* WorldContext, const AIronManCharacter* Player, FHelmetHUDState& InOutState, float DeltaSeconds);
+
+	/**
+	 * Same, with the previous frame passed separately (Prev may alias Out). Out's arrays are Reset()
+	 * and refilled in place, so a reused Out does not reallocate every frame.
+	 */
+	static void FillStateFromGame(const UObject* WorldContext, const AIronManCharacter* Player, const FHelmetHUDState& Prev, FHelmetHUDState& Out, float DeltaSeconds);
 
 	/** If no UpdateFromState() arrived this frame, fill the state from the owning pawn. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HelmetHUD")
@@ -485,6 +500,7 @@ private:
 	bool bReducedMotion = false;
 	float HudOpacityPref = 1.f;
 	float SubtitleScalePref = 1.f;
+	float HudScalePref = 1.f;
 
 	// Boot
 	float BootStartTime = -100.f;

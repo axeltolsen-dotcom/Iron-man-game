@@ -115,13 +115,13 @@ void AArenaPlayerController::SyncHUDSettings()
 	if (HelmetHUD)
 	{
 		HelmetHUD->SetAccessibility(S->bHudColorBlindSafe, S->bHudReducedMotion, Opacity, SubScale);
-		HelmetHUD->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
-		HelmetHUD->SetRenderScale(FVector2D(HudScaleValue, HudScaleValue));
+		HelmetHUD->SetHudScale(HudScaleValue); // layout scale, not SetRenderScale (that pushed edge elements off screen)
 	}
 	if (HUDWidget)
 	{
 		HUDWidget->SetHelmetHUDPresent(HelmetHUD != nullptr);
 		HUDWidget->SetSubtitleScale(SubScale);
+		HUDWidget->SetHudScale(HudScaleValue); // both HUDs now agree
 	}
 }
 

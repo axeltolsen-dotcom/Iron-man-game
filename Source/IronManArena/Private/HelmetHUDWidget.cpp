@@ -38,6 +38,7 @@
 #include "Misc/PackageName.h"
 #include "Rendering/DrawElements.h"
 #include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SDPIScaler.h"
 #include "UObject/UnrealType.h"
 
 #include "ArenaKeyBindings.h"
@@ -278,7 +279,12 @@ TSharedRef<SWidget> UHelmetHUDWidget::RebuildWidget()
 	{
 		BuildTree();
 	}
-	return Super::RebuildWidget();
+	// HUD scale as a layout scale: children get (viewport / scale) of room and keep their anchors.
+	return SNew(SDPIScaler)
+		.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UHelmetHUDWidget::GetHudScale)))
+		[
+			Super::RebuildWidget()
+		];
 }
 
 void UHelmetHUDWidget::NativeConstruct()
@@ -997,10 +1003,17 @@ void UHelmetHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 	if (!bStatePushedThisFrame && bAutoPoll)
 	{
 		const AIronManCharacter* Player = Cast<AIronManCharacter>(GetOwningPlayerPawn());
-		FHelmetHUDState Polled = HudState;
-		FillStateFromGame(this, Player, Polled, Dt);
-		PrevHudState = bHasState ? HudState : Polled;
-		HudState = Polled;
+		if (bHasState)
+		{
+			// Swap instead of copying: PrevHudState becomes last frame, HudState's buffers are refilled in place.
+			Swap(PrevHudState, HudState);
+			FillStateFromGame(this, Player, PrevHudState, HudState, Dt);
+		}
+		else
+		{
+			FillStateFromGame(this, Player, HudState, HudState, Dt);
+			PrevHudState = HudState;
+		}
 		bHasState = true;
 	}
 	bStatePushedThisFrame = false;
@@ -1638,7 +1651,8 @@ void UHelmetHUDWidget::UpdateTargets(float DeltaSeconds)
 				const FVector2D Absolute = FVector2D(MyGeo.LocalToAbsolute(Target.ScreenPos));
 				Pos = FVector2D(LayerGeo.AbsoluteToLocal(Absolute));
 			}
-			const FVector2D BracketSize(FMath::Max<double>(Target.ScreenSize.X, 24.0), FMath::Max<double>(Target.ScreenSize.Y, 24.0));
+			// ScreenSize is in viewport units; the layer is HUD-scaled, so undo it to keep brackets on the target.
+			const FVector2D BracketSize(FMath::Max<double>(Target.ScreenSize.X / HudScalePref, 24.0), FMath::Max<double>(Target.ScreenSize.Y / HudScalePref, 24.0));
 			if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Bracket->Slot))
 			{
 				if (!CanvasSlot->GetPosition().Equals(Pos, 0.25))
@@ -2864,18 +2878,41 @@ int32 UHelmetHUDWidget::NativePaint(const FPaintArgs& Args, const FGeometry& All
 
 void UHelmetHUDWidget::FillStateFromGame(const UObject* WorldContext, const AIronManCharacter* Player, FHelmetHUDState& InOutState, float DeltaSeconds)
 {
-	const float PrevPower = InOutState.PowerFraction;
-	const float PrevRate = InOutState.PowerRatePerS;
-	const bool bHadPrev = InOutState.bVisible;
+	FillStateFromGame(WorldContext, Player, InOutState, InOutState, DeltaSeconds);
+}
 
-	FHelmetHUDState Out;
+void UHelmetHUDWidget::FillStateFromGame(const UObject* WorldContext, const AIronManCharacter* Player, const FHelmetHUDState& Prev, FHelmetHUDState& Out, float DeltaSeconds)
+{
+	// Read Prev before Out is reset (they may be the same object).
+	const float PrevPower = Prev.PowerFraction;
+	const float PrevRate = Prev.PowerRatePerS;
+	const bool bHadPrev = Prev.bVisible;
+
+	// Back to defaults, but keep the array allocations (Targets, Blips, beacons, zones) for reuse.
+	{
+		TArray<FHUDTarget> Targets = MoveTemp(Out.Targets);
+		TArray<FHUDRadarBlip> Blips = MoveTemp(Out.Blips);
+		TArray<float> Beacons = MoveTemp(Out.BeaconHeadingsDeg);
+		TArray<float> Regions = MoveTemp(Out.RegionIntegrity);
+		Out = FHelmetHUDState();
+		Targets.Reset();
+		Blips.Reset();
+		Beacons.Reset();
+		Regions.Reset();
+		Out.Targets = MoveTemp(Targets);
+		Out.Blips = MoveTemp(Blips);
+		Out.BeaconHeadingsDeg = MoveTemp(Beacons);
+		Out.RegionIntegrity = MoveTemp(Regions);
+	}
+
 	UWorld* GameWorld = WorldContext ? WorldContext->GetWorld() : nullptr;
 	if (!Player || !GameWorld)
 	{
 		Out.bVisible = false;
-		InOutState = Out;
 		return;
 	}
+	// Cached enemy / pickup lists and the throttled AGL trace live here (null outside Game/PIE worlds).
+	UHUDDataSubsystem* HUDData = UHUDDataSubsystem::Get(WorldContext);
 
 	// Same lookup as UArenaHUDWidget (AIronManCharacter::GetArenaGameMode is protected upstream).
 	const AArenaGameMode* GM = GameWorld->GetAuthGameMode<AArenaGameMode>();
@@ -2898,6 +2935,11 @@ void UHelmetHUDWidget::FillStateFromGame(const UObject* WorldContext, const AIro
 	Out.SpeedMs = float(Velocity.Size()) / 100.f;
 	Out.VerticalSpeedMs = float(Velocity.Z) / 100.f;
 	Out.AltitudeM = float(Location.Z - (GM ? GM->GetArenaFloorZ() : 0.f)) / 100.f;
+	if (HUDData)
+	{
+		Out.AglM = HUDData->GetAglM(Player); // ~10 Hz trace, extrapolated between
+	}
+	else
 	{
 		FHitResult Hit;
 		FCollisionQueryParams Params(SCENE_QUERY_STAT(HelmetHUDAgl), false, Player);
@@ -3017,22 +3059,43 @@ void UHelmetHUDWidget::FillStateFromGame(const UObject* WorldContext, const AIro
 		Out.Targets.Add(Target);
 	};
 
-	for (TActorIterator<AEnemyBase> It(GameWorld); It; ++It)
+	auto AddEnemy = [&](const AEnemyBase* Enemy)
 	{
-		const AEnemyBase* Enemy = *It;
 		if (!Enemy || Enemy->IsDead())
 		{
-			continue;
+			return;
 		}
 		const EHUDThreatType Type = ThreatFromKind(Enemy->GetKind());
 		AddTarget(Enemy, Enemy->GetAimPoint(), Enemy->GetHitRadius(), Type);
 		AddBlip(Enemy->GetActorLocation(), Type);
-	}
-	for (TActorIterator<APickup> It(GameWorld); It; ++It)
+	};
+	if (HUDData)
 	{
-		if (const APickup* Pickup = *It)
+		// Event-driven lists (OnActorSpawned + 1 Hz rescan): no world iteration per frame.
+		for (const TWeakObjectPtr<AEnemyBase>& Enemy : HUDData->GetTrackedEnemies())
 		{
-			AddBlip(Pickup->GetActorLocation(), EHUDThreatType::Pickup);
+			AddEnemy(Enemy.Get());
+		}
+		for (const TWeakObjectPtr<APickup>& Pickup : HUDData->GetTrackedPickups())
+		{
+			if (const APickup* P = Pickup.Get())
+			{
+				AddBlip(P->GetActorLocation(), EHUDThreatType::Pickup);
+			}
+		}
+	}
+	else
+	{
+		for (TActorIterator<AEnemyBase> It(GameWorld); It; ++It)
+		{
+			AddEnemy(*It);
+		}
+		for (TActorIterator<APickup> It(GameWorld); It; ++It)
+		{
+			if (const APickup* Pickup = *It)
+			{
+				AddBlip(Pickup->GetActorLocation(), EHUDThreatType::Pickup);
+			}
 		}
 	}
 
@@ -3103,14 +3166,13 @@ void UHelmetHUDWidget::FillStateFromGame(const UObject* WorldContext, const AIro
 	}
 
 	// Hit direction, struck zone and per-zone wear from UHUDDataSubsystem (fed by AIronManCharacter::TakeDamage).
-	if (const UHUDDataSubsystem* HitData = UHUDDataSubsystem::Get(WorldContext))
+	if (HUDData)
 	{
-		Out.ImpactDir2D = HitData->GetImpactDir2D();
-		Out.LastHitRegion = HitData->GetLastHitRegion();
-		Out.RegionIntegrity = HitData->GetRegionIntegrity();
+		Out.ImpactDir2D = HUDData->GetImpactDir2D();
+		Out.LastHitRegion = HUDData->GetLastHitRegion();
+		Out.RegionIntegrity.Append(HUDData->GetRegionIntegrityRef()); // into the kept buffer, no temp copy
 	}
 	// Not wired (no getter in the project yet): bIncomingMissile, bPullUp (derived from AGL).
-	InOutState = Out;
 }
 
 #undef LOCTEXT_NAMESPACE

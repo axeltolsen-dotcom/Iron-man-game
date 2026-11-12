@@ -23,6 +23,8 @@
 
 class AIronManCharacter;
 class AController;
+class AEnemyBase;
+class APickup;
 struct FDamageEvent;
 
 /** One resolved player hit (what the HUD needs, nothing more). */
@@ -96,6 +98,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "HUD|Hit") int32 GetLastHitRegion() const { return SecondsSinceHit < 0.1f ? int32(LastHit.Region) : -1; }
 	/** 7 entries, indexed by EHUDBodyRegion, 0..1. */
 	UFUNCTION(BlueprintPure, Category = "HUD|Suit") TArray<float> GetRegionIntegrity() const { return RegionIntegrity; }
+	/** Same as GetRegionIntegrity() without the copy (per-frame C++ readers). */
+	const TArray<float>& GetRegionIntegrityRef() const { return RegionIntegrity; }
+
+	/**
+	 * Enemies and pickups in this world for the HUD radar and target brackets, so the helmet HUD does
+	 * not run TActorIterator every frame. Kept from OnActorSpawned plus a 1 Hz rescan (level-placed and
+	 * streamed-in actors). Entries can go stale between rescans: use .Get() and skip nulls.
+	 */
+	const TArray<TWeakObjectPtr<AEnemyBase>>& GetTrackedEnemies() const { return TrackedEnemies; }
+	const TArray<TWeakObjectPtr<APickup>>& GetTrackedPickups() const { return TrackedPickups; }
+
+	/**
+	 * Height above ground in metres (-1 when nothing is below within 200 m). Traced at most every
+	 * AglTraceIntervalS or after 5 m of horizontal travel, and extrapolated from the vertical
+	 * movement in between.
+	 */
+	float GetAglM(const AActor* Player);
 
 	UFUNCTION(BlueprintPure, Category = "HUD|Suit") float GetHealthFraction() const { return HealthFraction; }
 	UFUNCTION(BlueprintPure, Category = "HUD|Suit") float GetPowerFraction() const { return PowerFraction; }
@@ -105,7 +124,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "HUD|Suit") bool IsVenting() const { return bVenting; }
 	UFUNCTION(BlueprintPure, Category = "HUD|Flight") bool IsFlying() const { return bFlying; }
 	UFUNCTION(BlueprintPure, Category = "HUD|Flight") float GetAirspeedMs() const { return AirspeedMs; }
-	/** Always -1 in the live merge: UHelmetHUDWidget::FillStateFromGame already traces AGL once per frame. */
+	/** Always -1 in the live merge: the helmet HUD reads AGL through GetAglM() instead. */
 	UFUNCTION(BlueprintPure, Category = "HUD|Flight") float GetAltitudeM() const { return AltitudeM; }
 	UFUNCTION(BlueprintPure, Category = "HUD|Flight") float GetVerticalSpeedMs() const { return VerticalSpeedMs; }
 	/** Settings: UArenaGameUserSettings::bHudReducedMotion. */
@@ -116,6 +135,8 @@ public:
 
 	// UTickableWorldSubsystem
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
@@ -126,6 +147,20 @@ private:
 
 	/** Fallback when the TakeDamage hook is missing: a health drop becomes an arc toward the nearest enemy. */
 	void ReportUnhookedHealthDrop(const AIronManCharacter* Player, float Damage);
+
+	void HandleActorSpawned(AActor* Actor);
+	void RescanTrackedActors();
+
+	TArray<TWeakObjectPtr<AEnemyBase>> TrackedEnemies;
+	TArray<TWeakObjectPtr<APickup>> TrackedPickups;
+	FDelegateHandle ActorSpawnedHandle;
+	float RescanTimer = 0.f;
+
+	static constexpr double AglTraceIntervalS = 0.1;
+	TWeakObjectPtr<const AActor> AglActor;
+	FVector AglTraceLocation = FVector::ZeroVector;
+	double AglTraceTime = -1.0;
+	float AglTraceM = -1.f;
 
 	DamageArcMath::FArcSet Arcs;
 	FHUDHitReport LastHit;
