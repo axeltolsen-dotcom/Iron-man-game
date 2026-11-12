@@ -25,7 +25,7 @@ Read `README.md` and `Docs/` first.
 - A wanted level and police response (a first pass already exists).
 
 ## Finish and polish
-- Settings: turn the KEY BINDINGS list into a real Controls tab where every key can be rebound and saved, with gamepad support.
+- Settings: the CONTROLS section now rebinds 24 keyboard/mouse actions live (ArenaKeyBindings, saved to GameUserSettings.ini [IronManArena.Keys], swap on conflict, RESET KEYS). Still to do: gamepad button rebinding, and updating on-screen prompts like "[E]" to the rebound key.
 - Combat: hit feedback, enemy variety, and boss fights (Ultron boss effects are hooked up and need Niagara effects).
 - Cutscenes: camera work, pacing and subtitles for the story chapters and the finale.
 - NPCs: better faces, skin and clothing (see Vison's NPC notes on PR 1). There are no children in the crowd.

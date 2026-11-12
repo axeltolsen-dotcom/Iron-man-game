@@ -5,6 +5,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Framework/Commands/InputChord.h"
 #include "SettingsWidget.generated.h"
 
 class UComboBoxString;
@@ -13,6 +14,20 @@ class USlider;
 class UTextBlock;
 class UVerticalBox;
 class UButton;
+class UInputKeySelector;
+class USettingsWidget;
+
+/** One CONTROLS row's key-selected callback (dynamic delegates carry no row id). */
+UCLASS()
+class IRONMANARENA_API USettingsRebindRow : public UObject
+{
+	GENERATED_BODY()
+public:
+	FString BindingId;
+	TWeakObjectPtr<USettingsWidget> SettingsOwner;
+	UFUNCTION()
+	void HandleKeySelected(FInputChord SelectedKey);
+};
 
 UCLASS()
 class IRONMANARENA_API USettingsWidget : public UUserWidget
@@ -22,6 +37,10 @@ class IRONMANARENA_API USettingsWidget : public UUserWidget
 public:
 	/** Reload every control from the current settings object. */
 	void RefreshFromSettings();
+	/** A CONTROLS key selector picked a key: validate, swap on conflict, save and apply live. */
+	void RebindKey(const FString& BindingId, const FKey& NewKey);
+	/** Show the saved key on every CONTROLS selector. */
+	void RefreshKeySelectors();
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
@@ -33,7 +52,7 @@ protected:
 	UCheckBox* AddCheck(UVerticalBox* Box, const FText& Label);
 	USlider* AddSlider(UVerticalBox* Box, const FText& Label, float Min, float Max, float Step, UTextBlock*& OutValue);
 	void AddHeader(UVerticalBox* Box, const FText& Label);
-	/** Read-only key-bindings reference (Generated/ControlsReference.inl from contrib/vison/menu). */
+	/** CONTROLS: rebindable keys (ArenaKeyBindings) + the read-only rest of the reference (Generated/ControlsReference.inl). */
 	void AddControlsReference(UVerticalBox* Box);
 	void UpdateSliderLabels();
 	void ApplyLiveOptions();
@@ -50,6 +69,8 @@ protected:
 	void HandleDefaults();
 	UFUNCTION()
 	void HandleBack();
+	UFUNCTION()
+	void HandleResetKeys();
 
 	UPROPERTY(Transient) TObjectPtr<UComboBoxString> WindowModeCombo;
 	UPROPERTY(Transient) TObjectPtr<UComboBoxString> ResolutionCombo;
@@ -86,6 +107,10 @@ protected:
 	UPROPERTY(Transient) TObjectPtr<USlider> SubtitleScaleSlider;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> SubtitleScaleValue;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> StatusText;
+
+	UPROPERTY(Transient) TArray<TObjectPtr<USettingsRebindRow>> RebindRows;
+	UPROPERTY(Transient) TArray<TObjectPtr<UInputKeySelector>> RebindSelectors;
+	bool bRefreshingKeys = false;
 
 	TArray<FIntPoint> Resolutions;
 	bool bRefreshing = false;

@@ -1,4 +1,5 @@
 #include "CareerWidgets.h"
+#include "ArenaKeyBindings.h"
 
 #include "ArenaEnvironment.h"
 #include "ArenaAudio.h"
@@ -369,8 +370,8 @@ FReply UCareerScreen::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEve
 	}
 	const bool bToggleKey = (K == EKeys::Escape)
 		|| (Screen == ECareerScreen::DevBar && (K == EKeys::F1 || K == EKeys::Tilde))
-		|| (Screen == ECareerScreen::Shop && K == EKeys::U)
-		|| (Screen == ECareerScreen::Phone && K == EKeys::N)
+		|| (Screen == ECareerScreen::Shop && K == ArenaKeys::Get(TEXT("Shop")))
+		|| (Screen == ECareerScreen::Phone && K == ArenaKeys::Get(TEXT("Phone")))
 		|| (Screen == ECareerScreen::Avatar && K == EKeys::K);
 	if (bToggleKey) { CloseScreen(); return FReply::Handled(); }
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
@@ -2076,7 +2077,7 @@ void UCareerInput::TickInteract()
 	}
 	if (HUD) { HUD->Prompt = Prompt; }
 	APlayerController* P = PC();
-	if (!P || InteractKind == 0 || !P->WasInputKeyJustPressed(EKeys::E)) { return; }
+	if (!P || InteractKind == 0 || !P->WasInputKeyJustPressed(ArenaKeys::Get(TEXT("Interact")))) { return; }
 	if (InteractKind == 1 && Delivered.IsValid())
 	{
 		if (bSuitOff) { SetSuitOff(false); }
@@ -2114,10 +2115,11 @@ void UCareerInput::TickVehicle(float DeltaTime)
 	P->GetInputMouseDelta(Mx, My);
 	const bool bAir = V->GetKind() == ECityVehicleKind::Plane || V->GetKind() == ECityVehicleKind::Helicopter;
 	// Q/E are yaw in the air; E alone (tap) gets out - use X / Q for rudder so E stays the exit key.
-	V->SetInput(Ax(EKeys::W, EKeys::S), Ax(EKeys::D, EKeys::A), Ax(EKeys::SpaceBar, EKeys::LeftControl), Ax(EKeys::X, EKeys::Q),
-		!bAir && P->IsInputKeyDown(EKeys::SpaceBar), Ax(EKeys::LeftShift, EKeys::LeftControl), Mx);
-	if (P->WasInputKeyJustPressed(EKeys::E)) { V->Exit(); Driving = nullptr; }
-	else if (P->WasInputKeyJustPressed(EKeys::Escape) || P->WasInputKeyJustPressed(EKeys::P))
+	const FKey KUp = ArenaKeys::Get(TEXT("Ascend")), KDown = ArenaKeys::Get(TEXT("Descend"));
+	V->SetInput(Ax(ArenaKeys::Get(TEXT("MoveForward")), ArenaKeys::Get(TEXT("MoveBack"))), Ax(ArenaKeys::Get(TEXT("MoveRight")), ArenaKeys::Get(TEXT("MoveLeft"))), Ax(KUp, KDown), Ax(EKeys::X, EKeys::Q),
+		!bAir && P->IsInputKeyDown(KUp), Ax(ArenaKeys::Get(TEXT("Boost")), KDown), Mx);
+	if (P->WasInputKeyJustPressed(ArenaKeys::Get(TEXT("Interact")))) { V->Exit(); Driving = nullptr; }
+	else if (P->WasInputKeyJustPressed(EKeys::Escape) || P->WasInputKeyJustPressed(ArenaKeys::Get(TEXT("Pause"))))
 	{
 		if (AArenaPlayerController* APC = Cast<AArenaPlayerController>(P)) { APC->TogglePauseMenu(); }
 	}
@@ -2136,9 +2138,9 @@ void UCareerInput::TickKeys()
 		return;
 	}
 	if (GetOpenScreen() == ECareerScreen::DevBar) { return; }
-	if (P->WasInputKeyJustPressed(EKeys::U)) { OpenScreen(ECareerScreen::Shop); return; }
-	if (P->WasInputKeyJustPressed(EKeys::N)) { OpenScreen(ECareerScreen::Phone); return; }
-	if (P->WasInputKeyJustPressed(EKeys::M) && HUD) { HUD->bShowMarkers = !HUD->bShowMarkers; }
+	if (P->WasInputKeyJustPressed(ArenaKeys::Get(TEXT("Shop")))) { OpenScreen(ECareerScreen::Shop); return; }
+	if (P->WasInputKeyJustPressed(ArenaKeys::Get(TEXT("Phone")))) { OpenScreen(ECareerScreen::Phone); return; }
+	if (P->WasInputKeyJustPressed(ArenaKeys::Get(TEXT("Markers"))) && HUD) { HUD->bShowMarkers = !HUD->bShowMarkers; }
 	if (P->WasInputKeyJustPressed(Key(TEXT("SuitExit"), EKeys::O)) && !Driving.IsValid()) { if (bSuitOff) { RequestSuitUp(); } else { SetSuitOff(true); } }
 	if (bSuitOff && Parked && Parked->HasArrived()) { RequestSuitUp(); }
 }

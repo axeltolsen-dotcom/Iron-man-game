@@ -1,4 +1,5 @@
 #include "IronManCharacter.h"
+#include "ArenaKeyBindings.h"
 #include "SuitSuperComponent.h"
 #include "CareerSubsystem.h"
 #include "ArenaAudio.h"
@@ -669,7 +670,15 @@ void AIronManCharacter::CreateDefaultInputIfNeeded()
 
 	if (DefaultMappingContext) { return; }
 
-	UInputMappingContext* IMC = NewObject<UInputMappingContext>(this, TEXT("IMC_IronMan"));
+	UInputMappingContext* NewContext = NewObject<UInputMappingContext>(this, TEXT("IMC_IronMan"));
+	PopulateDefaultMappings(NewContext);
+	DefaultMappingContext = NewContext;
+	bAutoMappingContext = true;
+}
+
+void AIronManCharacter::PopulateDefaultMappings(UInputMappingContext* IMC)
+{
+	if (!IMC) { return; }
 
 	// Helpers that add modifiers to a fresh mapping.
 	auto Swizzle = [IMC](FEnhancedActionKeyMapping& M)
@@ -684,10 +693,10 @@ void AIronManCharacter::CreateDefaultInputIfNeeded()
 	};
 
 	// Move: value.X = right, value.Y = forward.
-	{ FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, EKeys::W); Swizzle(M); }
-	{ FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, EKeys::S); Swizzle(M); Negate(M); }
-	{ FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, EKeys::A); Negate(M); }
-	IMC->MapKey(MoveAction, EKeys::D);
+	{ FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, ArenaKeys::Get(TEXT("MoveForward"))); Swizzle(M); }
+	{ FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, ArenaKeys::Get(TEXT("MoveBack"))); Swizzle(M); Negate(M); }
+	{ FEnhancedActionKeyMapping& M = IMC->MapKey(MoveAction, ArenaKeys::Get(TEXT("MoveLeft"))); Negate(M); }
+	IMC->MapKey(MoveAction, ArenaKeys::Get(TEXT("MoveRight")));
 	IMC->MapKey(MoveAction, EKeys::Gamepad_Left2D);
 
 	// Look: mouse delta (X right, Y up). Gamepad stick scaled to degrees/second.
@@ -700,42 +709,56 @@ void AIronManCharacter::CreateDefaultInputIfNeeded()
 		M.Modifiers.Add(NewObject<UInputModifierScaleByDeltaTime>(IMC));
 	}
 
-	IMC->MapKey(AscendAction, EKeys::SpaceBar);
+	IMC->MapKey(AscendAction, ArenaKeys::Get(TEXT("Ascend")));
 	IMC->MapKey(AscendAction, EKeys::Gamepad_FaceButton_Bottom);
-	IMC->MapKey(DescendAction, EKeys::LeftControl);
-	IMC->MapKey(DescendAction, EKeys::C);
+	IMC->MapKey(DescendAction, ArenaKeys::Get(TEXT("Descend")));
+	if (!ArenaKeys::IdUsingKey(EKeys::C, TEXT("")).Len()) { IMC->MapKey(DescendAction, EKeys::C); } // legacy second key unless C was rebound to something
 	IMC->MapKey(DescendAction, EKeys::Gamepad_FaceButton_Right);
-	IMC->MapKey(ToggleFlightAction, EKeys::F);
+	IMC->MapKey(ToggleFlightAction, ArenaKeys::Get(TEXT("ToggleFlight")));
 	IMC->MapKey(ToggleFlightAction, EKeys::Gamepad_FaceButton_Top);
-	IMC->MapKey(FireAction, EKeys::LeftMouseButton);
+	IMC->MapKey(FireAction, ArenaKeys::Get(TEXT("Fire")));
 	IMC->MapKey(FireAction, EKeys::Gamepad_RightTrigger);
-	IMC->MapKey(BeamAction, EKeys::RightMouseButton);
+	IMC->MapKey(BeamAction, ArenaKeys::Get(TEXT("Special")));
 	IMC->MapKey(BeamAction, EKeys::Gamepad_LeftTrigger);
-	IMC->MapKey(HulkbusterAction, EKeys::Q);
+	IMC->MapKey(HulkbusterAction, ArenaKeys::Get(TEXT("Hulkbuster")));
 	IMC->MapKey(HulkbusterAction, EKeys::Gamepad_FaceButton_Left);
-	IMC->MapKey(PauseAction, EKeys::P);
+	IMC->MapKey(PauseAction, ArenaKeys::Get(TEXT("Pause")));
 	IMC->MapKey(PauseAction, EKeys::Escape); // in PIE, Esc also ends the session; use P there
 	IMC->MapKey(PauseAction, EKeys::Gamepad_Special_Right);
-	IMC->MapKey(ToggleViewAction, EKeys::V);
+	IMC->MapKey(ToggleViewAction, ArenaKeys::Get(TEXT("ToggleView")));
 	IMC->MapKey(ToggleViewAction, EKeys::Gamepad_RightThumbstick);
-	IMC->MapKey(SuitWheelAction, EKeys::T);
+	IMC->MapKey(SuitWheelAction, ArenaKeys::Get(TEXT("SuitWheel")));
 	IMC->MapKey(SuitWheelAction, EKeys::Gamepad_LeftShoulder);
 	IMC->MapKey(WheelPageAction, EKeys::MouseWheelAxis);
 	IMC->MapKey(WheelPageAction, EKeys::Tab);
 	IMC->MapKey(WheelPageAction, EKeys::Gamepad_RightShoulder);
-	IMC->MapKey(BoostAction, EKeys::LeftShift);
+	IMC->MapKey(BoostAction, ArenaKeys::Get(TEXT("Boost")));
 	IMC->MapKey(BoostAction, EKeys::Gamepad_LeftThumbstick);
-	IMC->MapKey(VentAction, EKeys::X);
+	IMC->MapKey(VentAction, ArenaKeys::Get(TEXT("Vent")));
 	IMC->MapKey(VentAction, EKeys::Gamepad_DPad_Down);
-	IMC->MapKey(AllyAction, EKeys::G);
+	IMC->MapKey(AllyAction, ArenaKeys::Get(TEXT("Ally")));
 	IMC->MapKey(AllyAction, EKeys::Gamepad_DPad_Up);
 	const FKey SlotKeys[5] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five };
 	for (int32 i = 0; i < 5; ++i)
 	{
 		IMC->MapKey(QuickSlotActions[i], SlotKeys[i]);
 	}
+}
 
-	DefaultMappingContext = IMC;
+void AIronManCharacter::RebuildInputMapping()
+{
+	// Only the runtime-built context is ours to rewrite; an assigned IMC asset is left alone.
+	if (!DefaultMappingContext || !bAutoMappingContext) { return; }
+	DefaultMappingContext->UnmapAll();
+	PopulateDefaultMappings(DefaultMappingContext);
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->RemoveMappingContext(DefaultMappingContext);
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		}
+	}
 }
 
 void AIronManCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

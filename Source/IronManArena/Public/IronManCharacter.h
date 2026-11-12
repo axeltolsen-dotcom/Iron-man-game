@@ -51,6 +51,9 @@ class IRONMANARENA_API AIronManCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
+	/** Re-read the rebindable keys (ArenaKeys) into the runtime mapping context; called by Settings > CONTROLS. */
+	void RebuildInputMapping();
+
 	AIronManCharacter();
 
 	virtual void Tick(float DeltaSeconds) override;
@@ -535,6 +538,10 @@ protected:
 
 	/** Builds Input Actions + Mapping Context in code if no assets were assigned. */
 	void CreateDefaultInputIfNeeded();
+	/** Keyboard/mouse keys come from ArenaKeys (Settings > CONTROLS); gamepad keys are fixed. */
+	void PopulateDefaultMappings(UInputMappingContext* IMC);
+	/** True when DefaultMappingContext was built in code (safe to rewrite on rebind). */
+	bool bAutoMappingContext = false;
 
 	// ------------------------------------------------------------------ mechanics
 	void SetFlying(bool bFly, bool bForced = false);

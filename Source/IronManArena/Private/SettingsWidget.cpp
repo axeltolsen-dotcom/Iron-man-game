@@ -4,6 +4,7 @@
 #include "ArenaGameUserSettings.h"
 #include "ArenaPlayerController.h"
 #include "CareerWidgets.h"
+#include "ArenaKeyBindings.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -20,6 +21,7 @@
 #include "Components/CheckBox.h"
 #include "Components/Slider.h"
 #include "Components/ComboBoxString.h"
+#include "Components/InputKeySelector.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "InputCoreTypes.h"
 
@@ -162,21 +164,85 @@ namespace
 	}
 }
 
+void USettingsRebindRow::HandleKeySelected(FInputChord SelectedKey)
+{
+	if (USettingsWidget* W = SettingsOwner.Get()) { W->RebindKey(BindingId, SelectedKey.Key); }
+}
+
 void USettingsWidget::AddControlsReference(UVerticalBox* Box)
 {
-	AddHeader(Box, LOCTEXT("KeyBindings", "KEY BINDINGS"));
+	AddHeader(Box, LOCTEXT("Controls", "CONTROLS"));
+	const FLinearColor NoteColor(0.55f, 0.6f, 0.68f, 1.f);
 	{
+		UTextBlock* Help = ArenaUI::MakeText(WidgetTree, LOCTEXT("RebindHelp",
+			"Click a key, then press the new key or mouse button (Esc cancels). Taking a key that is already used swaps the two. Gamepad buttons are fixed."),
+			12, NoteColor, "Italic");
+		Help->SetJustification(ETextJustify::Left);
+		Help->SetAutoWrapText(true);
+		if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Help)) { VS->SetPadding(FMargin(0.f, 0.f, 0.f, 4.f)); }
+
 		UHorizontalBox* Head = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		SettingsControlsCell(WidgetTree, Head, TEXT("ACTION"), 230.f, ArenaUI::Gold, 12);
-		SettingsControlsCell(WidgetTree, Head, TEXT("KEYBOARD / MOUSE"), 220.f, ArenaUI::Gold, 12);
+		SettingsControlsCell(WidgetTree, Head, TEXT("ACTION"), 250.f, ArenaUI::Gold, 12);
+		SettingsControlsCell(WidgetTree, Head, TEXT("KEYBOARD / MOUSE"), 200.f, ArenaUI::Gold, 12);
 		SettingsControlsCell(WidgetTree, Head, TEXT("GAMEPAD"), 170.f, ArenaUI::Gold, 12);
 		if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Head)) { VS->SetPadding(FMargin(0.f, 2.f, 0.f, 2.f)); }
 	}
 
-	const FLinearColor NoteColor(0.55f, 0.6f, 0.68f, 1.f);
+	RebindRows.Reset();
+	RebindSelectors.Reset();
+	TSet<FString> Replaced;
 	FString LastGroup;
+	for (const FArenaKeyBinding& B : ArenaKeys::All())
+	{
+		if (B.ReferenceAction && B.ReferenceAction[0]) { Replaced.Add(B.ReferenceAction); }
+		const FString GroupName(B.Group);
+		if (GroupName != LastGroup)
+		{
+			LastGroup = GroupName;
+			UTextBlock* G = ArenaUI::MakeText(WidgetTree, FText::FromString(GroupName), 13, ArenaUI::Red);
+			G->SetJustification(ETextJustify::Left);
+			if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(G)) { VS->SetPadding(FMargin(0.f, 8.f, 0.f, 2.f)); }
+		}
+
+		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		SettingsControlsCell(WidgetTree, Line, B.Label, 250.f, ArenaUI::Ice, 14);
+
+		UInputKeySelector* KeySel = WidgetTree->ConstructWidget<UInputKeySelector>(UInputKeySelector::StaticClass());
+		KeySel->SetAllowModifierKeys(false);
+		KeySel->SetAllowGamepadKeys(false);
+		KeySel->SetEscapeKeys({ EKeys::Escape });
+		KeySel->SetKeySelectionText(LOCTEXT("PressKey", "Press a key..."));
+		KeySel->SetNoKeySpecifiedText(LOCTEXT("Unbound", "-"));
+		KeySel->SetSelectedKey(FInputChord(ArenaKeys::Get(B.Id)));
+		USettingsRebindRow* RowHandler = NewObject<USettingsRebindRow>(this);
+		RowHandler->BindingId = B.Id;
+		RowHandler->SettingsOwner = this;
+		KeySel->OnKeySelected.AddDynamic(RowHandler, &USettingsRebindRow::HandleKeySelected);
+		RebindRows.Add(RowHandler);
+		RebindSelectors.Add(KeySel);
+		USizeBox* KeyBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		KeyBox->SetWidthOverride(170.f);
+		KeyBox->SetHeightOverride(30.f);
+		KeyBox->SetContent(KeySel);
+		if (UHorizontalBoxSlot* HS = Line->AddChildToHorizontalBox(KeyBox)) { HS->SetVerticalAlignment(VAlign_Center); HS->SetPadding(FMargin(0.f, 0.f, 38.f, 0.f)); }
+
+		SettingsControlsCell(WidgetTree, Line, B.Pad, 170.f, FLinearColor::White, 14);
+		if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Line)) { VS->SetPadding(FMargin(0.f, 2.f)); }
+	}
+
+	{
+		UTextBlock* ResetLabel = nullptr;
+		UButton* Reset = ArenaUI::MakeButton(WidgetTree, LOCTEXT("ResetKeys", "RESET KEYS"), 14, ResetLabel);
+		Reset->OnClicked.AddDynamic(this, &USettingsWidget::HandleResetKeys);
+		if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Reset)) { VS->SetHorizontalAlignment(HAlign_Left); VS->SetPadding(FMargin(0.f, 8.f, 0.f, 4.f)); }
+	}
+
+	// The rest of Vison's reference table: combos, holds and fixed keys that are not rebindable.
+	AddHeader(Box, LOCTEXT("MoreControls", "MORE CONTROLS (fixed)"));
+	LastGroup.Reset();
 	for (const FSettingsControlsRow& R : SettingsControlsTable())
 	{
+		if (Replaced.Contains(FString(R.Action)) || FCString::Strcmp(R.Action, TEXT("Avatar customizer")) == 0) { continue; } // customizer is disabled
 		const FString GroupName(R.Group);
 		if (GroupName != LastGroup)
 		{
@@ -186,18 +252,9 @@ void USettingsWidget::AddControlsReference(UVerticalBox* Box)
 			if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(G)) { VS->SetPadding(FMargin(0.f, 8.f, 0.f, 2.f)); }
 		}
 
-		// The four rebindable actions show the key actually read from [IronManArena.Keys].
-		FString KbmText(R.Kbm);
-		if (R.RebindName && R.RebindName[0] && R.RebindDefault && R.RebindDefault[0])
-		{
-			const FKey DefaultKey(R.RebindDefault);
-			const FKey Bound = UCareerInput::Key(R.RebindName, DefaultKey);
-			if (Bound.IsValid() && Bound != DefaultKey) { KbmText = Bound.GetDisplayName().ToString() + TEXT("  (rebound)"); }
-		}
-
 		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		SettingsControlsCell(WidgetTree, Line, R.Action, 230.f, ArenaUI::Ice, 14);
-		SettingsControlsCell(WidgetTree, Line, KbmText, 220.f, FLinearColor::White, 14);
+		SettingsControlsCell(WidgetTree, Line, R.Action, 250.f, ArenaUI::Ice, 14);
+		SettingsControlsCell(WidgetTree, Line, R.Kbm, 200.f, FLinearColor::White, 14);
 		SettingsControlsCell(WidgetTree, Line, R.Pad, 170.f, FLinearColor::White, 14);
 		if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Line)) { VS->SetPadding(FMargin(0.f, 2.f)); }
 
@@ -209,12 +266,55 @@ void USettingsWidget::AddControlsReference(UVerticalBox* Box)
 			if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(N)) { VS->SetPadding(FMargin(14.f, 0.f, 0.f, 3.f)); }
 		}
 	}
+}
 
-	UTextBlock* Foot = ArenaUI::MakeText(WidgetTree, LOCTEXT("KeysFoot",
-		"Exit suit, Faceplate, Web swing and Web-zip can be rebound under [IronManArena.Keys] in GameUserSettings.ini."), 12, NoteColor, "Italic");
-	Foot->SetJustification(ETextJustify::Left);
-	Foot->SetAutoWrapText(true);
-	if (UVerticalBoxSlot* VS = Box->AddChildToVerticalBox(Foot)) { VS->SetPadding(FMargin(0.f, 6.f, 0.f, 0.f)); }
+void USettingsWidget::RefreshKeySelectors()
+{
+	TGuardValue<bool> Guard(bRefreshingKeys, true);
+	for (int32 i = 0; i < RebindSelectors.Num() && i < RebindRows.Num(); ++i)
+	{
+		if (RebindSelectors[i] && RebindRows[i]) { RebindSelectors[i]->SetSelectedKey(FInputChord(ArenaKeys::Get(*RebindRows[i]->BindingId))); }
+	}
+}
+
+void USettingsWidget::RebindKey(const FString& BindingId, const FKey& NewKey)
+{
+	if (bRefreshingKeys) { return; }
+	const FArenaKeyBinding* B = ArenaKeys::Find(*BindingId);
+	if (!B) { return; }
+	if (!NewKey.IsValid() || ArenaKeys::IsReserved(NewKey))
+	{
+		RefreshKeySelectors();
+		if (StatusText && NewKey.IsValid())
+		{
+			StatusText->SetText(FText::Format(LOCTEXT("Reserved", "{0} is reserved and cannot be bound."), NewKey.GetDisplayName()));
+		}
+		return;
+	}
+	const FKey OldKey = ArenaKeys::Get(*BindingId);
+	if (NewKey == OldKey) { RefreshKeySelectors(); return; }
+
+	FText Status = FText::Format(LOCTEXT("Rebound", "{0}: {1}"), FText::FromString(B->Label), NewKey.GetDisplayName());
+	const FString OtherId = ArenaKeys::IdUsingKey(NewKey, *BindingId);
+	if (!OtherId.IsEmpty())
+	{
+		ArenaKeys::Set(*OtherId, OldKey);
+		const FArenaKeyBinding* Other = ArenaKeys::Find(*OtherId);
+		Status = FText::Format(LOCTEXT("Swapped", "{0}: {1}   (swapped: {2} is now {3})"), FText::FromString(B->Label), NewKey.GetDisplayName(),
+			FText::FromString(Other ? Other->Label : *OtherId), OldKey.GetDisplayName());
+	}
+	ArenaKeys::Set(*BindingId, NewKey);
+	ArenaKeys::ApplyToPlayer(GetOwningPlayer());
+	RefreshKeySelectors();
+	if (StatusText) { StatusText->SetText(Status); }
+}
+
+void USettingsWidget::HandleResetKeys()
+{
+	ArenaKeys::ResetAll();
+	ArenaKeys::ApplyToPlayer(GetOwningPlayer());
+	RefreshKeySelectors();
+	if (StatusText) { StatusText->SetText(LOCTEXT("KeysReset", "All keys reset to the defaults.")); }
 }
 
 void USettingsWidget::BuildTree()

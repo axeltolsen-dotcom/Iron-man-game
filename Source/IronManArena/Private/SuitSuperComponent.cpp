@@ -1,4 +1,5 @@
 #include "SuitSuperComponent.h"
+#include "ArenaKeyBindings.h"
 #include "ArenaAudio.h"
 #include "ArenaBlastFX.h"
 #include "ArenaCombat.h"
@@ -773,7 +774,7 @@ void USuitSuperComponent::TickMove(float Dt)
 			Punch(300.f, -4.f, 0.5f);
 		}
 		const APlayerController* PC = Cast<APlayerController>(C->GetController());
-		const bool bHeld = PC && (PC->IsInputKeyDown(EKeys::RightMouseButton) || PC->IsInputKeyDown(EKeys::LeftMouseButton) || PC->IsInputKeyDown(EKeys::Gamepad_LeftTrigger));
+		const bool bHeld = PC && (PC->IsInputKeyDown(ArenaKeys::Get(TEXT("Special"))) || PC->IsInputKeyDown(ArenaKeys::Get(TEXT("Fire"))) || PC->IsInputKeyDown(EKeys::Gamepad_LeftTrigger));
 		const float Spinup = Ph(T, 0.1f, 0.35f);
 		if (Temp.IsValidIndex(0) && Temp[0]) { Temp[0]->AddLocalRotation(FRotator(0.f, 0.f, 1800.f * Spinup * Dt)); }
 		if (T > 0.35f && T < 3.f && (bHeld || T < 1.2f))
@@ -907,11 +908,11 @@ void USuitSuperComponent::TickInput(float Dt)
 	if (bRightDown)
 	{
 		RightDownTime += Dt;
-		const bool bHeld = PC->IsInputKeyDown(EKeys::RightMouseButton) || PC->IsInputKeyDown(EKeys::Gamepad_LeftTrigger);
+		const bool bHeld = PC->IsInputKeyDown(ArenaKeys::Get(TEXT("Special"))) || PC->IsInputKeyDown(EKeys::Gamepad_LeftTrigger);
 		if (bHeld && RightDownTime >= 0.3f) { bRightDown = false; Begin(CurrentDef().Kind); }
 		else if (!bHeld) { bRightDown = false; C->UseSpecial(); } // tap: the suit's normal special
 	}
-	if (PC->WasInputKeyJustPressed(EKeys::LeftMouseButton))
+	if (PC->WasInputKeyJustPressed(ArenaKeys::Get(TEXT("Fire"))))
 	{
 		const double Now = FPlatformTime::Seconds();
 		if (Now - LastLeftClick < 0.28 && IsReady() && !bSwingMode) { Begin(CurrentDef().Kind); LastLeftClick = -10.0; }
@@ -985,7 +986,7 @@ void USuitSuperComponent::TickSwing(float Dt)
 	}
 
 	// Space while airborne: shoot a web up-and-ahead and hang on it; release = fling.
-	const bool bSpace = PC->IsInputKeyDown(EKeys::SpaceBar) || PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Bottom);
+	const bool bSpace = PC->IsInputKeyDown(ArenaKeys::Get(TEXT("Ascend"))) || PC->IsInputKeyDown(EKeys::Gamepad_FaceButton_Bottom);
 	if (bSpace && bAir && !bWebAttached && ZipLeft <= 0.f && Move && Move->Velocity.Z < 300.f)
 	{
 		const FVector Flat = FRotator(0.f, CR.Yaw, 0.f).Vector();
