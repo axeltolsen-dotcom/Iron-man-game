@@ -50,6 +50,18 @@ bool FKeyRebindTest::RunTest(const FString& Parameters)
 	ArenaKeys::ResetAll();
 	TestEqual(TEXT("reset"), ArenaKeys::Get(TEXT("ToggleFlight")), EKeys::F);
 	TestEqual(TEXT("unknown id"), ArenaKeys::Get(TEXT("NoSuchAction")), EKeys::Invalid);
+
+	// On-screen prompts follow the rebinds (and a swap doesn't chain).
+	TestEqual(TEXT("short space"), ArenaKeys::ShortName(EKeys::SpaceBar), FString(TEXT("Space")));
+	TestEqual(TEXT("short lmb"), ArenaKeys::ShortName(EKeys::LeftMouseButton), FString(TEXT("LMB")));
+	TestEqual(TEXT("prompt unchanged at defaults"), ArenaKeys::RebindPrompt(FString(TEXT("[E] get in"))), FString(TEXT("[E] get in")));
+	ArenaKeys::Set(TEXT("Interact"), EKeys::F);
+	ArenaKeys::Set(TEXT("ToggleFlight"), EKeys::E);
+	TestEqual(TEXT("prompt swap"), ArenaKeys::RebindPrompt(FString(TEXT("[E] get in  FLIGHT [F]"))), FString(TEXT("[F] get in  FLIGHT [E]")));
+	ArenaKeys::Set(TEXT("Ascend"), EKeys::K);
+	TestEqual(TEXT("prompt space"), ArenaKeys::RebindPrompt(FString(TEXT("[Space] web swing"))), FString(TEXT("[K] web swing")));
+	TestEqual(TEXT("ftext prompt"), ArenaKeys::RebindPrompt(FText::FromString(TEXT("[E] read"))).ToString(), FString(TEXT("[F] read")));
+	ArenaKeys::ResetAll();
 	return true;
 }
 

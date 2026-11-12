@@ -35,4 +35,12 @@ namespace ArenaKeys
 	IRONMANARENA_API FString IdUsingKey(const FKey& K, const TCHAR* ExceptId);
 	/** Rebuild the player's Enhanced Input mapping context so new keys work immediately. */
 	IRONMANARENA_API void ApplyToPlayer(APlayerController* PC);
+	/** Short on-screen name for a key ("E", "Space", "LMB", "Shift", "Ctrl"). */
+	IRONMANARENA_API FString ShortName(const FKey& K);
+	/** Short on-screen name of the key currently bound to Id. */
+	IRONMANARENA_API FString ShortLabel(const TCHAR* Id);
+	/** Rewrite "[E]"-style prompts written with the default keys so each bracketed default key shows the
+	 *  player's current binding ("[E] get in" -> "[F] get in" after rebinding Interact to F). Swaps are safe. */
+	IRONMANARENA_API FString RebindPrompt(const FString& In);
+	IRONMANARENA_API FText RebindPrompt(const FText& In);
 }

@@ -1615,7 +1615,7 @@ int32 UCareerHUD::NativePaint(const FPaintArgs& Args, const FGeometry& G, const 
 	}
 	if (!Prompt.IsEmpty())
 	{
-		const FString S = Prompt.ToString();
+		const FString S = ArenaKeys::RebindPrompt(Prompt.ToString());
 		Text(S, FVector2D(Size.X * 0.5f - Measure->Measure(S, Font(16)).X * 0.5f, Size.Y * 0.72f), 16, FLinearColor::White, false);
 	}
 	if (InputOwner.IsValid())
@@ -1626,11 +1626,11 @@ int32 UCareerHUD::NativePaint(const FPaintArgs& Args, const FGeometry& G, const 
 			if (V->GetKind() == ECityVehicleKind::Plane || V->GetKind() == ECityVehicleKind::Helicopter) { S += FString::Printf(TEXT("   ALT %d m"), FMath::RoundToInt(V->GetAltitudeM())); }
 			if (V->GetKind() == ECityVehicleKind::Plane) { S += FString::Printf(TEXT("   THR %d%%"), FMath::RoundToInt(V->GetThrottle() * 100.f)); }
 			Text(S, FVector2D(Size.X - 30.f, Size.Y - 80.f), 22, UiTeal, true);
-			Text(TEXT("[E] get out"), FVector2D(Size.X - 30.f, Size.Y - 50.f), 12, UiDim, true);
+			Text(ArenaKeys::RebindPrompt(FString(TEXT("[E] get out"))), FVector2D(Size.X - 30.f, Size.Y - 50.f), 12, UiDim, true);
 		}
 		else if (InputOwner->IsSuitOff())
 		{
-			Text(TEXT("ON FOOT (suit off)  -  O: suit up (near the suit) / call the suit"), FVector2D(30.f, Size.Y - 60.f), 13, UiTeal, false);
+			Text(ArenaKeys::RebindPrompt(FString(TEXT("ON FOOT (suit off)  -  [O] suit up (near the suit) / call the suit"))), FVector2D(30.f, Size.Y - 60.f), 13, UiTeal, false);
 		}
 	}
 	if (bShowFps) { Text(FString::Printf(TEXT("%d FPS"), FMath::RoundToInt(Fps)), FVector2D(20.f, 12.f), 14, UiTeal, false); }
@@ -1713,12 +1713,12 @@ int32 UCareerHUD::NativePaint(const FPaintArgs& Args, const FGeometry& G, const 
 			const FString Nm = FString(D.Name).ToUpper();
 			const FSlateFontInfo F12 = Font(12), F10 = Font(10);
 			Text(Nm, FVector2D(RC.X - Measure->Measure(Nm, F12).X * 0.5f, RC.Y + 30.f), 12, bReady ? FLinearColor(1.f, 0.92f, 0.6f) : UiDim, false);
-			const FString Hint = bReady ? FString(TEXT("HOLD RMB  /  DOUBLE-CLICK")) : FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Frac * 100.f));
+			const FString Hint = bReady ? FString::Printf(TEXT("HOLD %s  /  DOUBLE-CLICK"), *ArenaKeys::ShortLabel(TEXT("Special"))) : FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Frac * 100.f));
 			Text(Hint, FVector2D(RC.X - Measure->Measure(Hint, F10).X * 0.5f, RC.Y - 8.f + (bReady ? 54.f : 0.f)), 10, bReady ? UiTeal : UiDim, false);
 			FString Keys = TEXT("[O] exit suit   [H] faceplate   [Alt] focus");
 			if (Sup->CanSwing()) { Keys += Sup->IsSwingMode() ? TEXT("   [B] fly   [Space] web swing   [R] web zip") : TEXT("   [B] web swing"); }
 			if (Sup->IsMaskOpen()) { Keys += TEXT("   - faceplate open, HUD offline"); }
-			Text(Keys, FVector2D(30.f, Size.Y - 34.f), 11, UiDim, false);
+			Text(ArenaKeys::RebindPrompt(Keys), FVector2D(30.f, Size.Y - 34.f), 11, UiDim, false);
 		}
 
 		// ---- speed lines at high flight speed (boost) ----

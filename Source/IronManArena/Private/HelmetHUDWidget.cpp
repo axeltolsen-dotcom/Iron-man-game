@@ -40,6 +40,20 @@
 #include "Styling/CoreStyle.h"
 #include "UObject/UnrealType.h"
 
+#include "ArenaKeyBindings.h"
+
+namespace
+{
+	/** Vent key shown on the helmet: an explicit VentKeyLabel other than the default "X" wins, else the Settings > CONTROLS binding. */
+	FString HelmetVentKeyText(const FText& Explicit)
+	{
+		const FString E = Explicit.ToString();
+		if (!E.IsEmpty() && !E.Equals(TEXT("X"), ESearchCase::CaseSensitive)) { return E; }
+		return ArenaKeys::ShortLabel(TEXT("Vent"));
+	}
+}
+
+
 #define LOCTEXT_NAMESPACE "HelmetHUDWidget"
 
 namespace HelmetHUD
@@ -952,7 +966,7 @@ void UHelmetHUDWidget::RaiseWarning(FName WarningId, bool bCondition, const FTex
 		W.FlashHz = Def->FlashHz;
 		W.ExpireTime = Now() + Def->MinShowS;
 		FString LabelText = Def->Text.IsEmpty() ? WarningId.ToString().ToUpper() : Def->Text;
-		LabelText.ReplaceInline(TEXT("[X]"), *FString::Printf(TEXT("[%s]"), *VentKeyLabel.ToString()), ESearchCase::CaseSensitive);
+		LabelText.ReplaceInline(TEXT("[X]"), *FString::Printf(TEXT("[%s]"), *HelmetVentKeyText(VentKeyLabel)), ESearchCase::CaseSensitive);
 		W.Label = FText::FromString(LabelText);
 	}
 	else
@@ -1325,7 +1339,7 @@ void UHelmetHUDWidget::UpdateGauges()
 	SetTextColorIfChanged(HeatValueText, HeatColor);
 
 	// ---- Vent prompt ----
-	const FString KeyLabel = VentKeyLabel.IsEmpty() ? FString(TEXT("X")) : VentKeyLabel.ToString();
+	const FString KeyLabel = HelmetVentKeyText(VentKeyLabel);
 	FString Prompt;
 	FLinearColor PromptColor = PalPrimary;
 	float PromptOpacity = 1.f;

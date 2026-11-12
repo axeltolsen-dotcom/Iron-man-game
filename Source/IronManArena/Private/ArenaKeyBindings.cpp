@@ -115,3 +115,58 @@ void ArenaKeys::ApplyToPlayer(APlayerController* PC)
 	if (!PC) { return; }
 	if (AIronManCharacter* Char = Cast<AIronManCharacter>(PC->GetPawn())) { Char->RebuildInputMapping(); }
 }
+
+FString ArenaKeys::ShortName(const FKey& K)
+{
+	if (!K.IsValid()) { return TEXT("?"); }
+	if (K == EKeys::SpaceBar) { return TEXT("Space"); }
+	if (K == EKeys::LeftMouseButton) { return TEXT("LMB"); }
+	if (K == EKeys::RightMouseButton) { return TEXT("RMB"); }
+	if (K == EKeys::MiddleMouseButton) { return TEXT("MMB"); }
+	if (K == EKeys::ThumbMouseButton) { return TEXT("Mouse4"); }
+	if (K == EKeys::ThumbMouseButton2) { return TEXT("Mouse5"); }
+	if (K == EKeys::LeftShift || K == EKeys::RightShift) { return TEXT("Shift"); }
+	if (K == EKeys::LeftControl || K == EKeys::RightControl) { return TEXT("Ctrl"); }
+	if (K == EKeys::LeftAlt || K == EKeys::RightAlt) { return TEXT("Alt"); }
+	if (K == EKeys::BackSpace) { return TEXT("Backspace"); }
+	if (K == EKeys::CapsLock) { return TEXT("Caps"); }
+	FString S = K.GetDisplayName(false).ToString();
+	if (S.IsEmpty()) { S = K.GetFName().ToString(); }
+	return S;
+}
+
+FString ArenaKeys::ShortLabel(const TCHAR* Id)
+{
+	return ShortName(Get(Id));
+}
+
+FString ArenaKeys::RebindPrompt(const FString& In)
+{
+	if (!In.Contains(TEXT("["))) { return In; }
+	const TArray<FArenaKeyBinding>& Table = All();
+	FString Out = In;
+	TArray<int32> Changed;
+	// Pass 1: each changed default "[Def]" -> a private marker, so swapped keys can't chain.
+	for (int32 i = 0; i < Table.Num(); ++i)
+	{
+		const FKey Cur = Get(Table[i].Id);
+		if (Cur == Table[i].DefaultKey) { continue; }
+		const FString Def = FString::Printf(TEXT("[%s]"), *ShortName(Table[i].DefaultKey));
+		if (!Out.Contains(Def, ESearchCase::CaseSensitive)) { continue; }
+		Out.ReplaceInline(*Def, *FString::Printf(TEXT("[\x01%d\x02]"), i), ESearchCase::CaseSensitive);
+		Changed.Add(i);
+	}
+	// Pass 2: markers -> the current key names.
+	for (int32 i : Changed)
+	{
+		Out.ReplaceInline(*FString::Printf(TEXT("[\x01%d\x02]"), i), *FString::Printf(TEXT("[%s]"), *ShortLabel(Table[i].Id)), ESearchCase::CaseSensitive);
+	}
+	return Out;
+}
+
+FText ArenaKeys::RebindPrompt(const FText& In)
+{
+	const FString S = In.ToString();
+	const FString R = RebindPrompt(S);
+	return R.Equals(S, ESearchCase::CaseSensitive) ? In : FText::FromString(R);
+}

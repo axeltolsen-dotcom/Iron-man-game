@@ -2327,7 +2327,7 @@ void AIronManCharacter::Banner(const FText& Title, const FText& Sub, float Secon
 {
 	if (AArenaGameMode* GM = GetArenaGameMode())
 	{
-		GM->ShowBanner(Title, Sub, Seconds);
+		GM->ShowBanner(ArenaKeys::RebindPrompt(Title), ArenaKeys::RebindPrompt(Sub), Seconds);
 	}
 }
 

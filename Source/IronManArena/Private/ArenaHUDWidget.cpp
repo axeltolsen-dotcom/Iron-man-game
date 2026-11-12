@@ -1,4 +1,5 @@
 #include "ArenaHUDWidget.h"
+#include "ArenaKeyBindings.h"
 
 #include "ArenaGameMode.h"
 #include "IronManCharacter.h"
@@ -203,7 +204,7 @@ void UArenaHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		}
 		else
 		{
-			FlightText->SetText(Player->IsFlying() ? LOCTEXT("Flying", "FLIGHT [F]") : LOCTEXT("Ground", "GROUND - RECHARGING [F]"));
+			FlightText->SetText(ArenaKeys::RebindPrompt(Player->IsFlying() ? LOCTEXT("Flying", "FLIGHT [F]") : LOCTEXT("Ground", "GROUND - RECHARGING [F]")));
 			FlightText->SetColorAndOpacity(FSlateColor(HudCyan));
 		}
 
@@ -214,7 +215,7 @@ void UArenaHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		else if (Player->GetHulkbusterCharges() > 0)
 		{
 			const bool bFlash = FMath::Fmod(Pulse, 0.8f) < 0.4f;
-			HulkbusterText->SetText(FText::Format(LOCTEXT("BusterReady", "HULKBUSTER READY [Q]  x{0}"), FText::AsNumber(Player->GetHulkbusterCharges())));
+			HulkbusterText->SetText(ArenaKeys::RebindPrompt(FText::Format(LOCTEXT("BusterReady", "HULKBUSTER READY [Q]  x{0}"), FText::AsNumber(Player->GetHulkbusterCharges()))));
 			HulkbusterText->SetColorAndOpacity(FSlateColor(bFlash ? FLinearColor::White : HudGold));
 		}
 		else if (bStory)
@@ -312,7 +313,7 @@ void UArenaHUDWidget::TickReactor(const AIronManCharacter* Player)
 	else if (R->IsOverheated()) { HeatLine = LOCTEXT("Overheat", "OVERHEAT - VENT [X]"); }
 	else if (R->GetVentCooldownLeft() > 0.f) { HeatLine = FText::Format(LOCTEXT("VentCd", "HEAT {0}%  vent in {1}s"), FText::AsNumber(FMath::RoundToInt(Heat * 100.f)), FText::AsNumber(FMath::CeilToInt(R->GetVentCooldownLeft()))); }
 	else { HeatLine = FText::Format(Heat > 0.6f ? LOCTEXT("HeatHigh", "HEAT {0}%  [X] VENT") : LOCTEXT("Heat", "HEAT {0}%"), FText::AsNumber(FMath::RoundToInt(Heat * 100.f))); }
-	HeatText->SetText(HeatLine);
+	HeatText->SetText(ArenaKeys::RebindPrompt(HeatLine));
 
 	FText Stage = LOCTEXT("ReactorArena", "ARC REACTOR");
 	if (R->HasStage())
