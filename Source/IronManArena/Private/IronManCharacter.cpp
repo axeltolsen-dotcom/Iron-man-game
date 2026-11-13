@@ -41,6 +41,8 @@
 #include "Engine/DamageEvents.h"
 #include "GameFramework/DamageType.h"
 #include "EngineUtils.h"
+#include "TimerManager.h"
+#include "HAL/IConsoleManager.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -2058,6 +2060,7 @@ float AIronManCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	{
 		HUDData->ReportPlayerHit(this, Applied, MaxHealth, DamageEvent, EventInstigator, DamageCauser);
 	}
+	ApplyHitReaction(Applied, DamageEvent, EventInstigator, DamageCauser);
 	InvulnerableLeft = InvulnerabilityAfterHit;
 	HitFlashLeft = 0.15f;
 	ArenaVisuals::FlashAll(Parts, FLinearColor(1.f, 0.5f, 0.3f), false);
@@ -2074,6 +2077,95 @@ float AIronManCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	}
 	return Applied;
 }
+
+namespace HitReactTuning
+{
+	// contrib/jocasta/combat_realism.json "player"
+	constexpr float FlinchMinDeg = 3.f, FlinchMaxDeg = 6.f, FlinchDuration = 0.32f;
+	constexpr float HeavyHit = 25.f, FlightKnockMaxCm = 200.f, KnockHalfLife = 0.12f, ThrustDropSec = 0.25f;
+}
+
+void AIronManCharacter::ApplyHitReaction(float Applied, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (Applied <= 0.f || bInCinematic) { return; }
+	const FVector Me = GetActorLocation();
+	// Direction the hit travels (source -> me).
+	FVector HitDir = FVector::ZeroVector;
+	if (DamageEvent.IsOfType(FPointDamageEvent::ClassID))
+	{
+		HitDir = static_cast<const FPointDamageEvent&>(DamageEvent).ShotDirection;
+	}
+	if (HitDir.IsNearlyZero())
+	{
+		const AActor* Src = DamageCauser ? DamageCauser : (EventInstigator ? EventInstigator->GetPawn() : nullptr);
+		if (Src && Src != this) { HitDir = Me - Src->GetActorLocation(); }
+	}
+	if (HitDir.IsNearlyZero()) { HitDir = -GetActorForwardVector(); } // unknown source: treat as a frontal hit
+	HitDir = HitDir.GetSafeNormal();
+
+	// Torso flinch away from the hit: frontal hits rock the chest back, side hits roll away.
+	const float Strength = FMath::Clamp(Applied / HitReactTuning::HeavyHit, 0.f, 1.f);
+	const float Deg = FMath::Lerp(HitReactTuning::FlinchMinDeg, HitReactTuning::FlinchMaxDeg, Strength);
+	const FVector Local = GetActorTransform().InverseTransformVectorNoScale(HitDir);
+	const FVector2D Flat2(Local.X, Local.Y);
+	const FVector2D Dir2 = Flat2.IsNearlyZero() ? FVector2D(1.f, 0.f) : Flat2.GetSafeNormal();
+	HitFlinchRot = FRotator(-Dir2.X * Deg, 0.f, Dir2.Y * Deg); // +pitch = chest back
+	HitFlinchLeft = HitReactTuning::FlinchDuration;
+	++HitFlinchCount;
+
+	// Flight: heavy hits shove the suit off its line and cut thrust for a beat.
+	if (IsFlying() && Applied >= HitReactTuning::HeavyHit * 0.6f)
+	{
+		const float Tau = HitReactTuning::KnockHalfLife / UE_LN2; // displacement = v0 * tau
+		const float KnockCm = HitReactTuning::FlightKnockMaxCm * FMath::Clamp(Applied / (HitReactTuning::HeavyHit * 1.6f), 0.35f, 1.f);
+		FVector Push = HitDir;
+		Push.Z = FMath::Clamp(Push.Z, -0.35f, 0.35f);
+		HitKnockVel += Push.GetSafeNormal() * (KnockCm / Tau);
+		HitKnockVel = HitKnockVel.GetClampedToMaxSize(HitReactTuning::FlightKnockMaxCm / Tau);
+		ThrustDropLeft = HitReactTuning::ThrustDropSec;
+		++FlightKnockCount;
+	}
+}
+
+void AIronManCharacter::DevTestHitReaction(float Damage, bool bFly)
+{
+	if (bFly && !IsFlying()) { SetFlying(true, true); }
+	FPointDamageEvent Ev(Damage, FHitResult(), -GetActorForwardVector(), UDamageType::StaticClass());
+	const FVector Before = GetActorLocation();
+	ApplyHitReaction(Damage, Ev, nullptr, nullptr);
+	UE_LOG(LogIronManArena, Display, TEXT("HIT REACT: damage %.0f flying=%d flinch pitch %.1f roll %.1f knock %.0f cm/s thrustDrop %.2f s (flinches %d, knocks %d)"),
+		Damage, IsFlying() ? 1 : 0, HitFlinchRot.Pitch, HitFlinchRot.Roll, HitKnockVel.Size(), ThrustDropLeft, HitFlinchCount, FlightKnockCount);
+	if (UWorld* W = GetWorld())
+	{
+		TWeakObjectPtr<AIronManCharacter> Weak(this);
+		FTimerHandle Handle;
+		W->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateLambda([Weak, Before]()
+		{
+			if (!Weak.IsValid()) { return; }
+			UE_LOG(LogIronManArena, Display, TEXT("HIT REACT +0.8 s: knock left %.0f cm/s, thrustDrop %.2f, flinch left %.2f, moved %.0f cm"),
+				Weak->HitKnockVel.Size(), Weak->ThrustDropLeft, Weak->HitFlinchLeft, FVector::Dist(Before, Weak->GetActorLocation()));
+		}), 0.8f, false);
+	}
+}
+
+#if !UE_BUILD_SHIPPING
+static FAutoConsoleCommandWithWorldAndArgs GHitReactCmd(
+	TEXT("ima.HitReact"),
+	TEXT("Dev: hit the player from the front. ima.HitReact <damage=30> <fly=1>"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		if (!World) { return; }
+		const float Dmg = Args.Num() > 0 ? FMath::Max(1.f, FCString::Atof(*Args[0])) : 30.f;
+		const bool bFly = Args.Num() > 1 ? FCString::Atoi(*Args[1]) != 0 : true;
+		for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+		{
+			if (AIronManCharacter* Char = It->Get() ? Cast<AIronManCharacter>(It->Get()->GetPawn()) : nullptr)
+			{
+				Char->DevTestHitReaction(Dmg, bFly);
+			}
+		}
+	}));
+#endif
 
 void AIronManCharacter::Heal(float Amount)
 {
@@ -2132,9 +2224,20 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 	const float LeanRoll = (bFly && !bInCinematic) ? FlightBank : 0.f;
 	if (DeltaSeconds > 0.f)
 	{
-		const FRotator Cur = SuitRoot->GetRelativeRotation();
+		const FRotator Cur = SuitRoot->GetRelativeRotation() - HitFlinchApplied;
 		// Faster SuitRoot bank (F3): physics already interps FlightBank at 8; keep one visual lag, not two soft ones.
-		SuitRoot->SetRelativeRotation(FMath::RInterpTo(Cur, FRotator(LeanPitch, 0.f, LeanRoll), DeltaSeconds, 12.f));
+		FRotator LeanBase = FMath::RInterpTo(Cur, FRotator(LeanPitch, 0.f, LeanRoll), DeltaSeconds, 12.f);
+		// Hit flinch: fast snap (first 20%), eased recovery.
+		HitFlinchApplied = FRotator::ZeroRotator;
+		if (HitFlinchLeft > 0.f && !bDead && !bInCinematic)
+		{
+			HitFlinchLeft = FMath::Max(0.f, HitFlinchLeft - DeltaSeconds);
+			const float T = 1.f - HitFlinchLeft / HitReactTuning::FlinchDuration;
+			const float W = T < 0.2f ? FMath::Sin(T / 0.2f * UE_HALF_PI) : FMath::Square(1.f - (T - 0.2f) / 0.8f);
+			HitFlinchApplied = HitFlinchRot * W;
+		}
+		else { HitFlinchLeft = 0.f; }
+		SuitRoot->SetRelativeRotation(LeanBase + HitFlinchApplied);
 	}
 
 	// Arms: raised toward the crosshair while shooting / punching, otherwise hanging (or swept back in flight).
@@ -2461,6 +2564,8 @@ void AIronManCharacter::TickFlightPhysics(float DeltaSeconds)
 		FlightBank = FMath::FInterpTo(FlightBank, 0.f, DeltaSeconds, 6.f);
 		FlightLeanPitch = FMath::FInterpTo(FlightLeanPitch, 0.f, DeltaSeconds, 6.f);
 		FlightThrottleVis = 0.f;
+		HitKnockVel = HitKnockApplied = FVector::ZeroVector;
+		ThrustDropLeft = 0.f;
 		BoostFov = FMath::FInterpTo(BoostFov, 0.f, DeltaSeconds, 8.f);
 		FlightMoveSmoothed = FMath::Vector2DInterpTo(FlightMoveSmoothed, FVector2D::ZeroVector, DeltaSeconds, 14.f);
 		return;
@@ -2472,7 +2577,16 @@ void AIronManCharacter::TickFlightPhysics(float DeltaSeconds)
 	const FRotator YawRot(0.f, CR.Yaw, 0.f);
 	const FVector Flat = YawRot.Vector();
 	const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
-	FVector V = Move->Velocity;
+	// Hit knock rides on top of the flight velocity: take last frame's share out, decay it, add it back at the end.
+	FVector V = Move->Velocity - HitKnockApplied;
+	HitKnockApplied = FVector::ZeroVector;
+	if (!HitKnockVel.IsNearlyZero(1.f))
+	{
+		HitKnockVel *= FMath::Exp(-UE_LN2 / HitReactTuning::KnockHalfLife * Dt);
+	}
+	else { HitKnockVel = FVector::ZeroVector; }
+	const float ThrustMul = ThrustDropLeft > 0.f ? 0.2f : 1.f;
+	ThrustDropLeft = FMath::Max(0.f, ThrustDropLeft - Dt);
 	const float Speed = float(V.Size());
 
 	// Per-suit scale: suit speed rating, shop upgrade, Hulkbuster is heavier.
@@ -2527,7 +2641,7 @@ void AIronManCharacter::TickFlightPhysics(float DeltaSeconds)
 	{
 		Thrust += Look * 0.35f;
 	}
-	Thrust = Thrust.GetClampedToMaxSize(1.f) * P.Thrust * K;
+	Thrust = Thrust.GetClampedToMaxSize(1.f) * P.Thrust * K * ThrustMul;
 	FVector Accel = Thrust + FVector(0.f, 0.f, Vert * 3800.f * K); // F6: was 2800
 
 	// Soft bumpers: glance off buildings instead of sticking.
@@ -2580,7 +2694,8 @@ void AIronManCharacter::TickFlightPhysics(float DeltaSeconds)
 		}
 	}
 
-	Move->Velocity = V;
+	Move->Velocity = V + HitKnockVel;
+	HitKnockApplied = HitKnockVel;
 
 	// Bank into turns (yaw rate + strafe), lean into speed; boost tilts into a dive.
 	const float Yaw = float(CR.Yaw);
@@ -2592,7 +2707,7 @@ void AIronManCharacter::TickFlightPhysics(float DeltaSeconds)
 	const float Fwd = float(FVector::DotProduct(V, Flat));
 	const float WantPitch = FlightState == 2 ? -65.f : -FMath::Clamp(Fwd / FMath::Max(1.f, CruiseMax), -0.4f, 1.f) * 40.f;
 	FlightLeanPitch = FMath::FInterpTo(FlightLeanPitch, WantPitch, Dt, 5.f);
-	FlightThrottleVis = FMath::FInterpTo(FlightThrottleVis, FlightState == 2 ? 1.f : FMath::Clamp(Thrust.Size() / 6000.f + FMath::Abs(Vert) * 0.4f, 0.f, 0.8f), Dt, 8.f);
+	FlightThrottleVis = FMath::FInterpTo(FlightThrottleVis, ThrustMul < 1.f ? 0.15f : FlightState == 2 ? 1.f : FMath::Clamp(Thrust.Size() / 6000.f + FMath::Abs(Vert) * 0.4f, 0.f, 0.8f), Dt, 8.f);
 	BoostFov = FMath::FInterpTo(BoostFov, FlightState == 2 ? 12.f : 0.f, Dt, FlightState == 2 ? 15.f : 8.f);
 
 	// Raw axis cleared so a missed Triggered frame decays via smoothed path.

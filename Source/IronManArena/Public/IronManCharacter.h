@@ -176,6 +176,8 @@ public:
 	bool IsDead() const { return bDead; }
 	UFUNCTION(BlueprintPure, Category = "IronMan")
 	bool IsFlying() const;
+	/** Dev (ima.HitReact): a frontal point hit of Damage, optionally while flying; logs flinch / knock / thrust drop. */
+	void DevTestHitReaction(float Damage, bool bFly);
 	UFUNCTION(BlueprintPure, Category = "IronMan")
 	bool IsFlightLocked() const { return bFlightLocked; }
 	UFUNCTION(BlueprintPure, Category = "IronMan")
@@ -676,6 +678,18 @@ protected:
 	int32 HardLandings = 0;
 	bool bPunchLeft = false;
 	float HitFlashLeft = 0.f;
+	/** Jocasta combat_realism "player": directional torso flinch (3-6 deg away from the hit), decays over HitFlinchDuration. */
+	FRotator HitFlinchRot = FRotator::ZeroRotator;
+	float HitFlinchLeft = 0.f;
+	FRotator HitFlinchApplied = FRotator::ZeroRotator; // what TickVisuals last added on SuitRoot
+	/** In flight: heavy hits knock the suit off its line (<= 2 m, half-life 0.12 s) and briefly drop thrust (0.25 s). */
+	FVector HitKnockVel = FVector::ZeroVector;
+	FVector HitKnockApplied = FVector::ZeroVector; // part of Move->Velocity that is knock, removed before the next physics step
+	float ThrustDropLeft = 0.f;
+	/** Stats for tests / smoke logs. */
+	int32 HitFlinchCount = 0;
+	int32 FlightKnockCount = 0;
+	void ApplyHitReaction(float Applied, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 	float RepulsorFlash = 0.f;
 	float WalkCycle = 0.f;
 	float FloorZAtSpawn = 0.f;
