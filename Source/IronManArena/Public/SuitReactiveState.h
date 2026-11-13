@@ -110,6 +110,7 @@ public:
 	void NotifyLanding(float DownSpeedCmS);
 	void NotifyRepulsorShot();
 	void NotifyTankShellHit();
+	void NotifyBackHit(float Strength01); // spine-mount hit from behind: +50% extra scorch (Jocasta x1.5)
 	void NotifyExplosion(const FVector& Epicenter, float BlastRadius);
 
 	/** Any explosion in the world: grime + scorch on every player suit near it. */

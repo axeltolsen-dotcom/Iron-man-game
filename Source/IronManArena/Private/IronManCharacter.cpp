@@ -2113,6 +2113,16 @@ void AIronManCharacter::ApplyHitReaction(float Applied, FDamageEvent const& Dama
 	HitFlinchLeft = HitReactTuning::FlinchDuration;
 	++HitFlinchCount;
 
+	// Jocasta combat_realism spineMountBackHit: hits from behind land on the spine-mounted reactor housing.
+	// Extra scorch (x1.5 overall), +5% heat, and the reactor glow dips to 60% for 0.3 s. Getting flanked costs you.
+	if (Local.X > 0.5f)
+	{
+		if (SuitReactive) { SuitReactive->NotifyBackHit(Strength); }
+		if (Reactor) { Reactor->AddHeat(0.05f * Reactor->GetMaxHeat()); }
+		BackHitDipLeft = 0.3f;
+		++BackHitCount;
+	}
+
 	// Flight: heavy hits shove the suit off its line and cut thrust for a beat.
 	if (IsFlying() && Applied >= HitReactTuning::HeavyHit * 0.6f)
 	{
@@ -2135,6 +2145,15 @@ void AIronManCharacter::DevTestHitReaction(float Damage, bool bFly)
 	ApplyHitReaction(Damage, Ev, nullptr, nullptr);
 	UE_LOG(LogIronManArena, Display, TEXT("HIT REACT: damage %.0f flying=%d flinch pitch %.1f roll %.1f knock %.0f cm/s thrustDrop %.2f s (flinches %d, knocks %d)"),
 		Damage, IsFlying() ? 1 : 0, HitFlinchRot.Pitch, HitFlinchRot.Roll, HitKnockVel.Size(), ThrustDropLeft, HitFlinchCount, FlightKnockCount);
+	{
+		// Back (spine mount) hit as well, so the dev command checks both paths.
+		const float HeatBefore = Reactor ? Reactor->GetHeatFraction() : 0.f;
+		const float ScorchBefore = SuitReactive ? SuitReactive->GetScorch() : 0.f;
+		FPointDamageEvent BackEv(Damage, FHitResult(), GetActorForwardVector(), UDamageType::StaticClass());
+		ApplyHitReaction(Damage, BackEv, nullptr, nullptr);
+		UE_LOG(LogIronManArena, Display, TEXT("HIT REACT BACK: heat %.3f -> %.3f scorch %.3f -> %.3f reactorDip %.2f s (back hits %d)"),
+			HeatBefore, Reactor ? Reactor->GetHeatFraction() : 0.f, ScorchBefore, SuitReactive ? SuitReactive->GetScorch() : 0.f, BackHitDipLeft, BackHitCount);
+	}
 	if (UWorld* W = GetWorld())
 	{
 		TWeakObjectPtr<AIronManCharacter> Weak(this);
@@ -2343,7 +2362,9 @@ void AIronManCharacter::TickVisuals(float DeltaSeconds)
 	{
 		const float EnergyFrac = MaxEnergy > 0.f ? Energy / MaxEnergy : 0.f;
 		const float ReactorMul = GetSuit().Reactor == ESuitReactor::None ? 0.25f : 1.f;
-		ArcLight->SetIntensity(SuitLightLumens::Reactor * ReactorMul * ReactorStutterMul * (0.25f + 0.75f * EnergyFrac * (0.85f + 0.15f * FMath::Sin(Time * 4.f))));
+		if (BackHitDipLeft > 0.f) { BackHitDipLeft = FMath::Max(0.f, BackHitDipLeft - DeltaSeconds); }
+		const float BackDipMul = BackHitDipLeft > 0.f ? 0.6f : 1.f;
+		ArcLight->SetIntensity(SuitLightLumens::Reactor * ReactorMul * ReactorStutterMul * BackDipMul * (0.25f + 0.75f * EnergyFrac * (0.85f + 0.15f * FMath::Sin(Time * 4.f))));
 	}
 
 	// Makeshift mounted reactor: the exposed core shifts blue -> orange -> red with heat and

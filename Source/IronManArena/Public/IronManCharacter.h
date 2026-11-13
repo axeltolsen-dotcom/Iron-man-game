@@ -688,6 +688,8 @@ protected:
 	float ThrustDropLeft = 0.f;
 	/** Stats for tests / smoke logs. */
 	int32 HitFlinchCount = 0;
+	float BackHitDipLeft = 0.f; // spine-mount back hit: reactor glow at 60% while > 0
+	int32 BackHitCount = 0;
 	int32 FlightKnockCount = 0;
 	void ApplyHitReaction(float Applied, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 	float RepulsorFlash = 0.f;

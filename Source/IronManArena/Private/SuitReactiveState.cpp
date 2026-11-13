@@ -705,6 +705,12 @@ void USuitReactiveComponent::NotifyTankShellHit()
 	bSaveDirty = true;
 }
 
+void USuitReactiveComponent::NotifyBackHit(float Strength01)
+{
+	SuitReactive::AddScorch(State, 0.5f * SuitReactive::Get().ScorchTankShell * FMath::Clamp(Strength01, 0.f, 1.f));
+	bSaveDirty = true;
+}
+
 void USuitReactiveComponent::NotifyExplosion(const FVector& Epicenter, float BlastRadius)
 {
 	const AIronManCharacter* Char = GetSuitOwner();
